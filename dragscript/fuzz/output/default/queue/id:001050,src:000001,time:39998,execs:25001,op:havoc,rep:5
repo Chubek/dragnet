@@ -1,5 +1,0 @@
-pet a = [1, 2, 3];
-a[0] = 10ush(5);
-let b = [1, [2uuuuuuuuuuuuuuuush(5);
-let b = [1, [2, 3], 4];
-b[1][0] = 0;

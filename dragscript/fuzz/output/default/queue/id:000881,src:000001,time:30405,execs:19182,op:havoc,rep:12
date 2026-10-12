@@ -1,6 +1,0 @@
-let a = [1, 2, 3];
-a[0] = 10;
-a[3] = 4;
-aNpush(5);
-let b = [1, [2, 3], 4];
-b[1][0] = 20;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
