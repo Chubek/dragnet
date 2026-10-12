@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.copy-propagation.simple"
+  :name "MIR Copy Propagation"
+  :stage mir
+  (category copy-propagation)
+  (paradigms ssa-based data-flow-analysis)
+  (objective "Replace a use of a copied SSA value with its source when the copy remains valid.")
+  (requires
+    (capability ssa-form)
+    (analysis reaching-definitions-analysis))
+  (preconditions
+    (copy-is-valid)
+    (no-intervening-redefinition))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (rewrite (copy x y) (use y)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces uses of a copied SSA value with the source value.")
+  (limitations "Applies only when the copy remains valid and definitions are not invalidated.")
+  (documentation
+    (purpose "Propagate copied SSA values to their uses.")
+    (motivation "Copy propagation removes redundant assignments.")
+    (applicability "Applies to SSA copy operations whose source reaches the use without redefinition.")
+    (semantic-assumptions "The reaching definition facts prove the copy is valid.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Valid, redefined, and aliased cases are exercised.")))

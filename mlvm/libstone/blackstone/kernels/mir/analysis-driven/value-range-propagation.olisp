@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.analysis-driven.value-range-propagation"
+  :name "Value Range Propagation"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Propagate value range facts to enable downstream optimizations.")
+  (requires
+    (capability ssa-form)
+    (analysis range-analysis))
+  (preconditions
+    (range-information-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (propagate (definition x) (range r)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Propagates value range facts to downstream consumers.")
+  (limitations "Applies only when range information is available.")
+  (documentation
+    (purpose "Propagate value range facts.")
+    (motivation "Value range propagation enables bounds check elimination and other optimizations.")
+    (applicability "Applies to definitions with available range information.")
+    (semantic-assumptions "Range information is available.")
+    (known-limitations "Does not propagate when range information is unavailable.")
+    (testing-strategy "Known, unknown, and boundary range cases are exercised.")))

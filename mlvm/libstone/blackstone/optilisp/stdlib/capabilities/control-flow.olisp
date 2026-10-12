@@ -1,0 +1,106 @@
+;;; Control-flow, SSA, and loop capabilities.
+
+(define-capability
+  :id "ssa-form"
+  :name "SSA Form"
+  :stages (mir)
+  (description
+    "The IR is in static single assignment form."))
+
+(define-capability
+  :id "dominance-information"
+  :name "Dominance Information"
+  :stages (mir)
+  (description
+    "An analysis provides dominator relationships between blocks."))
+
+(define-capability
+  :id "post-dominance-information"
+  :name "Post-Dominance Information"
+  :stages (mir)
+  (description
+    "An analysis provides post-dominator relationships between blocks."))
+
+(define-capability
+  :id "control-dependence"
+  :name "Control Dependence"
+  :stages (mir)
+  (description
+    "An analysis provides control dependence between blocks."))
+
+(define-capability
+  :id "reducible-control-flow"
+  :name "Reducible Control Flow"
+  :stages (mir)
+  (description
+    "The control-flow graph is reducible."))
+
+(define-capability
+  :id "loop-information"
+  :name "Loop Information"
+  :stages (mir)
+  (description
+    "An analysis identifies loop headers, back edges, and loop nesting."))
+
+(define-capability
+  :id "loop-nest-information"
+  :name "Loop Nest Information"
+  :stages (mir)
+  (description
+    "An analysis characterizes the loop nest structure."))
+
+(define-capability
+  :id "loop-normalization"
+  :name "Loop Normalization"
+  :stages (mir)
+  (description
+    "Loops are in a normalized form with a single entry and latch."))
+
+(define-capability
+  :id "loop-invariant-information"
+  :name "Loop Invariant Information"
+  :stages (mir)
+  (description
+    "An analysis identifies loop-invariant computations."))
+
+(define-capability
+  :id "induction-variable-information"
+  :name "Induction Variable Information"
+  :stages (mir)
+  (description
+    "An analysis identifies induction variables and their recurrences."))
+
+(define-capability
+  :id "affine-loop-bounds"
+  :name "Affine Loop Bounds"
+  :stages (mir)
+  (description
+    "Loop bounds are affine functions of the induction variables."))
+
+(define-capability
+  :id "dependence-information"
+  :name "Dependence Information"
+  :stages (mir)
+  (description
+    "An analysis provides data dependence facts for loop transformations."))
+
+(define-capability
+  :id "polyhedral-representation"
+  :name "Polyhedral Representation"
+  :stages (mir)
+  (description
+    "Loop iteration domains and accesses are representable as polyhedra."))
+
+(define-capability
+  :id "iteration-domain"
+  :name "Iteration Domain"
+  :stages (mir)
+  (description
+    "The iteration domain of each loop is available."))
+
+(define-capability
+  :id "schedule-information"
+  :name "Schedule Information"
+  :stages (mir)
+  (description
+    "A legal execution schedule for the loop nest is available."))

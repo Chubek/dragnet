@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.boolean-chain"
+  :name "Boolean Chain Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Replace a chain of Boolean operations with a single combined operation when the target supports it.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (target-supports-combined-boolean)
+    (semantics-match))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (sequence (machine-op :kind "AND") (machine-op :kind "OR"))
+             (target-pattern :name "combined-boolean-pattern")))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a Boolean chain with a single combined operation.")
+  (limitations "Applies only when the target supports a combined Boolean operation.")
+  (documentation
+    (purpose "Combine Boolean chains into single operations.")
+    (motivation "Instruction combining reduces instruction count.")
+    (applicability "Applies to Boolean chains when the target supports a combined operation.")
+    (semantic-assumptions "The target supports a combined Boolean operation with matching semantics.")
+    (known-limitations "Does not combine when the target lacks a suitable instruction.")
+    (testing-strategy "Supported, unsupported, and semantics-mismatch cases are exercised.")))

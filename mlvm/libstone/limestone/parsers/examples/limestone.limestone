@@ -1,0 +1,27 @@
+import "portable.umd"
+target portable { default_register_class = GPR }
+pipeline default {
+  stage ingest
+  stage optimize using tunah { rules = ["simplify.tuner"] }
+  stage select using unisel
+  stage schedule using schedrow
+  stage allocate using regtl
+  stage machine-ir
+  stage emit
+  enabled = true
+}
+module demo {
+  global @count:i64 = 0
+  function main(%arg:i64):i64 {
+    block entry {
+      attribute frequency = 1.0
+      %1 = constant #7:i64
+      %2 = add %arg, %1:i64 { origin = "source" }
+      store [%arg], %2
+      successor @exit
+    }
+    block exit {
+      ret %2
+    }
+  }
+}

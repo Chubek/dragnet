@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.sub-zero"
+  :name "Subtraction of Zero Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer subtraction of zero with its nonconstant operand.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (subtraction-of-zero-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (sub x (integer 0)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x - 0 with x.")
+  (limitations "Applies only when subtraction of zero is the identity.")
+  (documentation
+    (purpose "Simplify integer subtraction of zero to the original value.")
+    (motivation "Removing identity operations reduces instruction count.")
+    (applicability "Applies to integer subtraction nodes where the subtrahend is zero.")
+    (semantic-assumptions "The subtraction operation satisfies x - 0 = x under the declared semantics.")
+    (known-limitations "Does not apply to floating-point subtraction without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

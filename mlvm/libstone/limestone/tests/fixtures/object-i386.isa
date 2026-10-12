@@ -1,0 +1,10 @@
+arch object_i386 { word_size=32; addr_size=32; endian=little; }
+profile { family="fixture"; model="ELF32-i386-relocation-contract"; version="1"; }
+tooling { object_file={
+  format=elf32; version=1; machine=3; endianness=little; flags=0;
+  osabi=0; abi_version=0; text_alignment=4;
+  relocations=[
+    {type=1; name=abs32; kind=absolute; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=false; implicit_addend_signed=true;},
+    {type=2; name=pc32; kind=pc_relative; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=true; implicit_addend_signed=true;}
+  ];
+}; }

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.concurrency.redundant-synchronization-elimination"
+  :name "Redundant Synchronization Elimination"
+  :stage mir
+  (category concurrency-optimization)
+  (paradigms concurrency-optimization)
+  (objective "Remove synchronization operations that are provably redundant.")
+  (requires
+    (capability synchronization-operations)
+    (capability concurrency-model))
+  (preconditions
+    (synchronization-is-redundant)
+    (no-data-race-is-introduced))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (eliminate (synchronization-op :id redundant-sync)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes provably redundant synchronization operations.")
+  (limitations "Applies only when the synchronization is provably redundant and no data race is introduced.")
+  (documentation
+    (purpose "Remove redundant synchronization.")
+    (motivation "Redundant synchronization elimination reduces overhead.")
+    (applicability "Applies to synchronization operations that are provably redundant.")
+    (semantic-assumptions "The synchronization is provably redundant and no data race is introduced.")
+    (known-limitations "Does not remove synchronization that prevents data races.")
+    (testing-strategy "Redundant, necessary, and unknown cases are exercised.")))

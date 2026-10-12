@@ -1,0 +1,103 @@
+;;; Data-flow and value analyses.
+
+(define-analysis
+  :id "constant-value-analysis"
+  :name "Constant Value Analysis"
+  (description
+    "Computes known constant values for definitions."))
+
+(define-analysis
+  :id "range-analysis"
+  :name "Range Analysis"
+  (description
+    "Computes value range facts for definitions."))
+
+(define-analysis
+  :id "reaching-definitions-analysis"
+  :name "Reaching Definitions Analysis"
+  (description
+    "Computes reaching definition facts."))
+
+(define-analysis
+  :id "liveness-analysis"
+  :name "Liveness Analysis"
+  (description
+    "Computes live-in and live-out facts."))
+
+(define-analysis
+  :id "live-range-analysis"
+  :name "Live Range Analysis"
+  (description
+    "Computes live range facts for register allocation."))
+
+(define-analysis
+  :id "available-expressions-analysis"
+  :name "Available Expressions Analysis"
+  (description
+    "Computes available expression facts for redundancy elimination."))
+
+(define-analysis
+  :id "alias-analysis"
+  :name "Alias Analysis"
+  (description
+    "Computes may-alias and must-alias facts."))
+
+(define-analysis
+  :id "memory-dependence-analysis"
+  :name "Memory Dependence Analysis"
+  (description
+    "Computes memory dependence facts."))
+
+(define-analysis
+  :id "data-dependence-analysis"
+  :name "Data Dependence Analysis"
+  (description
+    "Computes data dependence facts."))
+
+(define-analysis
+  :id "dependence-analysis"
+  :name "Dependence Analysis"
+  (description
+    "Computes loop dependence facts for transformations."))
+
+(define-analysis
+  :id "dominator-analysis"
+  :name "Dominator Analysis"
+  (description
+    "Computes dominator relationships."))
+
+(define-analysis
+  :id "post-dominator-analysis"
+  :name "Post-Dominator Analysis"
+  (description
+    "Computes post-dominator relationships."))
+
+(define-analysis
+  :id "control-dependence-analysis"
+  :name "Control Dependence Analysis"
+  (description
+    "Computes control dependence between blocks."))
+
+(define-analysis
+  :id "loop-nest-analysis"
+  :name "Loop Nest Analysis"
+  (description
+    "Computes loop nesting structure."))
+
+(define-analysis
+  :id "induction-variable-analysis"
+  :name "Induction Variable Analysis"
+  (description
+    "Identifies induction variables and recurrences."))
+
+(define-analysis
+  :id "call-graph-analysis"
+  :name "Call Graph Analysis"
+  (description
+    "Computes the call graph."))
+
+(define-analysis
+  :id "points-to-analysis"
+  :name "Points-To Analysis"
+  (description
+    "Computes points-to facts for pointers."))

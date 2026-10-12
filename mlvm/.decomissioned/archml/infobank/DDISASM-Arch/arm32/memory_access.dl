@@ -1,0 +1,281 @@
+//===- memory_access.dl -------------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019-2022 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/**
+This module provides implements architecture-independent load and store
+relations for ARM.
+
+LDR and STR instructions can have their operands encoded several different
+ways, depending on which form of the instruction it is:
+
+     Op1      Op2      Op3      Op4
+(1)  Indirect Rt
+(2)  Indirect #offset  Rt
+(3)  Indirect Rm       Rt
+(4)  Rt2      Indirect Rt
+(5)  Rt2      Indirect #offset  Rt
+(6)  Rt2      Indirect Rm       Rt
+
+Each is used for the following forms:
+(1)
+     LDR{type}{cond} Rt, [Rn {, #offset}]
+     LDR{type}{cond} Rt, [Rn, #offset]!
+     LDR{type}{cond} Rt, [Rn, ±Rm {, shift}]
+     LDR{type}{cond} Rt, [Rn, ±Rm {, shift}]!
+     LDR Rt, label -> treated as LDR Rt, [PC, #offset]
+(2)
+     LDR{type}{cond} Rt, [Rn], #offset
+(3)
+     LDR{type}{cond} Rt, [Rn], ±Rm {, shift}
+(4)
+     LDRD{cond} Rt, Rt2, [Rn {, #offset}]
+     LDRD{cond} Rt, Rt2, [Rn, #offset]!
+     LDRD{cond} Rt, Rt2, [Rn, ±Rm]
+     LDRD{cond} Rt, Rt2, [Rn, ±Rm]!
+     LDRD Rt, Rt2, label -> treated as LDR Rt, Rt2, [PC, #offset]
+(5)
+     LDRD{cond} Rt, Rt2, [Rn], #offset
+(6)
+     LDRD{cond} Rt, Rt2, [Rn], ±Rm
+ */
+
+memory_access(AccessType,EA,SrcIdx,DstIdx,Rt,Rn,"NONE",0,Offset):-
+    instruction(EA,_,_,Operation,Op1,Op2,0,0,_,_),
+    (
+        contains("LDM",Operation),
+        AccessType = "LOAD", SrcIdx = 2, DstIdx = 1
+        ;
+        contains("STM",Operation),
+        AccessType = "STORE", SrcIdx = 1, DstIdx = 2
+    ),
+    op_register_bitfield(Op1,Index,RtIn),
+    reg_map(RtIn,Rt),
+    op_regdirect_contains_reg(Op2,Rn),
+    arch.pointer_size(Pt_size),
+    Offset = as(Index * Pt_size, number).
+
+/**
+Build operation substrings for aggregated access types.
+
+Previously, we used regex "match" functor with "VLD[1-4].*" and "VST[1-4].*".
+However, it was very slow. When this Souffle PR is merged, we can evaluate
+that again.
+
+https://github.com/souffle-lang/souffle/pull/2328
+*/
+.decl aggregated_access_operation(OperationPrefix:symbol,AccessType:symbol)
+
+aggregated_access_operation(OperationPrefix,AccessType):-
+    I = range(1,5),
+    (
+        OperationBase = "VLD", AccessType = "LOAD";
+        OperationBase = "VST", AccessType = "STORE"
+    ),
+    OperationPrefix = cat(OperationBase,to_string(I),".").
+
+memory_access_aggregated(AccessType,EA,Rn,"NONE",0,0,AccessSize):-
+    instruction(EA,_,_,Operation,Op1,BitFieldOp,0,0,_,_),
+    op_register_bitfield(BitFieldOp,MaxIndex,RtIn),
+    !op_register_bitfield(BitFieldOp,MaxIndex+1,_),
+    aggregated_access_operation(OperationPrefix,AccessType),
+    OperationPrefix = substr(Operation,0,strlen(OperationPrefix)),
+    RegCnt = MaxIndex + 1,
+    reg_map(RtIn,Rt),
+    float_reg(Rt, RegSize),
+    op_indirect_mapped(Op1,_,Rn,"NONE",_,_,_),
+    AccessSize = RegCnt * RegSize.
+
+memory_access_aggregated(AccessType,EA,Rn,"NONE",0,0,AccessSize):-
+    instruction(EA,_,_,Operation,Op1,_,BitFieldOp,0,_,_),
+    op_register_bitfield(BitFieldOp,MaxIndex,RtIn),
+    !op_register_bitfield(BitFieldOp,MaxIndex+1,_),
+    aggregated_access_operation(OperationPrefix,AccessType),
+    OperationPrefix = substr(Operation,0,strlen(OperationPrefix)),
+    RegCnt = MaxIndex + 1,
+    reg_map(RtIn,Rt),
+    float_reg(Rt, RegSize),
+    op_indirect_mapped(Op1,_,Rn,"NONE",_,_,_),
+    AccessSize = RegCnt * RegSize.
+
+memory_access(AccessType,EA,SrcIdx,DstIdx,Rt,"SP","NONE",0,Offset):-
+    instruction(EA,_,_,Operation,Op,0,0,0,_,_),
+    (
+        contains("POP",Operation),
+        AccessType = "LOAD",
+        SrcIdx = 0, /* no source operand */
+        DstIdx = 1
+        ;
+        contains("PUSH",Operation),
+        AccessType = "STORE",
+        SrcIdx = 1,
+        DstIdx = 0 /* no dest operand */
+    ),
+    op_register_bitfield(Op,Index,RtIn),
+    reg_map(RtIn,Rt),
+    arch.pointer_size(Pt_size),
+    Offset = as(Index * Pt_size, number).
+
+/**
+Shift types that cannot be represented as multiplication
+*/
+.decl non_mult_shift_type(Type:symbol)
+
+non_mult_shift_type("ASR").
+non_mult_shift_type("LSR").
+non_mult_shift_type("ROR").
+non_mult_shift_type("RRX").
+
+/**
+At EA, an indirect operand Op has a shift that cannot be represented as
+multiplication.
+*/
+.decl non_mult_shift(EA:address,Op:operand_code)
+
+// Immediate shift types that are not mult
+non_mult_shift(EA,Op):-
+    op_shifted(EA,Index,_,Type),
+    non_mult_shift_type(Type),
+    instruction_get_op(EA,Index,Op).
+
+// Register shifts
+non_mult_shift(EA,Op):-
+    op_shifted_w_reg(EA,Index,_,_),
+    instruction_get_op(EA,Index,Op).
+
+// Single-word operations
+
+// Register-offset, immediate-offset, pre-index (1)
+memory_access(AccessType,EA,SrcIdx,DstIdx,Rt,Rn,Rm,Mult,Offset):-
+    instruction(EA,_,_,Operation,Op1,Op2,0,0,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx = 1, DstIdx = 2;
+        store_operation(Operation), AccessType = "STORE", SrcIdx = 2, DstIdx = 1
+    ),
+    op_regdirect_contains_reg(Op2,Rt),
+    op_indirect_mapped(Op1,_,Rn,Rm,Scale,Offset,_),
+    !non_mult_shift(EA,Op1),
+    reg_nonnull(Rn,_),
+    (
+        Rm = "NONE", Mult = 0, Scale = Scale;
+        Rm != "NONE", Mult = Scale
+    ).
+
+// Post-index immediate (2)
+memory_access(AccessType,EA,SrcIdx,DstIdx,Rt,Rn,"NONE",0,0),
+reg_arithmetic_operation(EA,Rn_nn,Rn_nn,1,Offset):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx = 1, DstIdx = 3;
+        store_operation(Operation), AccessType = "STORE", SrcIdx = 3, DstIdx = 1
+    ),
+    op_regdirect_contains_reg(Op3,Rt),
+    instruction_writeback(EA),
+    op_indirect_mapped(Op1,_,Rn,"NONE",_,0,_),
+    !non_mult_shift(EA,Op1),
+    reg_nonnull(Rn,Rn_nn),
+    op_immediate(Op2,Offset,_).
+
+// Post-index register (3)
+memory_access(AccessType,EA,SrcIdx,DstIdx,Rt,Rn,"NONE",0,0),
+reg_reg_arithmetic_operation(EA,Rn_nn,Rn_nn,Rm,1,0):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx = 1, DstIdx = 3;
+        store_operation(Operation), AccessType = "STORE", SrcIdx = 3, DstIdx = 1
+    ),
+    op_regdirect_contains_reg(Op3,Rt),
+    instruction_writeback(EA),
+    op_indirect_mapped(Op1,_,Rn,"NONE",_,0,_),
+    !non_mult_shift(EA,Op1),
+    reg_nonnull(Rn,Rn_nn),
+    op_regdirect_contains_reg(Op2,Rm).
+
+// Doubleword operations
+
+// Register-offset, immediate-offset, pre-index (4)
+memory_access(AccessType,EA,SrcIdx1,DstIdx1,Rt,Rn,Rm,Mult,Offset),
+memory_access(AccessType,EA,SrcIdx2,DstIdx2,Rt2,Rn,Rm,Mult,Offset+4):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx1 = 2, SrcIdx2 = 2, DstIdx1 = 3, DstIdx2 = 1;
+        store_operation(Operation), AccessType = "STORE", SrcIdx1 = 3, SrcIdx2 = 1, DstIdx1 = 2, DstIdx2 = 2
+    ),
+    op_regdirect_contains_reg(Op3,Rt),
+    op_regdirect_contains_reg(Op1,Rt2),
+    op_indirect_mapped(Op2,_,Rn,Rm,Scale,Offset,_),
+    !non_mult_shift(EA,Op2),
+    reg_nonnull(Rn,_),
+    (
+        Rm = "NONE", Mult = 0, Scale = Scale;
+        Rm != "NONE", Mult = Scale
+    ).
+
+// Post-index immediate (5)
+memory_access(AccessType,EA,SrcIdx1,DstIdx1,Rt,Rn,"NONE",0,0),
+memory_access(AccessType,EA,SrcIdx2,DstIdx2,Rt2,Rn,"NONE",0,4),
+reg_arithmetic_operation(EA,Rn_nn,Rn_nn,1,Offset):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,Op4,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx1 = 2, SrcIdx2 = 2, DstIdx1 = 4, DstIdx2 = 1;
+        store_operation(Operation), AccessType = "STORE", SrcIdx1 = 4, SrcIdx2 = 1, DstIdx1 = 2, DstIdx2 = 2
+    ),
+    op_regdirect_contains_reg(Op4,Rt),
+    op_regdirect_contains_reg(Op1,Rt2),
+    instruction_writeback(EA),
+    op_indirect_mapped(Op2,_,Rn,"NONE",_,0,_),
+    !non_mult_shift(EA,Op2),
+    reg_nonnull(Rn,Rn_nn),
+    op_immediate(Op3,Offset,_).
+
+// Post-index register (6)
+memory_access(AccessType,EA,SrcIdx1,DstIdx1,Rt,Rn,"NONE",0,0),
+memory_access(AccessType,EA,SrcIdx2,DstIdx2,Rt2,Rn,"NONE",0,4),
+reg_reg_arithmetic_operation(EA,Rn_nn,Rn_nn,Rm,1,0):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,Op4,_,_),
+    (
+        load_operation(Operation), AccessType = "LOAD", SrcIdx1 = 2, SrcIdx2 = 2, DstIdx1 = 4, DstIdx2 = 1;
+        store_operation(Operation), AccessType = "STORE", SrcIdx1 = 4, SrcIdx2 = 1, DstIdx1 = 2, DstIdx2 = 2
+    ),
+    op_regdirect_contains_reg(Op4,Rt),
+    op_regdirect_contains_reg(Op1,Rt2),
+    instruction_writeback(EA),
+    op_indirect_mapped(Op2,_,Rn,"NONE",_,0,_),
+    !non_mult_shift(EA,Op2),
+    reg_nonnull(Rn,Rn_nn),
+    op_regdirect_contains_reg(Op3,Rm).
+
+
+// Generate arithmetic operations for pre-index writeback cases.
+// Handles single-word, double-word, LDM/STM, and POP/PUSH.
+reg_arithmetic_operation(EA,Rn_nn,Rn_nn,1,Offset):-
+    memory_access(_,EA,_,_,_,Rn,"NONE",_,Offset),
+    !memory_access(_,EA,_,_,_,Rn,"NONE",_,Offset-4), // Don't match the second access from a doubleword operation.
+    instruction_writeback(EA),
+    reg_nonnull(Rn,Rn_nn),
+    Offset != 0.
+
+reg_reg_arithmetic_operation(EA,Rn_nn,Rn_nn,Rm_nn,Mult,Offset):-
+    memory_access(_,EA,_,_,_,Rn,Rm,Mult,Offset),
+    !memory_access(_,EA,_,_,_,Rn,Rm,Mult,Offset-4), // Don't match the second access from a doubleword operation.
+    instruction_writeback(EA),
+    reg_nonnull(Rn,Rn_nn),
+    reg_nonnull(Rm,Rm_nn).

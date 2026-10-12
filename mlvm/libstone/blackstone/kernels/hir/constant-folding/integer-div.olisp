@@ -1,0 +1,33 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-div"
+  :name "Integer Division Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate an integer division whose operands are both known constants.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics)
+    (divisor-is-nonzero)
+    (result-representable-under-integer-semantics))
+  (forbids
+    (operation-has-observable-side-effects)
+    (division-by-zero)
+    (signed-overflow-traps))
+  (transform
+    (fold (div (integer a) (integer b)) (integer-result (integer-div a b))))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-integer-division-semantics))
+  (expected-effects "Replaces a constant integer division with its compile-time value.")
+  (limitations "Requires a nonzero divisor and a representable result.")
+  (documentation
+    (purpose "Fold a constant integer division into its compile-time result.")
+    (motivation "Removing constant arithmetic reduces run-time work.")
+    (applicability "Applies to integer division nodes with known constant operands and a nonzero divisor.")
+    (semantic-assumptions "The IR's division semantics, including division-by-zero behavior, are preserved.")
+    (known-limitations "Does not fold when the divisor is zero or the result is not representable.")
+    (testing-strategy "Normal, zero-divisor, and overflow boundary cases are exercised.")))

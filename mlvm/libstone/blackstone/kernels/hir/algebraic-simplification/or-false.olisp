@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.or-false"
+  :name "Boolean Or False Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a Boolean or with false with its other operand.")
+  (requires
+    (capability typed-expressions)
+    (capability boolean-semantics))
+  (preconditions
+    (operand-has-compatible-boolean-type)
+    (or-false-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (boolean-or x false) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x || false with x.")
+  (limitations "Applies only when Boolean or with false is the identity.")
+  (documentation
+    (purpose "Simplify Boolean or with false to the other operand.")
+    (motivation "Removing identity operations reduces instruction count.")
+    (applicability "Applies to Boolean or nodes where one operand is the Boolean constant false.")
+    (semantic-assumptions "The Boolean or operation satisfies x || false = x.")
+    (known-limitations "Does not apply to bitwise or.")
+    (testing-strategy "Both truth values for the other operand are exercised.")))

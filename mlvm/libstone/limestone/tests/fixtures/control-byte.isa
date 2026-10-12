@@ -1,0 +1,15 @@
+arch control_byte { word_size=64; addr_size=64; endian=little; scheduling={issue_width=1;}; }
+profile { family="fixture"; model="semantic-bytecode"; version="1"; execution_model="one-counter"; }
+tooling { bin2bin={schema_version=1; instruction_encoding="fixed8"; execution_domain="bytecode"; word_size=64; address_size=64; endianness="little";}; }
+encoding I { width=8; base=1; }
+encoding R { width=8; base=2; }
+encoding T { width=8; base=3; }
+op INC { encoding=I; latency=0; semantics="(set counter (add counter 1))";
+  tooling={instruction_selection={selection_tree="inc()"; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}
+op RETURN { encoding=R; latency=0; control_flow=return; semantics="(return counter)";
+  tooling={instruction_selection={selection_tree="return()"; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=return;};};
+}
+op TRAP { encoding=T; latency=0; control_flow=trap; may_trap=true; semantics="(trap)";
+  tooling={instruction_selection={selection_tree="trap()"; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=trap;};};
+}

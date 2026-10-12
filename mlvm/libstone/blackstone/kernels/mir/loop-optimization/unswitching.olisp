@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.loop.unswitching"
+  :name "Loop Unswitching"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Hoist a loop-invariant conditional out of the loop by duplicating the loop.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis loop-invariant-analysis))
+  (preconditions
+    (condition-is-loop-invariant))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (hoist (branch (boolean c) true-block false-block) (loop l)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Hoists a loop-invariant conditional out of the loop.")
+  (limitations "Applies only when the condition is loop-invariant.")
+  (documentation
+    (purpose "Hoist loop-invariant conditionals out of loops.")
+    (motivation "Loop unswitching removes per-iteration branching.")
+    (applicability "Applies to loops with a loop-invariant conditional.")
+    (semantic-assumptions "The condition is loop-invariant.")
+    (known-limitations "May increase code size.")
+    (testing-strategy "Invariant and variant condition cases are exercised.")))

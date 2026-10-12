@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""inspect-kernel -- display the metadata of one kernel.
+
+Usage:
+    inspect-kernel ID [--root DIR]
+
+Exit status:
+    0  kernel found and displayed
+    1  kernel not found
+    2  invalid command-line usage
+    3  input/output or format error
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "optilisp" / "src"))
+
+from optilisp.errors import DiagnosticSink  # noqa: E402
+from optilisp.validate import kernel_to_dict, load_database, load_registry  # noqa: E402
+import json  # noqa: E402
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="inspect-kernel",
+        description="Display the structured metadata of a single kernel.",
+    )
+    parser.add_argument("id", help="Kernel identifier, e.g. blackstone.hir.constant-folding.integer-add")
+    parser.add_argument("--root", default=None, help="Blackstone project root")
+    parser.add_argument("--json", action="store_true", help="Emit JSON instead of a human-readable report")
+    args = parser.parse_args(argv)
+
+    root = Path(args.root) if args.root else Path(__file__).resolve().parents[1]
+    if not root.is_dir():
+        print(f"inspect-kernel: root directory not found: {root}", file=sys.stderr)
+        return 3
+
+    sink = DiagnosticSink()
+    reg = load_registry(root / "optilisp" / "stdlib", sink)
+    db = load_database(root, reg, sink)
+
+    kernel = next((k for k in db.kernels if k.id == args.id), None)
+    if kernel is None:
+        print(f"inspect-kernel: no kernel with id '{args.id}'", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps(kernel_to_dict(kernel), indent=2, sort_keys=True))
+    else:
+        print(f"id:           {kernel.id}")
+        print(f"name:         {kernel.name}")
+        print(f"stage:        {kernel.stage}")
+        print(f"categories:   {', '.join(kernel.categories)}")
+        print(f"paradigms:    {', '.join(kernel.paradigms) or '(none)'}")
+        print(f"objective:    {kernel.objective}")
+        print("requires:")
+        for r in kernel.requires:
+            print(f"  - {r.kind}: {r.name}")
+        print(f"preconditions: {', '.join(kernel.preconditions)}")
+        if kernel.forbids:
+            print(f"forbids:       {', '.join(kernel.forbids)}")
+        if kernel.prerequisites:
+            print(f"prerequisites: {', '.join(kernel.prerequisites)}")
+        if kernel.forbidden_prior:
+            print(f"forbidden-prior: {', '.join(kernel.forbidden_prior)}")
+        if kernel.transform is not None:
+            print(f"transform:     ({kernel.transform.verb} ...)")
+        print(f"correctness:   {', '.join(kernel.correctness)}")
+        print(f"expected:      {kernel.expected_effects}")
+        print(f"limitations:   {kernel.limitations}")
+        if kernel.documentation is not None:
+            for prose in kernel.documentation.prose:
+                print(f"documentation: {prose}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

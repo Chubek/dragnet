@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.interpreter.superinstruction-combining"
+  :name "Superinstruction Combining"
+  :stage mir
+  (category interpreter-optimization)
+  (paradigms interpreter-optimization)
+  (objective "Combine frequently co-occurring bytecode instructions into superinstructions.")
+  (requires
+    (capability interpreter-bytecode)
+    (capability superinstruction))
+  (preconditions
+    (bytecode-sequence-is-frequent))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (bytecode-sequence seq) (superinstruction super)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Combines frequent bytecode sequences into superinstructions.")
+  (limitations "Applies only to frequently co-occurring bytecode sequences.")
+  (documentation
+    (purpose "Combine frequent bytecode sequences into superinstructions.")
+    (motivation "Superinstructions reduce dispatch overhead.")
+    (applicability "Applies to frequently co-occurring bytecode sequences.")
+    (semantic-assumptions "The bytecode sequence is frequent.")
+    (known-limitations "Does not combine infrequent sequences.")
+    (testing-strategy "Frequent, infrequent, and single-instruction cases are exercised.")))

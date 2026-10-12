@@ -1,0 +1,41 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.mir.memory.self-memmove-elision"
+  :name "Self memmove elision"
+  :stage mir
+  (category memory-optimization)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (memmove address address length) with (removed-move) when the declared proof obligations hold.")
+  (requires
+    (capability ssa-form)
+    (capability memory-effects)
+    (analysis dominator-analysis)
+    (analysis alias-analysis)
+    (analysis memory-dependence-analysis)
+    (analysis side-effect-analysis)
+    (analysis exception-analysis))
+  (preconditions identical-ranges-and-no-observable-access-proven operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis volatile-or-atomic-access unknown-memory-dependence external-memory-observation-changes)
+  (analysis-contract
+    (requires dominator-analysis alias-analysis memory-dependence-analysis side-effect-analysis exception-analysis)
+    (invalidates alias-analysis constant-value-analysis dominator-analysis exception-analysis liveness-analysis memory-dependence-analysis side-effect-analysis)
+    (preserves))
+  (transform (rewrite (memmove address address length) (removed-move)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Bounds checks, pointer validation, atomic accesses, and volatile accesses must remain preserved.")
+  (documentation
+    (purpose "Replace (memmove address address length) with (removed-move) when the declared proof obligations hold.")
+    (motivation "Expose the self memmove elision opportunity for planners with explicit legality facts.")
+    (stage "NodeMIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (memmove address address length); require a proven true identical-ranges-and-no-observable-access-proven fact.")
+    (preconditions "Required true facts: identical-ranges-and-no-observable-access-proven, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: ssa-form, memory-effects; analyses: dominator-analysis, alias-analysis, memory-dependence-analysis, side-effect-analysis, exception-analysis. Results must be current.")
+    (transformation "Replace (memmove address address length) with (removed-move) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Bounds checks, pointer validation, atomic accesses, and volatile accesses must remain preserved.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Bounds checks, pointer validation, atomic accesses, and volatile accesses must remain preserved.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.mir.memory.self-memmove-elision. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

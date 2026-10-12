@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.hir.control-flow.unreachable-block-elimination"
+  :name "HIR Unreachable Block Elimination"
+  :stage hir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph rule-based)
+  (objective "Remove a basic block that cannot be reached under the current control-flow graph.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis dominator-analysis))
+  (preconditions
+    (block-is-unreachable)
+    (no-external-observability))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (block :id unreachable-block)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-valid-control-flow-edges))
+  (expected-effects "Removes an unreachable basic block and its incoming edges.")
+  (limitations "Applies only when reachability is proven and the block is not externally observable.")
+  (documentation
+    (purpose "Remove unreachable basic blocks.")
+    (motivation "Eliminating unreachable blocks reduces code size and enables downstream optimizations.")
+    (applicability "Applies to basic blocks with no path from the entry block.")
+    (semantic-assumptions "The block is provably unreachable and not externally observable.")
+    (known-limitations "Does not remove blocks that are targets of external references.")
+    (testing-strategy "Unreachable, reachable, and externally-referenced cases are exercised.")))

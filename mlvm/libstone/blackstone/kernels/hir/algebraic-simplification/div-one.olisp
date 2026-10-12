@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.div-one"
+  :name "Division by One Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer division by one with its dividend.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (division-by-one-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (div x (integer 1)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x / 1 with x.")
+  (limitations "Applies only when division by one is the identity.")
+  (documentation
+    (purpose "Simplify integer division by one to the dividend.")
+    (motivation "Removing division by one reduces instruction count.")
+    (applicability "Applies to integer division nodes where the divisor is the integer constant one.")
+    (semantic-assumptions "The division operation satisfies x / 1 = x under the declared semantics.")
+    (known-limitations "Does not apply to floating-point division without explicit permission.")
+    (testing-strategy "Positive, negative, and zero dividend cases are exercised.")))

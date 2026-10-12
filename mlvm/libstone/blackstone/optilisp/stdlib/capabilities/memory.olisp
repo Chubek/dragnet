@@ -1,0 +1,106 @@
+;;; Memory, aliasing, and effect capabilities.
+
+(define-capability
+  :id "explicit-control-flow"
+  :name "Explicit Control Flow"
+  :stages (hir mir lir)
+  (description
+    "The IR represents control flow explicitly through blocks and edges."))
+
+(define-capability
+  :id "memory-effects"
+  :name "Memory Effects"
+  :stages (hir mir lir)
+  (description
+    "The IR models the memory effects of operations."))
+
+(define-capability
+  :id "side-effect-information"
+  :name "Side-Effect Information"
+  :stages (hir mir lir)
+  (description
+    "The IR or an analysis identifies which operations have side effects."))
+
+(define-capability
+  :id "pure-operations"
+  :name "Pure Operations"
+  :stages (hir mir)
+  (description
+    "The IR identifies operations that are pure and side-effect free."))
+
+(define-capability
+  :id "observable-effects"
+  :name "Observable Effects"
+  :stages (hir mir lir)
+  (description
+    "The IR distinguishes observable effects from internal computation."))
+
+(define-capability
+  :id "trap-semantics"
+  :name "Trap Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines trapping behavior for exceptional operations."))
+
+(define-capability
+  :id "exception-information"
+  :name "Exception Information"
+  :stages (hir mir lir)
+  (description
+    "The IR models exceptional control flow and exception edges."))
+
+(define-capability
+  :id "volatile-memory"
+  :name "Volatile Memory"
+  :stages (mir lir)
+  (description
+    "The IR models volatile memory accesses that cannot be eliminated or reordered."))
+
+(define-capability
+  :id "atomic-operations"
+  :name "Atomic Operations"
+  :stages (mir lir)
+  (description
+    "The IR models atomic read-modify-write operations."))
+
+(define-capability
+  :id "atomic-memory-semantics"
+  :name "Atomic Memory Semantics"
+  :stages (mir lir)
+  (description
+    "The IR defines memory ordering and atomic operation semantics."))
+
+(define-capability
+  :id "memory-ordering"
+  :name "Memory Ordering"
+  :stages (mir lir)
+  (description
+    "The IR defines the memory ordering constraints between operations."))
+
+(define-capability
+  :id "alias-information"
+  :name "Alias Information"
+  :stages (mir lir)
+  (description
+    "An analysis provides may-alias or must-alias facts about memory references."))
+
+(define-capability
+  :id "memory-dependence"
+  :name "Memory Dependence"
+  :stages (mir lir)
+  (description
+    "An analysis provides memory dependence facts between memory operations."))
+
+(define-capability
+  :id "memory-access-patterns"
+  :name "Memory Access Patterns"
+  :stages (mir lir)
+  (description
+    "An analysis characterizes the memory access patterns of a loop or function."))
+
+(define-capability
+  :id "concurrency-model"
+  :name "Concurrency Model"
+  :stages (mir lir)
+  (description
+    "The execution model defines concurrency and data-race semantics."))

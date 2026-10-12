@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.strength-reduction.address-computation"
+  :name "Address Computation Strength Reduction"
+  :stage lir
+  (category strength-reduction)
+  (paradigms target-specific cost-model-guided)
+  (objective "Replace an expensive address computation with a cheaper equivalent.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability addressing-modes))
+  (preconditions
+    (address-computation-is-reducible)
+    (replacement-is-cheaper))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (strength-reduce (address-computation addr) (cheaper-address addr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces an expensive address computation with a cheaper equivalent.")
+  (limitations "Applies only when the replacement is cheaper under the target cost model.")
+  (documentation
+    (purpose "Reduce the strength of address computations.")
+    (motivation "Address computation strength reduction reduces instruction count.")
+    (applicability "Applies to address computations that can be reduced.")
+    (semantic-assumptions "The replacement preserves the original address semantics.")
+    (known-limitations "Profitability depends on the target cost model.")
+    (testing-strategy "Reducible, non-reducible, and boundary cases are exercised.")))

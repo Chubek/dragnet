@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.loop.induction-variable-strength-reduction"
+  :name "Induction Variable Strength Reduction"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Replace an expensive operation in an induction variable recurrence with a cheaper equivalent.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis induction-variable-analysis))
+  (preconditions
+    (recurrence-is-affine)
+    (replacement-preserves-semantics))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (strength-reduce (mul i (integer c)) (add offset (integer c))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a multiplication in an induction variable with an addition.")
+  (limitations "Applies only to affine recurrences with a semantics-preserving replacement.")
+  (documentation
+    (purpose "Reduce the strength of induction variable recurrences.")
+    (motivation "Strength reduction replaces expensive operations with cheaper ones.")
+    (applicability "Applies to induction variable recurrences with affine structure.")
+    (semantic-assumptions "The recurrence is affine and the replacement preserves the original arithmetic semantics.")
+    (known-limitations "Profitability depends on the target cost model.")
+    (testing-strategy "Linear, affine, and non-affine recurrence cases are exercised.")))

@@ -1,0 +1,44 @@
+namespace limestone::syntax::machine_ir;
+parser machine_ir;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Module | Machine | Import;
+node Machine { Name name; Attribute* attributes; }
+node Module { Name name; ModuleItem* items; }
+sum ModuleItem = Function | Global | Attribute;
+node Function { Name name; Parameters? parameters; TypeAnnotation? result_type; FunctionItem* items; }
+node Parameters { Parameter* parameters; }
+node Parameter { Register reference; Type type; }
+sum FunctionItem = Block | RegisterDeclaration | Attribute;
+node RegisterDeclaration { Register reference; Name register_class; Unsigned? width; }
+node Block { Name name; Parameters? parameters; Statement* statements; }
+sum Statement = Operation | Successor | BlockAttribute;
+node BlockAttribute { Attribute attribute; }
+node Operation { Results? results; Ident opcode; Operands? operands; TypeAnnotation? type; Object? attributes; }
+node Results { Register* registers; }
+node Operands { Operand* operands; }
+sum Operand = Register | Immediate | String | Memory | SymbolRef;
+sum Register = Virtual | Physical;
+node Immediate { Integer literal; }
+node Memory { Operand* operands; Object? attributes; }
+node SymbolRef { Ident name; }
+node Successor { SymbolRef target; }
+node Global { SymbolRef name; TypeAnnotation? type; Value initializer; }
+node TypeAnnotation { Type type; }
+node Type { Ident name; Type* arguments; }
+node Import { String path; }
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Real | Boolean | Ident | Register | SymbolRef | Array | Object | SExpr;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+node SExpr { SExprItem* items; }
+sum SExprItem = String | Integer | Ident | Register | SExpr;
+sum Name = Ident | String;
+token Virtual;
+token Physical;
+token Unsigned;
+token Integer;
+token Real;
+token Boolean;
+token String;
+token Ident;

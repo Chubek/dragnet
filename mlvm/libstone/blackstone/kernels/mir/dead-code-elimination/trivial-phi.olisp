@@ -1,0 +1,26 @@
+(define-kernel
+  :id "blackstone.mir.dead-code-elimination.trivial-phi"
+  :name "Trivial Phi Elimination"
+  :stage mir
+  (category dead-code-elimination)
+  (paradigms ssa-based)
+  (objective "Remove phi nodes with a single incoming value or identical incoming values.")
+  (requires
+    (capability ssa-form))
+  (preconditions
+    (phi-has-single-incoming-value))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (phi :id trivial-phi)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes trivial phi nodes and replaces uses with the single incoming value.")
+  (limitations "Applies only to phi nodes with a single incoming value or identical incoming values.")
+  (documentation
+    (purpose "Eliminate trivial phi nodes.")
+    (motivation "Trivial phi elimination simplifies SSA form.")
+    (applicability "Applies to phi nodes with a single incoming value or identical incoming values.")
+    (semantic-assumptions "The phi node has a single incoming value or identical incoming values.")
+    (known-limitations "Does not remove phi nodes with distinct incoming values.")
+    (testing-strategy "Single-value, identical-value, and distinct-value cases are exercised.")))

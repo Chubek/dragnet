@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.ssa.construction"
+  :name "SSA Construction"
+  :stage mir
+  (category ssa-optimization)
+  (paradigms ssa-based control-flow-graph)
+  (objective "Convert a non-SSA representation to SSA form by inserting phi nodes and renaming definitions.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis dominator-analysis))
+  (preconditions
+    (control-flow-is-explicit)
+    (dominance-information-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (construct (non-ssa-function f) (ssa-function f-ssa)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-ssa-invariant))
+  (expected-effects "Converts a function to SSA form.")
+  (limitations "Applies only when dominance information is available.")
+  (documentation
+    (purpose "Convert a function to SSA form.")
+    (motivation "SSA form enables efficient data-flow analyses and optimizations.")
+    (applicability "Applies to functions with explicit control flow and dominance information.")
+    (semantic-assumptions "Dominance information is available.")
+    (known-limitations "Does not construct SSA form without dominance information.")
+    (testing-strategy "Single-block, multi-block, and loop cases are exercised.")))

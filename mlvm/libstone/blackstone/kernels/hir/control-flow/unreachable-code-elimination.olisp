@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.control-flow.unreachable-code-elimination"
+  :name "HIR Unreachable Code Elimination"
+  :stage hir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph rule-based)
+  (objective "Remove instructions on provably unreachable paths.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis constant-value-analysis))
+  (preconditions
+    (path-is-unreachable)
+    (instruction-has-no-observable-effects))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (instruction :id dead-instruction)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes instructions on unreachable paths.")
+  (limitations "Applies only when the path is provably unreachable and the instruction has no observable effects.")
+  (documentation
+    (purpose "Remove instructions on unreachable paths.")
+    (motivation "Eliminating unreachable code reduces code size.")
+    (applicability "Applies to instructions on provably unreachable control-flow paths.")
+    (semantic-assumptions "The path is unreachable and the instruction has no observable effects.")
+    (known-limitations "Does not remove instructions with side effects.")
+    (testing-strategy "Unreachable and reachable path cases are exercised.")))

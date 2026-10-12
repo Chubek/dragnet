@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.loop.unroll-and-jam"
+  :name "Loop Unroll and Jam"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Unroll multiple loops and jam their bodies together to reduce control overhead.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis loop-invariant-analysis))
+  (preconditions
+    (loops-have-compatible-trip-counts)
+    (unroll-factors-are-valid))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (unroll (loops ls) (unroll-factors ns)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Unrolls multiple loops and jams their bodies together.")
+  (limitations "Applies only when loops have compatible trip counts and valid unroll factors.")
+  (documentation
+    (purpose "Unroll and jam multiple loops.")
+    (motivation "Unroll and jam reduces control overhead across multiple loops.")
+    (applicability "Applies to loops with compatible trip counts and valid unroll factors.")
+    (semantic-assumptions "Loops have compatible trip counts and valid unroll factors.")
+    (known-limitations "May increase code size.")
+    (testing-strategy "Compatible, incompatible, and partial unroll cases are exercised.")))

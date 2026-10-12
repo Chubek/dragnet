@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.loop.unrolling"
+  :name "Loop Unrolling"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Replicate a loop body to reduce loop control overhead.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis loop-invariant-analysis))
+  (preconditions
+    (loop-trip-count-is-known)
+    (unroll-factor-is-valid))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (unroll (loop l) (unroll-factor n)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replicates the loop body to reduce control overhead.")
+  (limitations "Applies only when the trip count is known and the unroll factor is valid.")
+  (documentation
+    (purpose "Reduce loop control overhead by replicating the loop body.")
+    (motivation "Loop unrolling reduces branch overhead and enables instruction-level parallelism.")
+    (applicability "Applies to loops with a known trip count and a valid unroll factor.")
+    (semantic-assumptions "The trip count is known and the unroll factor is valid.")
+    (known-limitations "May increase code size; profitability depends on the target.")
+    (testing-strategy "Known, unknown, and partial unroll cases are exercised.")))

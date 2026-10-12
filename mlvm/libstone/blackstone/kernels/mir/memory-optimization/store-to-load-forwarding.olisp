@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.memory.store-to-load-forwarding"
+  :name "Store-to-Load Forwarding"
+  :stage mir
+  (category memory-optimization)
+  (paradigms memory-optimization data-flow-analysis)
+  (objective "Forward a stored value to a subsequent load from the same address when no intervening store invalidates it.")
+  (requires
+    (capability ssa-form)
+    (analysis memory-dependence-analysis))
+  (preconditions
+    (load-address-matches-store)
+    (no-intervening-store))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (forward (store addr value) (load addr) value))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a load with the value stored at the same address.")
+  (limitations "Applies only when the load address matches the store and no intervening store invalidates it.")
+  (documentation
+    (purpose "Forward stored values to subsequent loads.")
+    (motivation "Store-to-load forwarding reduces memory traffic.")
+    (applicability "Applies to loads whose address matches a preceding store with no intervening store.")
+    (semantic-assumptions "The load address matches the store and no intervening store invalidates the value.")
+    (known-limitations "Does not forward with unknown aliasing.")
+    (testing-strategy "Matching, intervening-store, and unknown-alias cases are exercised.")))

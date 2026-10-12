@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.dead-function-elimination"
+  :name "Dead Function Elimination"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural)
+  (objective "Remove a function that is never called.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis))
+  (preconditions
+    (function-is-uncalled)
+    (no-external-observability))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (function :id dead-function)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes a function that is never called.")
+  (limitations "Applies only when the function is provably uncalled and not externally observable.")
+  (documentation
+    (purpose "Remove uncalled functions.")
+    (motivation "Dead function elimination reduces code size.")
+    (applicability "Applies to functions that are never called.")
+    (semantic-assumptions "The function is provably uncalled and not externally observable.")
+    (known-limitations "Does not remove functions that are externally observable.")
+    (testing-strategy "Uncalled, called, and externally-referenced cases are exercised.")))

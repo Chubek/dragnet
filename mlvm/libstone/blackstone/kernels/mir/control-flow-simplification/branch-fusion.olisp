@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.control-flow.branch-fusion"
+  :name "Branch Fusion"
+  :stage mir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph)
+  (objective "Fuse a conditional branch with a subsequent comparison to reduce branch count.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis constant-value-analysis))
+  (preconditions
+    (branch-condition-is-comparison)
+    (subsequent-comparison-is-related))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (compare op x y) (branch (compare op x y) true-block false-block)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Fuses a comparison with a subsequent conditional branch.")
+  (limitations "Applies only when the branch condition is a related comparison.")
+  (documentation
+    (purpose "Fuse comparisons with subsequent branches.")
+    (motivation "Branch fusion reduces branch count.")
+    (applicability "Applies to comparison instructions followed by a conditional branch on the same condition.")
+    (semantic-assumptions "The branch condition is a related comparison.")
+    (known-limitations "Does not fuse unrelated comparisons.")
+    (testing-strategy "Related and unrelated comparison cases are exercised.")))

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.interpreter.inline-cache"
+  :name "Inline Cache Optimization"
+  :stage mir
+  (category interpreter-optimization)
+  (paradigms interpreter-optimization)
+  (objective "Insert an inline cache at a polymorphic call site to reduce dispatch overhead.")
+  (requires
+    (capability interpreter-bytecode)
+    (capability inline-cache))
+  (preconditions
+    (call-site-is-polymorphic)
+    (cache-hit-rate-is-high))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (specialize (call-site cs) (inline-cache ic)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Inserts an inline cache at a polymorphic call site.")
+  (limitations "Applies only to polymorphic call sites with a high cache hit rate.")
+  (documentation
+    (purpose "Reduce dispatch overhead with inline caches.")
+    (motivation "Inline caches avoid repeated dispatch table lookups.")
+    (applicability "Applies to polymorphic call sites with a high cache hit rate.")
+    (semantic-assumptions "The call site is polymorphic and the cache hit rate is high.")
+    (known-limitations "May increase code size; profitability depends on the hit rate.")
+    (testing-strategy "Monomorphic, polymorphic, and megamorphic cases are exercised.")))

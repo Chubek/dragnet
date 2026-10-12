@@ -1,0 +1,34 @@
+// Lossless declaration syntax; normalization/ISA validation belongs to Metacode.
+namespace limestone::syntax::isa;
+parser isa;
+root Document;
+node Document { Top* declarations; }
+sum Top = Arch | Profile | Compiler | Tooling | Regclass | Alias | Encoding | Op | Legacy;
+node Arch { Ident name; Fields fields; }
+node Profile { Fields fields; }
+node Compiler { Fields fields; }
+node Tooling { Fields fields; }
+node Legacy { Fields fields; }
+node Regclass { Ident name; RegisterEntries registers; }
+node RegisterEntries { RegisterEntry* entries; }
+node RegisterEntry { Ident name; Number width @0; Number number @1; }
+node Alias { Ident name; Value value_data; }
+node Encoding { Ident name; Fields fields; }
+node Op { Ident name; Fields fields; }
+node Fields { Field* entries; }
+node Field { FieldName name; Value? value_data; Object? object; Fields? fields; }
+node FieldName { Ident name; Number* bounds; }
+sum Value = String | Number | Boolean | Array | Object | SExpr | CallList | BareList;
+node Array { ArrayValue* items; }
+sum ArrayValue = String | Number | Boolean | Array | Object | SExpr | Call | Ident;
+node Object { Fields fields; }
+node CallList { Call* calls; }
+node Call { Ident name; ArrayValue* arguments; }
+node SExpr { SExprItem* items; }
+sum SExprItem = String | Number | Ident | SExpr;
+token Boolean;
+token Number;
+node BareList { BareAtom* items; }
+token BareAtom;
+token String;
+token Ident;

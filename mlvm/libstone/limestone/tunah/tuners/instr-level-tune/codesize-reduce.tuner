@@ -1,0 +1,58 @@
+; =============================================================================
+; Tunah tuner -- code size reduction
+; =============================================================================
+; Purpose       : Shrink an expression by sharing work. Two instructions that
+;                compute the same product, sum or power of two are one
+;                instruction, and nested shifts of the same value are one
+;                shift.
+; Stage         : Instruction level machine IL, independent of any target. Size
+;                is a property of the IL, so this file is the one that decides
+;                how much code a saturated e-graph may be spent on.
+; Vocabulary    : iadd, imul, iand, ishl, ianeg from the shared directory
+;                vocabulary. Arithmetic identities that delete an operation
+;                outright are in alg-sim.tuner, cheap substitutions are in
+;                strength-reduct.tuner, and uop count reasoning is in
+;                uarch-opt.tuner. No rule body is shared with those files.
+; Preconditions : Distributivity of an integer ring over addition holds for
+;                wrapping two's complement arithmetic, because wrapping
+;                addition and multiplication form a ring modulo two to the
+;                width. Every rule below is therefore width independent and
+;                needs no range assumption, trap argument or overflow flag.
+;                This is the reason the file distributes add over multiply and
+;                never multiply over add: the latter is not size reducing.
+; Cost model    : Every rule strictly reduces the node count of its match, so
+;                every rule is preferred by the extractor and the file can only
+;                lower extracted cost. The size reductions are also the ones a
+;                target with an instruction cache wants.
+; Termination   : No rule duplicates an operand. Each rule replaces a subtree
+;                that mentions the same variable two or three times with a
+;                subtree that mentions it once, so each application strictly
+;                decreases the node count of the matched subterm. The set is
+;                monotone, and because nothing re-introduces the larger shape
+;                there is no cycle.
+;
+; Operator signatures required by this file:
+; signatures: iadd 2, imul 2, iand 2, ishl 2, ineg 1
+; =============================================================================
+
+; 2x + 3x is 5x, so the two products share one multiplier. Thirteen nodes
+; become five.
+(rule sz-share-linear-pair (iadd (imul ?x 2) (imul ?x 3)) (imul ?x 5))
+; The same sharing for a 1x term, which is the value itself.
+(rule sz-share-unit-pair (iadd (imul ?x 1) (imul ?x 7)) (imul ?x 8))
+; 4x + 12x is 16x, so both products collapse into a single shift sized
+; multiplier.
+(rule sz-share-pow2-pair (iadd (imul ?x 4) (imul ?x 12)) (imul ?x 16))
+; x + 2x is 3x, so the value and its double share one multiplier.
+(rule sz-share-self (iadd ?x (imul ?x 2)) (imul ?x 3))
+; Two negations of the same value are one product by minus two.
+(rule sz-share-negate (iadd (ineg ?x) (ineg ?x)) (imul ?x -2))
+; Two products by powers of two are one product by the product of the
+; constants, 4 * 4 is 16.
+(rule sz-fold-pow2-product (imul (imul ?x 4) 4) (imul ?x 16))
+; Nested shifts of one value are one shift by the total count, 2 + 3 is 5.
+(rule sz-fold-shift-count (ishl (ishl ?x 2) 3) (ishl ?x 5))
+; A shifted value times a power of two is a shift of the value.
+(rule sz-fold-shift-product (imul (ishl ?x 2) 4) (ishl ?x 4))
+; Two masked values summed are one masked value doubled, which is a shift.
+(rule sz-share-masked (iadd (iand ?x ?m) (iand ?x ?m)) (ishl (iand ?x ?m) 1))

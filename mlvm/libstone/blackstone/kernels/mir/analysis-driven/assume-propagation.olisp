@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.analysis-driven.assume-propagation"
+  :name "Assume Propagation"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Propagate assumptions to constrain value ranges and enable downstream optimizations.")
+  (requires
+    (capability ssa-form)
+    (capability assume-information))
+  (preconditions
+    (assumption-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (propagate (assumption a) (constrained-value v)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Propagates assumptions to constrain value ranges.")
+  (limitations "Applies only when assumptions are available.")
+  (documentation
+    (purpose "Propagate assumptions to constrain value ranges.")
+    (motivation "Assume propagation enables downstream optimizations.")
+    (applicability "Applies to values with available assumptions.")
+    (semantic-assumptions "Assumptions are available.")
+    (known-limitations "Does not propagate when assumptions are unavailable.")
+    (testing-strategy "Constrained, unconstrained, and unknown cases are exercised.")))

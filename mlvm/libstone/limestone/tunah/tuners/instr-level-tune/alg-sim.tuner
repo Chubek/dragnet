@@ -1,0 +1,132 @@
+; =============================================================================
+; Tunah tuner -- algebraic simplification
+; =============================================================================
+; Purpose       : Apply the algebraic laws of the integer model to expressions
+;                whose operands are opaque values: neutral elements,
+;                annihilators, idempotence, involution, cancellation,
+;                absorption and De Morgan duality.
+; Stage         : Instruction level machine IL, independent of any target.
+; Vocabulary    : The integer operators of the shared directory vocabulary.
+;                No memory, control flow, copy, merge or vector operator
+;                appears here, so the file is safe for any stage that has not
+;                yet decided on a target encoding. Target specific
+;                substitutions live in strength-reduct.tuner, size driven
+;                rewrites in codesize-reduce.tuner and uop count reasoning in
+;                uarch-opt.tuner; no rule body is shared with those files.
+; Preconditions : All identities hold for two's complement wrapping arithmetic
+;                on the same operand width, which is what makes the identities
+;                below width independent. Cancellation rules are stated
+;                concretely rather than as a general rule, so no associative
+;                or commutative rewrite is required to see them: this set
+;                contains no unconstrained commutativity, which is what keeps
+;                the e-graph from growing without bound. The cost of that
+;                decision is that an operand order is not normalised, so every
+;                identity that can match a neutral or annihilating operand in
+;                either position is written out twice, once per order.
+; Cost model    : Identity, absorption and cancellation rules are cost
+;                reducing or cost neutral, so they can only help extraction.
+;                The two canonicalisation rules at the end are cost
+;                increasing on their own, and are justified by the fact that
+;                the smaller term they admit is cheaper in the end; the size
+;                cost model keeps the original term whenever no cheaper term is
+;                reachable, so they are safe.
+; Termination   : Most rules strictly decrease the node count of the matched
+;                subterm. Two rules, as-sub-to-add-neg and as-sub-negate, are
+;                inverses of one another; together they add at most one node
+;                per subtraction site and the pair is closed, so the set
+;                remains bounded and monotone. No rule duplicates an operand
+;                of a matched subterm, so no rule can grow a term.
+;
+; Operator signatures required by this file:
+; signatures: iadd 2, isub 2, imul 2, iand 2, ior 2, ixor 2, ishl 2, ishr 2,
+;             isar 2, ineg 1, inot 1
+; =============================================================================
+
+; 0 is the neutral element of add, so x + 0 is x.
+(rule as-add-zero (iadd ?x 0) ?x)
+; Same, with the neutral element in the first position.
+(rule as-add-zero-commuted (iadd 0 ?x) ?x)
+; 0 is the neutral element of subtract on the right.
+(rule as-sub-zero (isub ?x 0) ?x)
+; A value minus itself is 0.
+(rule as-sub-self (isub ?x ?x) 0)
+; A value plus its negation is 0, in wrapping arithmetic.
+(rule as-add-opposite (iadd ?x (ineg ?x)) 0)
+; The operands may arrive in either order, and both are enumerated rather than
+; relying on a commutativity rewrite, as the preconditions above require.
+(rule as-add-opposite-commuted (iadd (ineg ?x) ?x) 0)
+; Subtracting a negation is adding its operand.
+(rule as-sub-negate (isub ?x (ineg ?y)) (iadd ?x ?y))
+; 1 is the neutral element of multiply.
+(rule as-mul-one (imul ?x 1) ?x)
+; Same, with the neutral element in the first position.
+(rule as-mul-one-commuted (imul 1 ?x) ?x)
+; 0 annihilates a product.
+(rule as-mul-zero (imul ?x 0) 0)
+; Same, with the annihilator in the first position.
+(rule as-mul-zero-commuted (imul 0 ?x) 0)
+; A value is its own bitwise and.
+(rule as-and-self (iand ?x ?x) ?x)
+; A zero mask annihilates a conjunction.
+(rule as-and-zero (iand ?x 0) 0)
+; Same, with the annihilator in the first position.
+(rule as-and-zero-commuted (iand 0 ?x) 0)
+; An all-ones mask is the identity of and.
+(rule as-and-ones (iand ?x -1) ?x)
+; Same, with the identity mask in the first position.
+(rule as-and-ones-commuted (iand -1 ?x) ?x)
+; A value is its own bitwise or.
+(rule as-or-self (ior ?x ?x) ?x)
+; A zero mask is the identity of a disjunction.
+(rule as-or-zero (ior ?x 0) ?x)
+; Same, with the identity mask in the first position.
+(rule as-or-zero-commuted (ior 0 ?x) ?x)
+; An all-ones mask annihilates a disjunction.
+(rule as-or-ones (ior ?x -1) -1)
+; Same, with the annihilator in the first position.
+(rule as-or-ones-commuted (ior -1 ?x) -1)
+; A value is its own exclusive or.
+(rule as-xor-self (ixor ?x ?x) 0)
+; A zero mask is the identity of an exclusive or.
+(rule as-xor-zero (ixor ?x 0) ?x)
+; Same, with the identity mask in the first position.
+(rule as-xor-zero-commuted (ixor 0 ?x) ?x)
+; Exclusive or against an all-ones mask inverts.
+(rule as-xor-ones (ixor ?x -1) (inot ?x))
+; Same, with the inverting mask in the first position.
+(rule as-xor-ones-commuted (ixor -1 ?x) (inot ?x))
+; Negation is an involution. The literal case, negating zero, is a constant
+; fold and is stated once in const-folding.tuner.
+(rule as-neg-involutive (ineg (ineg ?x)) ?x)
+; Complement is an involution as well.
+(rule as-inot-involutive (inot (inot ?x)) ?x)
+; A left shift by a zero count is the identity.
+(rule as-shl-zero (ishl ?x 0) ?x)
+; A logical shift by a zero count is the identity.
+(rule as-ishr-zero (ishr ?x 0) ?x)
+; An arithmetic shift by a zero count is the identity.
+(rule as-isar-zero (isar ?x 0) ?x)
+; Right cancellation: (x - y) + y is x.
+(rule as-add-cancel (iadd (isub ?x ?y) ?y) ?x)
+; Right cancellation of an addition: (x + y) - y is x.
+(rule as-sub-add-cancel (isub (iadd ?x ?y) ?y) ?x)
+; Left cancellation of an addition: x - (x + y) is the negation of y, which is
+; the only form available without commutativity.
+(rule as-sub-add-cancel-left (isub ?x (iadd ?x ?y)) (ineg ?y))
+; Absorption: a value and under an or that already contains it is that value.
+(rule as-and-absorb (iand ?x (ior ?x ?y)) ?x)
+; Absorption for or over and.
+(rule as-or-absorb (ior ?x (iand ?x ?y)) ?x)
+; Every bit is its own exclusive or, so x ^ (x ^ y) is y.
+(rule as-xor-cancel (ixor ?x (ixor ?x ?y)) ?y)
+; De Morgan, in the cost reducing direction: the disjunction of two complements
+; is the complement of the conjunction, which is two nodes cheaper.
+(rule as-or-de-morgan (ior (inot ?x) (inot ?y)) (inot (iand ?x ?y)))
+; De Morgan, in the cost reducing direction: the conjunction of two complements
+; is the complement of the disjunction.
+(rule as-and-de-morgan (iand (inot ?x) (inot ?y)) (inot (ior ?x ?y)))
+; Canonical additive form. This is the only rule here that grows a term, and it
+; earns its place by letting as-add-cancel, as-sub-add-cancel and the
+; const-prop set see through a subtraction. Its inverse is as-sub-negate; the
+; pair adds at most one node per site and is closed.
+(rule as-sub-to-add-neg (isub ?x ?y) (iadd ?x (ineg ?y)))

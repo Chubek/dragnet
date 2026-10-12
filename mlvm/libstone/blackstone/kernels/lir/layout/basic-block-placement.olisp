@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.layout.basic-block-placement"
+  :name "Basic Block Placement"
+  :stage lir
+  (category code-layout)
+  (paradigms code-layout cost-model-guided)
+  (objective "Order basic blocks to improve instruction cache locality and reduce branch overhead.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability block-layout-information))
+  (preconditions
+    (block-layout-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (place (blocks bs) (ordered-blocks ordered)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Orders basic blocks to improve cache locality and reduce branch overhead.")
+  (limitations "Applies only when block layout information is available.")
+  (documentation
+    (purpose "Order basic blocks to improve cache locality.")
+    (motivation "Basic block placement reduces instruction cache misses and branch overhead.")
+    (applicability "Applies when block layout information is available.")
+    (semantic-assumptions "Block layout information is available.")
+    (known-limitations "Does not place when block layout information is unavailable.")
+    (testing-strategy "Linear, loop, and branch-heavy cases are exercised.")))

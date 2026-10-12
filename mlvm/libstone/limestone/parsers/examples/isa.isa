@@ -1,0 +1,15 @@
+arch toy { word_size = 64; enabled = true; tags = ["portable", 1]; }
+profile { family = "test"; version = "1"; }
+compiler { features = ["selection"]; }
+tooling { future = { extra = false; }; }
+legacy { original = "preserved"; }
+regclass GPR { r0(64)=0, r1(64)=1, }
+alias accumulator = r0;
+encoding E { bits[7:0] = 0xff; operand = reg(0, 7), imm(8, 15); }
+op ADD {
+  encoding = E;
+  operands = lhs:GPR, rhs:GPR;
+  semantics = (set dst (add lhs rhs));
+  empty = ;
+  tooling { dependency = "true"; };
+}

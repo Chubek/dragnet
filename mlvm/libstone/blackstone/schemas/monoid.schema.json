@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blackstone.dev/schemas/monoid.schema.json",
+  "title": "Blackstone Monoid",
+  "description": "Schema for a standard-library monoid definition.",
+  "type": "object",
+  "required": ["id", "name", "carrier", "operation", "identity", "laws"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "carrier": { "type": "string" },
+    "operation": { "type": "string" },
+    "identity": { "type": "string" },
+    "laws": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "type": "string" }
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": false
+}

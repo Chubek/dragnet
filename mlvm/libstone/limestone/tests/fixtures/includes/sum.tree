@@ -1,0 +1,6 @@
+tree sum {
+  node %10 = CONST():i64 immediate 100;
+  node %20 = CONST():i64 immediate 7;
+  node %1 = ADD(%10, %20):i64;
+  root %1:reg;
+}

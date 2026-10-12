@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.data-flow.if-conversion"
+  :name "If-Conversion"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Convert a conditional branch into predicated or select instructions.")
+  (requires
+    (capability ssa-form)
+    (capability explicit-control-flow))
+  (preconditions
+    (branch-is-if-convertible)
+    (target-supports-predication))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (if-convert (branch (boolean c) true-block false-block) (select c true-val false-val)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Converts a conditional branch into predicated or select instructions.")
+  (limitations "Applies only to if-convertible branches on targets that support predication.")
+  (documentation
+    (purpose "Convert conditional branches into predicated instructions.")
+    (motivation "If-conversion removes branch overhead.")
+    (applicability "Applies to if-convertible branches on targets that support predication.")
+    (semantic-assumptions "The branch is if-convertible and the target supports predication.")
+    (known-limitations "Does not convert branches that are not if-convertible.")
+    (testing-strategy "Convertible, non-convertible, and unsupported target cases are exercised.")))

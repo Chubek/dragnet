@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.mir.ssa.pruned-construction"
+  :name "Pruned SSA Construction"
+  :stage mir
+  (category ssa-optimization)
+  (paradigms ssa-based control-flow-graph)
+  (objective "Construct pruned SSA form by inserting phi nodes only for variables that are live.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis dominator-analysis)
+    (analysis liveness-analysis))
+  (preconditions
+    (control-flow-is-explicit)
+    (liveness-information-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (construct (non-ssa-function f) (pruned-ssa-function f-pruned)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-ssa-invariant))
+  (expected-effects "Constructs pruned SSA form with phi nodes only for live variables.")
+  (limitations "Applies only when liveness information is available.")
+  (documentation
+    (purpose "Construct pruned SSA form.")
+    (motivation "Pruned SSA reduces the number of phi nodes.")
+    (applicability "Applies to functions with explicit control flow and liveness information.")
+    (semantic-assumptions "Liveness information is available.")
+    (known-limitations "Does not construct pruned SSA without liveness information.")
+    (testing-strategy "Live, dead, and loop cases are exercised.")))

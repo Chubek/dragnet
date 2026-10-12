@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.control-flow.empty-block-merge"
+  :name "LIR Empty Block Merge"
+  :stage lir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph)
+  (objective "Merge an empty basic block with its successor.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (block-is-empty)
+    (block-has-single-successor))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (merge (block :id empty-block) (block :id successor)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-valid-control-flow-edges))
+  (expected-effects "Merges an empty basic block with its successor.")
+  (limitations "Applies only to empty blocks with a single successor.")
+  (documentation
+    (purpose "Merge empty basic blocks with their successors.")
+    (motivation "Empty block merging reduces code size.")
+    (applicability "Applies to basic blocks containing only a jump to a single successor.")
+    (semantic-assumptions "The block is empty and has a single successor.")
+    (known-limitations "Does not merge blocks with multiple successors.")
+    (testing-strategy "Single-successor and multi-successor cases are exercised.")))

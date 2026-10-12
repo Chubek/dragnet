@@ -1,0 +1,281 @@
+-- bpf.dsymspec — eBPF ISA (64-bit, little-endian), helper/BTF/Maps model.
+-- Data: isa_reference eBPF quick spec (r0-r10 roles, 64-bit fixed encoding
+-- with 16-byte LD_IMM64), bfd_oracle (elf64-bpfle/elf64-bpfbe targets),
+-- osdev_oracle (kernel verifier: 512B stack, bounded loops, tail calls).
+-- Strata: base | alu32 | byteswap | ldimm64 | atomics | bounded-loops |
+--   bpf-to-bpf | tail-calls | btf | priv(helpers/maps).
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "bpf", subarch = "bpfel",
+    addr_size = 64, op_size = 64, addr_def = 64, align = 8,
+    byte_order = "little", obj_format = "ELF64", abi = "eBPF",
+    calling_conv = "bpf-helper",
+    features = { "base", "alu32", "ldimm64" },
+}
+
+symas.feature{ name = "base", desc = "eBPF base 64-bit ALU + jumps" }
+symas.feature{ name = "alu32", desc = "32-bit ALU sub-register ops" }
+symas.feature{ name = "ldimm64", desc = "16-byte load-immediate-64" }
+symas.feature{ name = "byteswap", desc = "BE/LE 16/32/64 conversions" }
+symas.feature{ name = "maps", desc = "BPF maps (fd/lookup/update)" }
+symas.feature{ name = "helpers", desc = "helper calls (r1-r5 args, r0 ret)" }
+symas.feature{ name = "tail-calls", desc = "tail calls" }
+symas.feature{ name = "bpf-to-bpf", desc = "BPF-to-BPF calls" }
+symas.feature{ name = "btf", desc = "BPF Type Format" }
+symas.feature{ name = "atomics", desc = "atomic add/or/and/xor/fetch" }
+symas.feature{ name = "bounded-loops", desc = "bounded loops (verifier v2)" }
+symas.feature{ name = "priv", desc = "privileged (map update, kfuncs)" }
+
+-- r0-r10 64-bit + w0-w10 32-bit views (TableGen BPF + isa_reference roles).
+for i = 0, 10 do
+    symas.register{ name = "r" .. i, class = "gpr", width = 64, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 10 do
+    symas.register{ name = "w" .. i, class = "gpr", width = 32, enc = i, parent = "r" .. i,
+                    sub_lo = 0, sub_hi = 32, flags = { "readable", "writable" } }
+end
+symas.register{ name = "fp", class = "gpr", width = 64, enc = 10, flags = { "readable" } }
+symas.register{ name = "stack", class = "special", width = 64, enc = 10 }
+symas.register{ name = "pc", class = "special", width = 64, enc = 0 }
+
+-- 64-bit fixed encodings (opcode|dst|src|off|imm); wide LD_IMM64 = 16B.
+symas.encoder{ name = "add",   source = "emit64le(0x0F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "sub",   source = "emit64le(0x1F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "mul",   source = "emit64le(0x2F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "div",   source = "emit64le(0x3F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "or",    source = "emit64le(0x4F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "and",   source = "emit64le(0x5F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "lsh",   source = "emit64le(0x6F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "rsh",   source = "emit64le(0x7F + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "neg",   source = "emit64le(0x8F + dst*4096);", max_bytes = 8 }
+symas.encoder{ name = "mod",   source = "emit64le(0x9F + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "xor",   source = "emit64le(0xAF + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "mov",   source = "emit64le(0xBF + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "arsh",  source = "emit64le(0xCF + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "add32", source = "emit64le(0x0C + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "mov32", source = "emit64le(0xBC + dst*4096 + src*256);", max_bytes = 8 }
+symas.encoder{ name = "addimm", source = "emit64le(0x07 + dst*4096 + imm*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "movimm", source = "emit64le(0xB7 + dst*4096 + imm*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "be16",  source = "emit64le(0xDC + dst*4096 + 16*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "le64",  source = "emit64le(0xD4 + dst*4096 + 64*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "ldimm64", source = "emit64le(0x18 + dst*4096); emit64le(imm);", max_bytes = 16 }
+symas.encoder{ name = "ldxw",  source = "emit64le(0x61 + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "stxw",  source = "emit64le(0x63 + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "ldx",   source = "emit64le(0x79 + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "stx",   source = "emit64le(0x7B + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "stw",   source = "emit64le(0x62 + dst*4096 + off*65536 + imm*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "stxadd", source = "emit64le(0xC3 + dst*4096 + src*256 + off*65536 + 64*16777216);", max_bytes = 8 }
+symas.encoder{ name = "ja",    source = "emit64le(0x05 + off*65536); emit_relocation(sym, R_BPF_JMP);", max_bytes = 8, max_relocs = 1 }
+symas.encoder{ name = "jeq",   source = "emit64le(0x15 + dst*4096 + src*256 + off*65536); emit_relocation(sym, R_BPF_JMP);", max_bytes = 8, max_relocs = 1 }
+symas.encoder{ name = "jne",   source = "emit64le(0x55 + dst*4096 + src*256 + off*65536); emit_relocation(sym, R_BPF_JMP);", max_bytes = 8, max_relocs = 1 }
+symas.encoder{ name = "jlt",   source = "emit64le(0xA5 + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "jset",  source = "emit64le(0x45 + dst*4096 + src*256 + off*65536);", max_bytes = 8 }
+symas.encoder{ name = "call",  source = "emit64le(0x85 + imm*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "callx", source = "emit64le(0x8D + imm*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "exit",  source = "emit64le(0x95);", max_bytes = 8 }
+
+local function r() return { kind = "reg", class = "gpr", width = 64 } end
+local function wr() return { kind = "reg", class = "gpr", width = 64, access = "write" } end
+
+for _, m in ipairs({ "add", "sub", "mul", "div", "or", "and", "lsh",
+    "rsh", "neg", "mod", "xor", "mov", "arsh", "add32", "mov32", "addimm",
+    "movimm", "be16", "le64", "ldimm64", "ldxw", "stxw", "ldx", "stx", "stw", "stxadd",
+    "ja", "jeq", "jne", "jlt", "jset", "call", "callx", "exit" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "add", encoder = "add", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "sub", encoder = "sub", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "mul", encoder = "mul", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "div", encoder = "div", flags = { "may_trap" }, operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "or",  encoder = "or",  operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "and", encoder = "and", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "lsh", encoder = "lsh", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "rsh", encoder = "rsh", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "neg", encoder = "neg", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" } } }
+symas.form{ mnemonic = "mod", encoder = "mod", flags = { "may_trap" }, operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "xor", encoder = "xor", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "mov", encoder = "mov", operands = { wr(), r() } }
+symas.form{ mnemonic = "arsh", encoder = "arsh", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" }, r() } }
+symas.form{ mnemonic = "add32", encoder = "add32", required = { "alu32" },
+    operands = { { kind = "reg", class = "gpr", width = 32, access = "readwrite" }, { kind = "reg", class = "gpr", width = 32 } } }
+symas.form{ mnemonic = "mov32", encoder = "mov32", required = { "alu32" },
+    operands = { { kind = "reg", class = "gpr", width = 32, access = "write" }, { kind = "reg", class = "gpr", width = 32 } } }
+symas.form{ mnemonic = "addimm", encoder = "addimm", operands = { { kind = "reg", class = "gpr", width = 64, access = "readwrite" },
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "movimm", encoder = "movimm", operands = { wr(),
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "be16", encoder = "be16", required = { "byteswap" }, operands = { wr() } }
+symas.form{ mnemonic = "le64", encoder = "le64", required = { "byteswap" }, operands = { wr() } }
+symas.form{ mnemonic = "ldimm64", encoder = "ldimm64", required = { "ldimm64" }, flags = { "reloc" }, operands = { wr(),
+    { kind = "imm", width = 64, signed = true, imm_min = -9223372036854775807, imm_max = 9223372036854775807 } } }
+symas.form{ mnemonic = "ldxw", encoder = "ldxw", flags = { "reads_mem" }, operands = { wr(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "ldx", encoder = "ldx", flags = { "reads_mem" }, operands = { wr(), { kind = "mem", width = 64 } } }
+symas.form{ mnemonic = "stx", encoder = "stx", flags = { "writes_mem" }, operands = { { kind = "mem", width = 64 }, r() } }
+symas.form{ mnemonic = "stxw", encoder = "stxw", flags = { "writes_mem" }, operands = { { kind = "mem", width = 32 }, r() } }
+symas.form{ mnemonic = "stw", encoder = "stw", flags = { "writes_mem" }, operands = { { kind = "mem", width = 32 },
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "stxadd", encoder = "stxadd", required = { "atomics" }, flags = { "reads_mem", "writes_mem" },
+    operands = { { kind = "mem", width = 64 }, r() } }
+symas.form{ mnemonic = "ja", encoder = "ja", flags = { "branch", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "jeq", encoder = "jeq", flags = { "cond_branch", "reloc" }, operands = { r(), r(), { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "jne", encoder = "jne", flags = { "cond_branch", "reloc" }, operands = { r(), r(), { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "jlt", encoder = "jlt", required = { "bounded-loops" }, flags = { "cond_branch" },
+    operands = { r(), r(), { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "jset", encoder = "jset", flags = { "cond_branch" }, operands = { r(), r(), { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "call", encoder = "call", required = { "helpers" }, flags = { "branch" }, operands = {
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "callx", encoder = "callx", required = { "bpf-to-bpf" }, flags = { "branch", "reloc" },
+    operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "exit", encoder = "exit", flags = { "return", "terminator" } }
+
+symas.syntax{ name = "default", comment = ";", separator = ", " }
+
+symas.section{ name = ".text", flags = { "exec", "alloc", "code" }, align = 8, content = "code" }
+symas.section{ name = ".rodata", flags = { "alloc", "readonly", "data" }, align = 8, content = "data" }
+symas.section{ name = ".maps", flags = { "write", "alloc", "data" }, align = 8, content = "data" }
+symas.section{ name = ".btf", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+symas.section{ name = ".BTF.ext", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+symas.section{ name = ".license", flags = { "alloc", "readonly", "meta" }, align = 1, content = "meta" }
+
+symas.linkage{ name = "prog_global", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "map_def", binding = "global", visibility = "default", symtype = "object" }
+symas.linkage{ name = "local_sym", binding = "local", visibility = "default", symtype = "none" }
+
+symas.reloc{ name = "R_BPF_NONE", width = 64, expr = "S + A" }
+symas.reloc{ name = "R_BPF_64_64", width = 64, expr = "S + A" }
+symas.reloc{ name = "R_BPF_64_32", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_BPF_MAP_FD", width = 64, expr = "S + A" }
+symas.reloc{ name = "R_BPF_JMP", width = 64, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_BPF_DATA", width = 64, expr = "section(S) + A" }
+
+symas.debug{ msg = "ebpf r0-r10 roles + verifier strata (loops/tail/atomics)", kind = "target", ref = "" }
+symas.debug{ msg = "atomic forms require atomics", kind = "form", ref = "stxadd" }
+symas.debug{ msg = "helper calls clobber r1-r5, return r0", kind = "form", ref = "call" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources: isa_reference eBPF quick spec (r0-r10 roles, 64-bit fixed-width
+-- encoding with a 16-byte LD_IMM64 pseudo-instruction, signed 32-bit
+-- immediates, two-operand ALU form), bfd_oracle (elf64-bpfle/elf64-bpfbe
+-- targets), osdev_oracle (kernel verifier: 512-byte stack, bounded loops, tail
+-- calls, 1M instructions per program, no floating point).
+-- eBPF runs on the *host* CPU: there is no separate pipeline model, so the
+-- "models" below describe the JIT target class and the sched records use the
+-- host's typical latencies. The important selection facts are the verifier
+-- constraints and the LD_IMM64 expansion.
+
+symas.model{
+    name = "jitter", vendor = "linux", issue_width = 6, rob = 256,
+    load_latency = 5, mispredict = 14,
+    flags = { "out_of_order", "has_stalls", "forwarding", "default" },
+    desc = "interpreted/JITted on the host CPU: model follows the host core",
+}
+symas.model{
+    name = "interpreter", vendor = "linux", issue_width = 1, rob = 0,
+    load_latency = 1, mispredict = 20,
+    flags = { "in_order", "has_stalls" },
+    desc = "kernel interpreter: one instruction per dispatch, no reordering",
+}
+symas.unit{ name = "bpf-alu",   model = "jitter", kind = "int", count = 4, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "bpf-mul",   model = "jitter", kind = "mul", count = 1, latency = 3, throughput = 1 }
+symas.unit{ name = "bpf-div",   model = "jitter", kind = "divider", count = 1, latency = 20, throughput = 8, flags = { "noncoincident" } }
+symas.unit{ name = "bpf-ld",    model = "jitter", kind = "load", count = 2, latency = 5, throughput = 1 }
+symas.unit{ name = "bpf-br",    model = "jitter", kind = "branch", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "bpf-helper",model = "jitter", kind = "system", count = 1, latency = 100, throughput = 1, flags = { "noncoincident" } }
+symas.unit{ name = "i-alu",     model = "interpreter", kind = "int", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "i-ld",      model = "interpreter", kind = "load", count = 1, latency = 1, throughput = 1 }
+
+for _, m in ipairs({ "add", "sub", "and", "or", "xor", "neg", "mov", "arsh", "lsh", "rsh" }) do
+    symas.sched{ form = m, name = "WriteALU", latency = 1, uops = 1, writes = { "bpf-alu" }, reads = { "bpf-alu" } }
+end
+symas.sched{ form = "mul", name = "WriteMul", latency = 3, uops = 1, writes = { "bpf-mul" }, reads = { "bpf-mul" } }
+symas.sched{ form = "div", name = "WriteDiv", latency = 20, uops = 1, flags = { "multicycle", "may_fault" },
+             writes = { "bpf-div" }, reads = { "bpf-div" } }
+symas.sched{ form = "mod", name = "WriteMod", latency = 20, uops = 1, flags = { "multicycle", "may_fault" },
+             writes = { "bpf-div" }, reads = { "bpf-div" } }
+symas.sched{ form = "ldx", name = "WriteLDX", latency = 5, uops = 1, flags = { "may_fault" }, writes = { "bpf-ld" } }
+symas.sched{ form = { "stx", "stxw" }, name = "WriteSTX", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "bpf-ld" } }
+symas.sched{ form = "stw", name = "WriteST", latency = 4, uops = 1, flags = { "may_fault" }, writes = { "bpf-ld" } }
+symas.sched{ form = "stxadd", name = "WriteSTX", latency = 5, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "bpf-ld" } }
+symas.sched{ form = "ldimm64", name = "WriteLdImm64", latency = 1, uops = 2, writes = { "bpf-alu" } }
+symas.sched{ form = "addimm", name = "WriteALU", latency = 1, uops = 1, writes = { "bpf-alu" } }
+symas.sched{ form = "movimm", name = "WriteALU", latency = 1, uops = 1, writes = { "bpf-alu" } }
+symas.isel{ node = "add", form = "add", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(add i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "add", form = "addimm", kind = "node", cost = 1, complexity = 2,
+            pattern = "(add i64, GPR:$a, (i64 imm32))" }
+symas.isel{ node = "add", form = "add32", kind = "node", cost = 1, complexity = 2, pattern = "32-bit add" }
+symas.isel{ node = "add", form = "ldimm64", kind = "node", cost = 2, complexity = 4,
+            pattern = "(add i64, (i64 0), (i64 imm64)) -> ld_imm64 pseudo" }
+symas.isel{ node = "sub", form = "sub", kind = "node", cost = 1, complexity = 1, pattern = "(sub i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "and", form = "and", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(and i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "or", form = "or", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(or i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "xor", form = "xor", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(xor i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "mul", form = "mul", kind = "node", cost = 3, complexity = 2, pattern = "(mul i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "sdiv", form = "div", kind = "node", cost = 20, complexity = 3,
+            flags = { "unprofitable" }, pattern = "(sdiv i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "srem", form = "mod", kind = "node", cost = 20, complexity = 3,
+            flags = { "unprofitable" }, pattern = "(srem i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "shl", form = "lsh", kind = "node", cost = 1, complexity = 1, pattern = "(shl i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "ashr", form = "arsh", kind = "node", cost = 1, complexity = 1, pattern = "(ashr i64, GPR:$a, GPR:$b)" }
+symas.isel{ node = "load", form = "ldxw", kind = "node", cost = 5, complexity = 2, pattern = "(load i32, addr: p)" }
+symas.isel{ node = "load", form = "ldx", kind = "node", cost = 5, complexity = 2, pattern = "(load i64, addr: p)" }
+symas.isel{ node = "store", form = "stw", kind = "node", cost = 4, complexity = 2, pattern = "(store i32, addr: p)" }
+symas.isel{ node = "store", form = "stx", kind = "node", cost = 1, complexity = 2, pattern = "(store i64, addr: p)" }
+symas.isel{ node = "load", form = "be16", kind = "node", cost = 1, complexity = 3, pattern = "big-endian byte swap" }
+symas.isel{ node = "load", form = "le64", kind = "node", cost = 1, complexity = 3, pattern = "little-endian byte swap" }
+symas.isel{ node = "br", form = "ja", kind = "node", cost = 1, complexity = 1, pattern = "unconditional jump" }
+symas.isel{ node = "br", form = "jeq", kind = "node", cost = 1, complexity = 2, pattern = "(brcond (icmp eq, GPR:$a, GPR:$b))" }
+symas.isel{ node = "br", form = "jne", kind = "node", cost = 1, complexity = 2, pattern = "(brcond (icmp ne, GPR:$a, GPR:$b))" }
+symas.isel{ node = "br", form = "jlt", kind = "node", cost = 1, complexity = 2, pattern = "(brcond (icmp slt, GPR:$a, GPR:$b))" }
+symas.isel{ node = "br", form = "jset", kind = "node", cost = 1, complexity = 3, pattern = "branch on mask bits" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 100, complexity = 1, required = { "helpers" },
+            pattern = "(call i64:*)(i64, ...)" }
+symas.isel{ node = "br", form = "callx", kind = "node", cost = 1, complexity = 2, required = { "bpf-to-bpf" },
+            pattern = "indirect call (BPF-to-BPF or JIT-compiled)" }
+symas.isel{ node = "br", form = "exit", kind = "node", cost = 1, complexity = 1, pattern = "function exit" }
+symas.isel{ node = "COPY", form = "mov", kind = "copy", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "COPY", form = "movimm", kind = "copy", cost = 0, complexity = 2, pattern = "constant materialization" }
+symas.isel{ node = "COPY", form = "mov32", kind = "copy", cost = 0, complexity = 2, pattern = "32-bit copy" }
+symas.isel{ node = "atomicrmw", form = "stxadd", kind = "node", cost = 5, complexity = 4, required = { "atomics" },
+            pattern = "lock xadd" }
+symas.isel{ node = "load", form = "ldimm64", kind = "node", cost = 2, complexity = 4,
+            pattern = "64-bit constant load: two 64-bit instructions" }
+symas.tune{ model = "jitter", kind = "strategy", name = "bounded-loops", value = 1, features = { "bounded-loops" },
+            desc = "the verifier requires bounded backward jumps: widen the induction range" }
+symas.tune{ model = "jitter", kind = "latency", form = "div", value = 20, flags = { "override" },
+            desc = "an eBPF divide is a host divide: on the JIT target it is a full integer division" }
+symas.tune{ model = "interpreter", kind = "avoid", form = "div", value = 4,
+            desc = "the kernel interpreter emulates a 64-bit divide in software" }
+symas.tune{ model = "jitter", kind = "avoid", form = "div", value = 3,
+            desc = "prefer a shift when the divisor is a power of two" }
+symas.tune{ model = "jitter", kind = "prefer", form = "ldx", value = 3,
+            desc = "the 64-bit load/store forms are the most common map access" }
+symas.tune{ model = "interpreter", kind = "prefer", form = "ldimm64", value = 2,
+            desc = "the interpreter keeps a 64-bit constant in its own slot" }
+symas.tune{ model = "jitter", kind = "threshold", name = "stack-depth", value = 512,
+            desc = "the verifier limits the eBPF stack to 512 bytes" }
+symas.tune{ model = "jitter", kind = "threshold", name = "max-instructions", value = 1000000,
+            desc = "the verifier rejects programs over one million instructions" }
+symas.tune{ model = "jitter", kind = "strategy", name = "tail-call", value = 1, features = { "tail-calls" },
+            desc = "a bpf-to-bpf call in tail position becomes a jump in the JIT" }
+symas.tune{ model = "interpreter", kind = "strategy", name = "tail-call", value = 0,
+            desc = "the kernel interpreter also implements tail calls" }
+symas.tune{ model = "jitter", kind = "threshold", name = "no-floating-point", value = 0,
+            desc = "eBPF has no floating point: every fadd-like op is rejected by the verifier" }
+
+symas.fuse{ name = "add-ldx", a = "add", b = "ldx", kind = "mem_arith", latency = 5,
+            flags = { "profitable", "adjacent" }, pattern = "address computation then load" }
+symas.fuse{ name = "stx-ldx", a = "stx", b = "ldx", kind = "macro", latency = 5,
+            flags = { "profitable", "adjacent" }, pattern = "copy between two map slots" }
+symas.fuse{ name = "jeq-ja", a = "jeq", b = "ja", kind = "branch_pair",
+            flags = { "profitable", "adjacent" }, pattern = "verifier-friendly branch diamond" }
+symas.fuse{ name = "add-add", a = "add", b = "add", kind = "macro", latency = 1,
+            flags = { "profitable", "adjacent" }, pattern = "two ALU ops to the host scheduler" }
+print(symas.emit())

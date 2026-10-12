@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.arithmetic-identity"
+  :name "Arithmetic Identity Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Replace an arithmetic operation with an identity operand with a simpler form.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability identity-information))
+  (preconditions
+    (operand-is-identity)
+    (semantics-match))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (machine-op :kind "ADD" x (integer 0)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces an arithmetic operation with an identity operand with a simpler form.")
+  (limitations "Applies only when the operand is an identity element.")
+  (documentation
+    (purpose "Simplify arithmetic operations with identity operands.")
+    (motivation "Arithmetic identity combining reduces instruction count.")
+    (applicability "Applies to arithmetic operations with an identity operand.")
+    (semantic-assumptions "The operand is an identity element under the target semantics.")
+    (known-limitations "Does not simplify when the operand is not an identity element.")
+    (testing-strategy "Identity, non-identity, and boundary cases are exercised.")))

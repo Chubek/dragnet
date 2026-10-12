@@ -1,0 +1,104 @@
+//===- registers.dl -----------------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/*
+This module stablishes basic information about register:
+ - Which registers and tracked/considered in the different analyses
+ - Whether they all callee or caller saved according to the ABI
+*/
+
+// As long as CS_OPT_SYNTAX_NOREGNAME is not provided, capstone generates names
+// like SB, SL, FP, etc. for registers >R8
+// See https://github.com/capstone-engine/capstone/blob/fe3e7ab6716d0ba249b6779dadd4a3a2eb842f21/arch/ARM/ARMInstPrinter.c#L191
+
+.decl reg_index(RegName:register,Index:unsigned)
+
+reg_index("R0",0).
+reg_index("R1",1).
+reg_index("R2",2).
+reg_index("R3",3).
+reg_index("R4",4).
+reg_index("R5",5).
+reg_index("R6",6).
+reg_index("R7",7).
+reg_index("R8",8).
+reg_index("SB",9).
+reg_index("SL",10).
+reg_index("FP",11).
+reg_index("IP",12).
+reg_index("SP",13).
+reg_index("LR",14).
+reg_index("PC",15).
+
+general_purpose_reg("R0").
+general_purpose_reg("R1").
+general_purpose_reg("R2").
+general_purpose_reg("R3").
+general_purpose_reg("R4").
+general_purpose_reg("R5").
+general_purpose_reg("R6").
+general_purpose_reg("R7").
+general_purpose_reg("R8").
+general_purpose_reg("SB").
+general_purpose_reg("SL").
+general_purpose_reg("FP").
+general_purpose_reg("IP").
+general_purpose_reg("SP").
+general_purpose_reg("LR").
+general_purpose_reg("PC").
+
+register_size_bytes(InputReg,4):-
+    general_purpose_reg(Reg),
+    reg_map(InputReg,Reg).
+
+// Use the ARM calling convention.
+function_non_maintained_reg("R0").
+function_non_maintained_reg("R1").
+function_non_maintained_reg("R2").
+function_non_maintained_reg("R3").
+
+pc_reg("PC").
+
+frame_pointer("FP").
+
+stack_pointer("SP").
+
+return_reg("R0").
+
+condition_flags_reg("CPSR").
+
+integer_reg_param("R0",1).
+integer_reg_param("R1",2).
+integer_reg_param("R2",3).
+integer_reg_param("R3",4).
+
+float_reg(Reg,4):-
+    Index = range(0,32,1),
+    Reg = cat("S", to_string(Index)).
+
+float_reg(Reg,8):-
+    Index = range(0,32,1),
+    Reg = cat("D", to_string(Index)).
+
+float_reg(Reg,16):-
+    Index = range(0,16,1),
+    Reg = cat("Q", to_string(Index)).

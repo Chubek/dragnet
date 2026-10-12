@@ -1,0 +1,13 @@
+(define-kernel
+  :id "blackstone.test.unknown-cap"
+  :name "Unknown Capability"
+  :stage hir
+  (category constant-evaluation)
+  (objective "A kernel referencing an undefined capability.")
+  (requires (capability non-existent-capability))
+  (preconditions (operation-has-defined-compile-time-semantics))
+  (transform (fold (add (integer a) (integer b)) (integer-result (integer-add a b))))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Folds.")
+  (limitations "None.")
+  (documentation (purpose "Test.")))

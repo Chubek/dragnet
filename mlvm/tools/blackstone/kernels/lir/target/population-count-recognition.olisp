@@ -1,0 +1,37 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.lir.target.population-count-recognition"
+  :name "Population count recognition"
+  :stage lir
+  (category instruction-combination)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (population-count-sequence value) with (target-popcount value) when the declared proof obligations hold.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (analysis liveness-analysis))
+  (preconditions target-popcount-equivalence-proven operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants target-flags-clobbers-and-register-constraints-preserved)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires liveness-analysis)
+    (invalidates liveness-analysis live-range-analysis)
+    (preserves))
+  (transform (rewrite (population-count-sequence value) (target-popcount value)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Require exact width, result extension, flags, and implicit clobber equivalence.")
+  (documentation
+    (purpose "Replace (population-count-sequence value) with (target-popcount value) when the declared proof obligations hold.")
+    (motivation "Expose the population count recognition opportunity for planners with explicit legality facts.")
+    (stage "NodeLIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (population-count-sequence value); require a proven true target-popcount-equivalence-proven fact.")
+    (preconditions "Required true facts: target-popcount-equivalence-proven, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants, target-flags-clobbers-and-register-constraints-preserved.")
+    (required-information "Capabilities: machine-operations, target-description; analyses: liveness-analysis. Results must be current.")
+    (transformation "Replace (population-count-sequence value) with (target-popcount value) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Require exact width, result extension, flags, and implicit clobber equivalence.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Require exact width, result extension, flags, and implicit clobber equivalence.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.lir.target.population-count-recognition. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

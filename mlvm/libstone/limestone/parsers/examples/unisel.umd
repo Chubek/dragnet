@@ -1,0 +1,20 @@
+include "base.umd";
+machine portable {
+  regclass GPR = [$r0, $r1];
+  alias $r0 = $low0;
+  operator add(2);
+  instruction ADD { operands = ["GPR", "GPR"]; effects { memory = false; } }
+  pattern 1 add_reg: add(?lhs:i32, ?rhs:i32) -> ADD cost 1 side_effects false;
+  pattern add_imm: add($lhs, 7) -> "ADDI" cost 1 where { immediate = [-128, 127]; };
+  version = "1";
+}
+program demo {
+  block entry {
+    node %1 = constant(7):i32 required true side_effects false produces_value true;
+    node %2 = add(%1, 9):i32;
+    node %3 = annotation("origin") required false produces_value false;
+    output %2;
+    dependency { producer = %1; consumer = %2; kind = true; distance = 0; }
+    frequency = 1.5;
+  }
+}

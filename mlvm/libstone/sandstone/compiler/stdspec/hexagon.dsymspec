@@ -1,0 +1,269 @@
+-- hexagon.dsymspec — Qualcomm Hexagon VLIW DSP (packetized, little-endian).
+-- NOTE: Hexagon packet encoding is non-trivial (VLIW slots, duplex,
+-- end-of-packet bits). Register file, features, and ABI facts are accurate
+-- (TableGen Hexagon target: R0-R31, P0-P3, C/SA/LC/M/USR, Q/V 128B HVX);
+-- instruction encodings below are representative opcode words, not
+-- bit-exact. Cross-checked via arch_oracle + ccbe_oracle VLIW/scheduling
+-- topics (bundle scheduling, delay slots, modulo scheduling).
+-- Strata: base(v60) | v65 | v68 | hvx | hvx128 | audio | priv.
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "hexagon", subarch = "v68",
+    addr_size = 32, op_size = 32, addr_def = 32, align = 4,
+    byte_order = "little", obj_format = "ELF32", abi = "Hexagon",
+    calling_conv = "hexagon",
+    features = { "base", "v60", "v68" },
+}
+
+symas.feature{ name = "base", desc = "Hexagon base scalar" }
+symas.feature{ name = "v60", desc = "Hexagon V60" }
+symas.feature{ name = "v65", desc = "Hexagon V65" }
+symas.feature{ name = "v68", desc = "Hexagon V68" }
+symas.feature{ name = "hvx", desc = "Hexagon Vector eXtensions (128B)" }
+symas.feature{ name = "hvx128", desc = "HVX 128-byte" }
+symas.feature{ name = "audio", desc = "audio extensions" }
+symas.feature{ name = "duplex", desc = "duplex/sub-instruction" }
+symas.feature{ name = "compound", desc = "compound (new-value) jumps" }
+symas.feature{ name = "zreg", desc = "HVX temporaries" }
+symas.feature{ name = "priv", desc = "privileged (guest/supervisor)" }
+
+for i = 0, 31 do
+    symas.register{ name = "r" .. i, class = "gpr", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 3 do
+    symas.register{ name = "p" .. i, class = "mask", width = 8, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "v" .. i, class = "vec", width = 128, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "q" .. i, class = "vec", width = 128, enc = i, flags = { "readable", "writable" } }
+end
+symas.register{ name = "sp", class = "gpr", width = 32, enc = 29, flags = { "readable", "writable" } }
+symas.register{ name = "fp", class = "gpr", width = 32, enc = 30, flags = { "readable", "writable" } }
+symas.register{ name = "lr", class = "gpr", width = 32, enc = 31, flags = { "readable", "writable" } }
+symas.register{ name = "gp", class = "gpr", width = 32, enc = 27, flags = { "readable", "writable" } }
+symas.register{ name = "ugp", class = "gpr", width = 32, enc = 26, flags = { "readable", "writable" } }
+symas.register{ name = "pc", class = "special", width = 32, enc = 0 }
+for _, c in ipairs({ "sa0", "sa1", "lc0", "lc1", "m0", "m1", "usr", "_P3_0" }) do
+    symas.register{ name = c, class = "ctrl", width = 32, enc = 0, flags = { "readable", "writable" } }
+end
+symas.register{ name = "pred0", class = "status", width = 8, enc = 0 }
+
+symas.encoder{ name = "nop",  source = "emit32le(0x7800C000);", max_bytes = 4 }
+symas.encoder{ name = "add",  source = "emit32le(0x51000000 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "sub",  source = "emit32le(0x51000040 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "and",  source = "emit32le(0x52000000 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "or",   source = "emit32le(0x52000040 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "xor",  source = "emit32le(0x52000080 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "r_addi", source = "emit32le(0x39000000 + rd*65536 + rs*2048 + ((imm + 2048) % 4096));", max_bytes = 4 }
+symas.encoder{ name = "mpyi", source = "emit32le(0x57000000 + rd*65536 + rs*2048 + ((imm + 2048) % 4096));", max_bytes = 4 }
+symas.encoder{ name = "memwld", source = "emit32le(0x67000000 + rd*65536 + rs*2048);", max_bytes = 4 }
+symas.encoder{ name = "memwst", source = "emit32le(0x5F000000 + rs*65536 + rt*2048);", max_bytes = 4 }
+symas.encoder{ name = "jump", source = "emit32le(0x58000000); emit_relocation(sym, R_HEX_B22_PCREL);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "jumpr", source = "emit32le(0x4E800000 + rs*2048);", max_bytes = 4 }
+symas.encoder{ name = "call", source = "emit32le(0x5A000000); emit_relocation(sym, R_HEX_B22_PCREL);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "dealloc", source = "emit32le(0x6B000000 + rs*2048);", max_bytes = 4 }
+symas.encoder{ name = "trap", source = "emit32le(0x6B40C000 + (imm % 256));", max_bytes = 4 }
+symas.encoder{ name = "vadd", source = "emit32le(0xE1000000 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "vmul", source = "emit32le(0xE1200000 + rd*65536 + rs*2048 + rt);", max_bytes = 4 }
+symas.encoder{ name = "vld",  source = "emit32le(0xE3000000 + rd*65536 + rs*2048);", max_bytes = 4 }
+symas.encoder{ name = "vst",  source = "emit32le(0xE3800000 + rs*65536 + rt*2048);", max_bytes = 4 }
+
+local function r() return { kind = "reg", class = "gpr", width = 32 } end
+local function wr() return { kind = "reg", class = "gpr", width = 32, access = "write" } end
+local function vv() return { kind = "reg", class = "vec", width = 128 } end
+local function wv() return { kind = "reg", class = "vec", width = 128, access = "write" } end
+
+for _, m in ipairs({ "nop", "add", "sub", "and", "or", "xor", "addi",
+    "mpyi", "memw.ld", "memw.st", "jump", "jumpr", "call", "deallocreturn",
+    "trap", "vadd", "vmul", "vld", "vst" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "nop", encoder = "nop" }
+symas.form{ mnemonic = "add", encoder = "add", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "sub", encoder = "sub", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "and", encoder = "and", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "or",  encoder = "or",  operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "xor", encoder = "xor", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "addi", encoder = "r_addi", operands = { wr(), r(),
+    { kind = "imm", width = 12, signed = true, imm_min = -2048, imm_max = 2047 } } }
+symas.form{ mnemonic = "mpyi", encoder = "mpyi", operands = { wr(), r(),
+    { kind = "imm", width = 12, signed = true, imm_min = -2048, imm_max = 2047 } } }
+symas.form{ mnemonic = "memw.ld", encoder = "memwld", flags = { "reads_mem" }, operands = { wr(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "memw.st", encoder = "memwst", flags = { "writes_mem" }, operands = { r(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "jump", encoder = "jump", flags = { "branch", "terminator", "reloc" }, operands = { { kind = "sym", width = 32 } } }
+symas.form{ mnemonic = "jumpr", encoder = "jumpr", flags = { "branch", "terminator" }, operands = { r() } }
+symas.form{ mnemonic = "call", encoder = "call", flags = { "branch", "reloc" }, operands = { { kind = "sym", width = 32 } } }
+symas.form{ mnemonic = "deallocreturn", encoder = "dealloc", flags = { "return", "terminator" }, operands = { r() } }
+symas.form{ mnemonic = "trap", encoder = "trap", flags = { "may_trap" }, operands = {
+    { kind = "imm", width = 8, signed = false, imm_min = 0, imm_max = 255 } } }
+symas.form{ mnemonic = "vadd", encoder = "vadd", required = { "hvx" }, operands = { wv(), vv(), vv() } }
+symas.form{ mnemonic = "vmul", encoder = "vmul", required = { "hvx" }, operands = { wv(), vv(), vv() } }
+symas.form{ mnemonic = "vld", encoder = "vld", required = { "hvx" }, flags = { "reads_mem" },
+    operands = { wv(), { kind = "mem", width = 128 } } }
+symas.form{ mnemonic = "vst", encoder = "vst", required = { "hvx" }, flags = { "writes_mem" },
+    operands = { vv(), { kind = "mem", width = 128 } } }
+
+symas.syntax{ name = "default", comment = "//", separator = ", " }
+symas.syntax{ name = "packet", comment = "//", separator = " ; " }
+
+symas.section{ name = ".text", flags = { "exec", "alloc", "code" }, align = 4, content = "code" }
+symas.section{ name = ".rodata", flags = { "alloc", "readonly", "data" }, align = 4, content = "data" }
+symas.section{ name = ".data", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+symas.section{ name = ".bss", flags = { "write", "alloc", "zerofill", "data" }, align = 4, content = "data" }
+symas.section{ name = ".tdata", flags = { "write", "alloc", "tls", "data" }, align = 4, content = "data" }
+symas.section{ name = ".got", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+
+symas.linkage{ name = "func_global", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "func_weak", binding = "weak", visibility = "default", symtype = "func" }
+symas.linkage{ name = "object_global", binding = "global", visibility = "default", symtype = "object" }
+symas.linkage{ name = "local_sym", binding = "local", visibility = "default", symtype = "none" }
+
+symas.reloc{ name = "R_HEX_NONE", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_HEX_32", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_HEX_16", width = 16, expr = "S + A" }
+symas.reloc{ name = "R_HEX_B22_PCREL", width = 32, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_HEX_B15_PCREL", width = 32, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_HEX_LO16", width = 16, expr = "S + A" }
+symas.reloc{ name = "R_HEX_HI16", width = 16, expr = "S + A" }
+symas.reloc{ name = "R_HEX_GOTREL_LO16", width = 16, expr = "GOT(S) + A" }
+symas.reloc{ name = "R_HEX_GOTREL_HI16", width = 16, expr = "GOT(S) + A" }
+symas.reloc{ name = "R_HEX_TLS_GD", width = 32, expr = "TLS(S) + A" }
+symas.reloc{ name = "R_HEX_TLS_TPREL", width = 32, expr = "TLS(S) + A" }
+symas.reloc{ name = "R_HEX_GLOB_DAT", width = 32, expr = "S" }
+symas.reloc{ name = "R_HEX_JMP_SLOT", width = 32, expr = "S" }
+symas.reloc{ name = "R_HEX_RELATIVE", width = 32, expr = "B + A" }
+
+symas.debug{ msg = "hexagon VLIW packets: scalar base + hvx + duplex", kind = "target", ref = "" }
+symas.debug{ msg = "hvx forms require hvx", kind = "form", ref = "vadd" }
+symas.debug{ msg = "packet syntax separates slots with ;", kind = "syntax", ref = "packet" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources (cross-checked with the tablegen_inquiry MCP tool, which reads the
+-- same files under $TABLEGEN_LIB):
+--   Hexagon/HexagonScheduleV73.td  HexagonModelV73 (IssueWidth 4 == bundle
+--                         width, LoadLatency 1, CompleteModel 0) and the
+--                         HexagonItinerariesV73 operand-cycle classes
+--   Hexagon/HexagonScheduleV60.td  HexagonModelV60 (older 4-wide VLIW)
+--   Hexagon/HexagonScheduleV79.td  HexagonModelV79
+--   arch_oracle Hexagon summary (packetised VLIW: 4 slots per bundle, HVX
+--                         128-byte vectors, duplex pair, compound jumps)
+
+-- Machine models. Hexagon is a VLIW: "issue width" is the number of slots in
+-- a packet and every packet is scheduled as a unit.
+symas.model{
+    name = "v73", vendor = "qualcomm", issue_width = 4, rob = 0,
+    load_latency = 1, mispredict = 20,
+    flags = { "vliw", "in_order", "has_stalls", "forwarding", "complete", "default" },
+    features = { "base", "v68", "hvx", "duplex" },
+    desc = "HexagonModelV73: 4-slot packets, 1-cycle L1 load, HVX 128B",
+}
+symas.model{
+    name = "v60", vendor = "qualcomm", issue_width = 4, rob = 0,
+    load_latency = 4, mispredict = 20,
+    flags = { "vliw", "in_order", "has_stalls" },
+    features = { "base", "v60" },
+    desc = "HexagonModelV60: 4-slot packets, scalar-only pipelines",
+}
+symas.unit{ name = "hx-int",  model = "v73", kind = "int", count = 4, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "hx-fp",   model = "v73", kind = "fp", count = 2, latency = 4, throughput = 1 }
+symas.unit{ name = "hx-hvx",  model = "v73", kind = "vector", count = 2, latency = 4, throughput = 1 }
+symas.unit{ name = "hx-lsu",  model = "v73", kind = "load", count = 2, latency = 1, throughput = 1 }
+symas.unit{ name = "hx-slot", model = "v73", kind = "other", count = 4, latency = 0, throughput = 1, flags = { "superscalar" } }
+symas.unit{ name = "v60-int", model = "v60", kind = "int", count = 2, latency = 1, throughput = 1 }
+symas.unit{ name = "v60-lsu", model = "v60", kind = "load", count = 1, latency = 4, throughput = 1 }
+
+for _, m in ipairs({ "add", "sub", "and", "or", "xor", "addi" }) do
+    symas.sched{ form = m, name = "WriteInt", latency = 1, uops = 1, writes = { "hx-int" }, reads = { "hx-int" } }
+end
+symas.sched{ form = "mpyi", name = "WriteIntMultiply", latency = 4, uops = 1, writes = { "hx-int" }, reads = { "hx-int" } }
+symas.sched{ form = "memw.ld", name = "WriteLoad", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "hx-lsu" } }
+symas.sched{ form = "memw.st", name = "WriteStore", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "hx-lsu" } }
+symas.sched{ form = "jump", name = "WriteJump", latency = 1, uops = 1, flags = { "fused" }, writes = { "hx-int" } }
+symas.sched{ form = "jumpr", name = "WriteJump", latency = 1, uops = 1, flags = { "serializing" }, writes = { "hx-int" } }
+symas.sched{ form = "call", name = "WriteCall", latency = 1, uops = 1, flags = { "fused" }, writes = { "hx-int" } }
+symas.sched{ form = "deallocreturn", name = "WriteReturn", latency = 1, uops = 1, flags = { "serializing" }, writes = { "hx-int" } }
+symas.sched{ form = "trap", name = "WriteTrap", latency = 1, uops = 1, flags = { "serializing" }, writes = { "hx-int" } }
+symas.sched{ form = "vadd", name = "WriteHVX", latency = 4, uops = 1, writes = { "hx-hvx" }, reads = { "hx-hvx" } }
+symas.sched{ form = "vmul", name = "WriteHVX", latency = 4, uops = 1, writes = { "hx-hvx" }, reads = { "hx-hvx" } }
+symas.sched{ form = "vld", name = "WriteHVXLoad", latency = 4, uops = 1, flags = { "may_fault" }, writes = { "hx-hvx" } }
+symas.sched{ form = "vst", name = "WriteHVXStore", latency = 4, uops = 1, flags = { "may_fault" }, writes = { "hx-hvx" } }
+symas.sched{ form = "nop", name = "WriteNop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+
+symas.tune{ model = "v73", kind = "latency", form = "vld", value = 4, flags = { "override" },
+            desc = "HVX vector loads are full-width (128B) and take four issue cycles" }
+symas.tune{ model = "v73", kind = "latency", form = "vst", value = 4, flags = { "override" } }
+symas.tune{ model = "v73", kind = "latency", form = "mpyi", value = 4, flags = { "override" } }
+symas.tune{ model = "v60", kind = "latency", form = "memw.ld", value = 4, flags = { "override" },
+            desc = "scalar core without HVX: L1 latency is four cycles" }
+symas.tune{ model = "v60", kind = "latency", form = "memw.st", value = 4, flags = { "override" } }
+symas.tune{ model = "v60", kind = "latency", form = "add", value = 1, flags = { "override" } }
+symas.tune{ model = "v60", kind = "avoid", form = "vadd", value = 3,
+            desc = "no HVX: vector ops are emulated" }
+symas.tune{ model = "v60", kind = "avoid", form = "vmul", value = 3 }
+symas.tune{ model = "v73", kind = "prefer", form = "vadd", value = 3,
+            desc = "HVX replaces four scalar operations with one vector slot" }
+symas.tune{ model = "v73", kind = "prefer", form = "jumpr", value = 2,
+            desc = "indirect jump for function returns on Hexagon" }
+symas.tune{ model = "v73", kind = "threshold", name = "packet-slots", value = 4,
+            desc = "a packet holds four operations: fill empty slots with independent work" }
+symas.tune{ model = "v60", kind = "threshold", name = "packet-slots", value = 4 }
+symas.tune{ model = "v73", kind = "strategy", name = "duplex-pairing", value = 1,
+            desc = "match loads with stores in the same packet (duplex)" }
+symas.tune{ model = "v73", kind = "strategy", name = "no-loop-rotation", value = 0,
+            desc = "Hexagon scheduling is in order: software pipelining is explicit" }
+
+symas.isel{ node = "add", form = "add", kind = "node", cost = 1, complexity = 1,
+            flags = { "commutes" }, pattern = "(add i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "add", form = "addi", kind = "node", cost = 1, complexity = 2,
+            pattern = "(add i32, GPR:$a, (i32 imm16))" }
+symas.isel{ node = "sub", form = "sub", kind = "node", cost = 1, complexity = 1, pattern = "(sub i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "and", form = "and", kind = "node", cost = 1, complexity = 1,
+            flags = { "commutes" }, pattern = "(and i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "or", form = "or", kind = "node", cost = 1, complexity = 1,
+            flags = { "commutes" }, pattern = "(or i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "xor", form = "xor", kind = "node", cost = 1, complexity = 1,
+            flags = { "commutes" }, pattern = "(xor i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "mul", form = "mpyi", kind = "node", cost = 4, complexity = 2, pattern = "(mul i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "load", form = "memw.ld", kind = "node", cost = 1, complexity = 2, pattern = "(load i32, addr: global)" }
+symas.isel{ node = "store", form = "memw.st", kind = "node", cost = 1, complexity = 2, pattern = "(store i32, addr: global)" }
+symas.isel{ node = "load", form = "vld", kind = "node", cost = 4, complexity = 2, required = { "hvx" },
+            pattern = "HVX vector load" }
+symas.isel{ node = "store", form = "vst", kind = "node", cost = 4, complexity = 2, required = { "hvx" },
+            pattern = "HVX vector store" }
+symas.isel{ node = "fadd", form = "vadd", kind = "node", cost = 4, complexity = 2, required = { "hvx" } }
+symas.isel{ node = "fmul", form = "vmul", kind = "node", cost = 4, complexity = 2, required = { "hvx" } }
+symas.isel{ node = "fadd", form = "add", kind = "node", cost = 1, complexity = 3,
+            pattern = "without HVX the FP add becomes an integer add" }
+symas.isel{ node = "br", form = "jump", kind = "node", cost = 1, complexity = 1, pattern = "(br label)" }
+symas.isel{ node = "br", form = "jumpr", kind = "node", cost = 1, complexity = 1, pattern = "(brind GPR:$addr)" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 1, complexity = 1, pattern = "(call GPR:$addr)" }
+symas.isel{ node = "br", form = "deallocreturn", kind = "node", cost = 1, complexity = 2, pattern = "callee return with stack deallocation" }
+symas.isel{ node = "br", form = "jumpr", kind = "node", cost = 1, complexity = 2, required = { "compound" },
+            pattern = "compound jump-and-link performs the call and the return" }
+symas.isel{ node = "COPY", form = "add", kind = "copy", cost = 1, complexity = 2, flags = { "prefer" },
+            pattern = "register copy coalesced into an add with a zero register" }
+symas.isel{ node = "trap", form = "trap", kind = "node", cost = 1, complexity = 1, flags = { "side_effects" } }
+symas.tune{ model = "v73", kind = "prefer", form = "deallocreturn", value = 3, features = { "compound" },
+            desc = "the compound (jump + dealloc + return) form replaces three separate operations" }
+
+symas.fuse{ name = "add-jump", a = "add", b = "jump", kind = "branch_pair", latency = 1,
+            flags = { "profitable", "adjacent" },
+            pattern = "an independent ALU op fills the branch packet slot" }
+symas.fuse{ name = "memw.ld-memw.st", a = "memw.ld", b = "memw.st", kind = "mem_arith", latency = 1,
+            features = { "duplex" }, flags = { "profitable", "adjacent" },
+            pattern = "duplex: one load and one store in a single packet" }
+symas.fuse{ name = "vld-vadd", a = "vld", b = "vadd", kind = "mem_arith", latency = 4,
+            features = { "hvx" }, flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "vadd-vst", a = "vadd", b = "vst", kind = "mem_arith", latency = 4,
+            features = { "hvx" }, flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "mpyi-add", a = "mpyi", b = "add", kind = "mul_add", latency = 4,
+            flags = { "profitable", "adjacent" },
+            pattern = "no FMA: the multiply-accumulate pair is two slots" }
+symas.fuse{ name = "jumpr-call", a = "jumpr", b = "call", kind = "branch_pair",
+            features = { "compound" }, flags = { "profitable", "adjacent" } }
+print(symas.emit())

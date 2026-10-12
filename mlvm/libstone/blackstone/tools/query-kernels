@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""query-kernels -- query the Blackstone kernel database.
+
+Usage:
+    query-kernels [--root DIR] [--stage STAGE] [--category CAT]
+                  [--paradigm P] [--requires-capability CAP]
+                  [--requires-analysis AN] [--invalidates A]
+                  [--has-prerequisites BOOL] [--verb V]
+                  [--text TEXT] [--summary]
+
+Exit status:
+    0  query executed
+    2  invalid command-line usage
+    3  input/output or format error
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "optilisp" / "src"))
+
+from optilisp.errors import DiagnosticSink  # noqa: E402
+from optilisp.query import Query, run_query, summarize  # noqa: E402
+from optilisp.validate import load_database, load_registry  # noqa: E402
+
+
+def _bool(value: str) -> bool:
+    lowered = value.lower()
+    if lowered in ("true", "yes", "1"):
+        return True
+    if lowered in ("false", "no", "0"):
+        return False
+    raise argparse.ArgumentTypeError(f"expected a boolean, got {value!r}")
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="query-kernels",
+        description="Query the Blackstone kernel database.",
+    )
+    parser.add_argument("--root", default=None, help="Blackstone project root")
+    parser.add_argument("--stage", choices=["hir", "mir", "lir"])
+    parser.add_argument("--category")
+    parser.add_argument("--paradigm")
+    parser.add_argument("--requires-capability")
+    parser.add_argument("--requires-analysis")
+    parser.add_argument("--invalidates")
+    parser.add_argument("--has-prerequisites", type=_bool)
+    parser.add_argument("--verb")
+    parser.add_argument("--text")
+    parser.add_argument("--summary", action="store_true", help="Print database summary only")
+    args = parser.parse_args(argv)
+
+    root = Path(args.root) if args.root else Path(__file__).resolve().parents[1]
+    if not root.is_dir():
+        print(f"query-kernels: root directory not found: {root}", file=sys.stderr)
+        return 3
+
+    sink = DiagnosticSink()
+    reg = load_registry(root / "optilisp" / "stdlib", sink)
+    db = load_database(root, reg, sink)
+
+    if args.summary:
+        import json
+
+        print(json.dumps(summarize(db), indent=2, sort_keys=True))
+        return 0
+
+    q = Query(
+        stage=args.stage,
+        category=args.category,
+        paradigm=args.paradigm,
+        requires_capability=args.requires_capability,
+        requires_analysis=args.requires_analysis,
+        invalidates=args.invalidates,
+        has_prerequisites=args.has_prerequisites,
+        verb=args.verb,
+        text=args.text,
+    )
+    results = run_query(db, q)
+    for k in results:
+        print(f"{k.id}  [{k.stage}]  {k.name}")
+    print(f"query-kernels: {len(results)} kernel(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -1,0 +1,10 @@
+name "machine-ir"
+description "Architecture-neutral machine intermediate representation and .isa loader"
+authors "metacode"
+license "MIT"
+targetType "library"
+sourcePaths "source"
+configuration "unittest" {
+    targetType "library"
+    sourcePaths "source" "tests"
+}

@@ -1,0 +1,13 @@
+(define-kernel
+  :id "blackstone.test.verb-mismatch"
+  :name "Stage Verb Mismatch"
+  :stage hir
+  (category constant-evaluation)
+  (objective "A kernel using a verb that is invalid at its stage.")
+  (requires (capability typed-expressions))
+  (preconditions (operation-has-defined-compile-time-semantics))
+  (transform (select (add (integer a) (integer b)) (integer-result (integer-add a b))))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Selects.")
+  (limitations "None.")
+  (documentation (purpose "Test.")))

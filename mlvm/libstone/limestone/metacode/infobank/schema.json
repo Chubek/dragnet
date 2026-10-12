@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:isa-description-bundle:1",
+  "title": "ISA Description Bundle",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "grammar",
+    "semantic_format",
+    "architectures"
+  ],
+  "properties": {
+    "format": {
+      "const": "isa-description-bundle"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "grammar": {
+      "type": "string"
+    },
+    "semantic_format": {
+      "const": "s-expression"
+    },
+    "architectures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "arch",
+          "family",
+          "model",
+          "version",
+          "instruction_count",
+          "register_classes",
+          "semantics",
+          "compiler"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "arch": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "instruction_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "register_classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "semantics": {
+            "type": "object",
+            "required": [
+              "format",
+              "field",
+              "count"
+            ]
+          },
+          "compiler": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tooling": {
+            "type": "object",
+            "description": "Architecture-level tooling metadata emitted in each .isa file, including the Bin2Bin translation contract and optional object_file contract (object-file.schema.json)."
+          },
+          "op_tooling": {
+            "type": "object",
+            "description": "Per-instruction tooling metadata emitted under op.tooling, including binary_translation."
+          },
+          "bin2bin": {
+            "type": "object",
+            "description": "Bin2Bin binary-translation metadata embedded in each ISA description."
+          }
+        }
+      }
+    },
+    "tooling_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "bin2bin_schema_version": {
+      "type": "integer",
+      "const": 1
+    }
+  },
+  "version": 2
+}

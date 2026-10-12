@@ -1,0 +1,36 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.hir.bitwise.absorb-and-or"
+  :name "Absorb and or"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (and x (or x y)) with x when the declared proof obligations hold.")
+  (requires
+    (capability typed-expressions)
+    (capability bitwise-semantics))
+  (preconditions operands-have-identical-width operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires )
+    (invalidates constant-value-analysis range-analysis)
+    (preserves))
+  (transform (rewrite (and x (or x y)) x))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. This is bitvector absorption; operand evaluation is not discarded.")
+  (documentation
+    (purpose "Replace (and x (or x y)) with x when the declared proof obligations hold.")
+    (motivation "Expose the absorb and or opportunity for planners with explicit legality facts.")
+    (stage "NodeHIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (and x (or x y)); require a proven true operands-have-identical-width fact.")
+    (preconditions "Required true facts: operands-have-identical-width, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: typed-expressions, bitwise-semantics; analyses: none. Results must be current.")
+    (transformation "Replace (and x (or x y)) with x when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "This is bitvector absorption; operand evaluation is not discarded.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. This is bitvector absorption; operand evaluation is not discarded.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.hir.bitwise.absorb-and-or. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

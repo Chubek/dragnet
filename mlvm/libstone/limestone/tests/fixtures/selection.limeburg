@@ -1,0 +1,14 @@
+ruleset scalar {
+  nonterminal reg = 0;
+  terminal ADD(2);
+  terminal CONST(0);
+  rule 1 reg: CONST():i64 -> MOVI cost 2;
+  rule 2 reg: ADD(reg, reg):i64 -> ADD cost 2;
+  rule 3 reg: ADD(reg, CONST():i64[-8..7]):i64 -> ADDI cost 1;
+}
+tree sum {
+  node %10 = CONST():i64 immediate 100;
+  node %20 = CONST():i64 immediate 7;
+  node %1 = ADD(%10, %20):i64;
+  root %1:reg;
+}

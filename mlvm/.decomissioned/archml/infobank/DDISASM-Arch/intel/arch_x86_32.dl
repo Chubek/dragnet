@@ -1,0 +1,45 @@
+//===- arch_x86_32.dl ---------------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+#include "arch_x86.dl"
+
+.comp X86_32 : X86 {
+
+#include "registers_x86_32.dl"
+
+arch("X86").
+pointer_size(4).
+
+// call __x86.get_pc_thunk.REG
+pc_relative_addr(EA,Reg,PC):-
+    get_pc_thunk(EA_thunk,Reg),
+    direct_call(EA,EA_thunk),
+    instruction(EA,Size,_,_,_,_,_,_,_,_),
+    PC = EA+Size.
+
+// pop PC
+pc_relative_addr(EA,Reg,PC):-
+    pc_load_call(_,EA),
+    instruction_get_op(EA,_,Op),
+    op_regdirect_contains_reg(Op,Reg),
+    PC = EA.
+}

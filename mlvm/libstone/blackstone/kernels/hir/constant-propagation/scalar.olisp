@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.constant-propagation.scalar"
+  :name "HIR Scalar Constant Propagation"
+  :stage hir
+  (category constant-propagation)
+  (paradigms data-flow-analysis rule-based)
+  (objective "Replace uses of a value with a known constant when the data-flow facts prove the substitution valid.")
+  (requires
+    (capability typed-expressions)
+    (analysis constant-value-analysis))
+  (preconditions
+    (definition-reaches-use)
+    (no-intervening-redefinition))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (propagate (definition x (integer c)) (use x) (integer c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces uses of a known constant with the constant value.")
+  (limitations "Applies only when the constant definition reaches the use without redefinition.")
+  (documentation
+    (purpose "Propagate known constant values to their uses.")
+    (motivation "Constant propagation enables downstream constant folding and dead code elimination.")
+    (applicability "Applies to scalar definitions with known constant values that reach uses.")
+    (semantic-assumptions "The data-flow facts prove the constant reaches the use.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Reaching, redefined, and unknown cases are exercised.")))

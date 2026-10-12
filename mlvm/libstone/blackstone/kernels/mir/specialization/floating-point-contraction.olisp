@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.specialization.floating-point-contraction"
+  :name "Floating-Point Contraction"
+  :stage mir
+  (category specialization)
+  (paradigms algebraic-rewriting)
+  (objective "Contract a multiply-add into a fused multiply-add operation when permitted.")
+  (requires
+    (capability floating-point-semantics)
+    (capability floating-point-contraction-permitted))
+  (preconditions
+    (contraction-is-permitted)
+    (operands-have-compatible-floating-point-types))
+  (forbids
+    (floating-point-exceptions-are-observable))
+  (transform
+    (combine (add (mul a b) c) (fma a b c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Contracts a multiply-add into a fused multiply-add.")
+  (limitations "Applies only when contraction is permitted under the floating-point semantics.")
+  (documentation
+    (purpose "Contract multiply-add into fused multiply-add.")
+    (motivation "FMA reduces rounding error and instruction count.")
+    (applicability "Applies to multiply-add patterns when contraction is permitted.")
+    (semantic-assumptions "Contraction is permitted under the floating-point semantics.")
+    (known-limitations "Does not contract when contraction is not permitted.")
+    (testing-strategy "Permitted, prohibited, and boundary cases are exercised.")))

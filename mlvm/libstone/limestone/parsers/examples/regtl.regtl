@@ -1,0 +1,22 @@
+regtl demo {
+  regclass GPR = [$r0, $r1, $r2];
+  alias $r0 = $low0;
+  live %v1:GPR [0,4] {
+    allowed = [$r0, $r1]; forbidden = [$r2]; fixed = $r0; spillable = false;
+    provenance = "input";
+  }
+  clobber 2 = [$r1];
+  spill_slot temporary { size = 8; alignment = 8; }
+  function main {
+    block entry {
+      move %v1 <- #7;
+      move slot(temporary) <- %v1;
+      move %v2 <- [%address];
+      parallel { move $r0 <- $r1; move $r1 <- $r0; }
+      instruction call { use %v1; def $r0; implicit_def $r1; allowed = [$r0]; flags = [true, false]; }
+      successor exit;
+    }
+    block exit {}
+  }
+  notes { nested = { retained = true; }; }
+}

@@ -1,0 +1,38 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.mir.vectors.identity-shuffle"
+  :name "Identity shuffle"
+  :stage mir
+  (category vectorization)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (shuffle vector identity-mask) with vector when the declared proof obligations hold.")
+  (requires
+    (capability ssa-form)
+    (capability vector-operations)
+    (analysis dominator-analysis)
+    (analysis range-analysis))
+  (preconditions mask-is-complete-identity-with-no-undef-lanes operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires dominator-analysis range-analysis)
+    (invalidates constant-value-analysis dominator-analysis liveness-analysis range-analysis)
+    (preserves))
+  (transform (rewrite (shuffle vector identity-mask) vector))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Preserve vector length, element types, and defined lane semantics; scalable vectors require explicit proof.")
+  (documentation
+    (purpose "Replace (shuffle vector identity-mask) with vector when the declared proof obligations hold.")
+    (motivation "Expose the identity shuffle opportunity for planners with explicit legality facts.")
+    (stage "NodeMIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (shuffle vector identity-mask); require a proven true mask-is-complete-identity-with-no-undef-lanes fact.")
+    (preconditions "Required true facts: mask-is-complete-identity-with-no-undef-lanes, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: ssa-form, vector-operations; analyses: dominator-analysis, range-analysis. Results must be current.")
+    (transformation "Replace (shuffle vector identity-mask) with vector when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Preserve vector length, element types, and defined lane semantics; scalable vectors require explicit proof.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Preserve vector length, element types, and defined lane semantics; scalable vectors require explicit proof.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.mir.vectors.identity-shuffle. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

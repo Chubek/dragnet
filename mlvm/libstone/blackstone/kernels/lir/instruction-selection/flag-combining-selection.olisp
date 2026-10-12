@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.instruction-selection.flag-combining-selection"
+  :name "Flag-Combining Instruction Selection"
+  :stage lir
+  (category instruction-selection)
+  (paradigms target-specific)
+  (objective "Select instructions that combine flag-setting operations to reduce instruction count.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability flag-semantics))
+  (preconditions
+    (target-supports-flag-combining))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (flag-setting-ops ops) (combined-instruction instr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects instructions that combine flag-setting operations.")
+  (limitations "Applies only when the target supports flag combining.")
+  (documentation
+    (purpose "Select instructions that combine flag-setting operations.")
+    (motivation "Flag-combining instruction selection reduces instruction count.")
+    (applicability "Applies to flag-setting operations when the target supports combining.")
+    (semantic-assumptions "The target supports flag combining.")
+    (known-limitations "Does not select when the target lacks flag combining.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

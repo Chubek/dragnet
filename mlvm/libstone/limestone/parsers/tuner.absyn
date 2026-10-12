@@ -1,0 +1,16 @@
+namespace limestone::syntax::tuner;
+parser tuner;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Operator | Rule;
+node Operator { Symbol name; Unsigned arity; }
+node Rule { Symbol name; Term pattern @0; Term replacement @1; Clause* clauses; }
+sum Clause = Where | Cost;
+node Where { Term condition; }
+node Cost { Integer delta; }
+sum Term = Application | Integer | Variable | Symbol;
+node Application { Symbol opcode; Term* arguments; }
+token Variable;
+token Integer;
+token Unsigned;
+token Symbol;

@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.abi.return-lowering"
+  :name "Return Value Lowering"
+  :stage lir
+  (category abi-lowering)
+  (paradigms target-specific)
+  (objective "Lower return values to the target calling convention.")
+  (requires
+    (capability machine-operations)
+    (capability calling-convention)
+    (capability abi-information)
+    (capability return-value-information))
+  (preconditions
+    (calling-convention-is-defined))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (return-value val) (calling-convention-return lowered)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Lowers return values to the target calling convention.")
+  (limitations "Applies only when the calling convention is defined.")
+  (documentation
+    (purpose "Lower return values to the target calling convention.")
+    (motivation "Return value lowering maps return values to registers.")
+    (applicability "Applies to return values when the calling convention is defined.")
+    (semantic-assumptions "The calling convention is defined.")
+    (known-limitations "Does not lower when the calling convention is undefined.")
+    (testing-strategy "Register, memory, and boundary return value cases are exercised.")))

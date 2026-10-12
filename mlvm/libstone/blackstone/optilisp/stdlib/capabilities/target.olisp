@@ -1,0 +1,288 @@
+;;; Target, instruction, and ABI capabilities (primarily LIR).
+
+(define-capability
+  :id "machine-operations"
+  :name "Machine Operations"
+  :stages (lir)
+  (description
+    "The IR exposes target machine operations."))
+
+(define-capability
+  :id "target-description"
+  :name "Target Description"
+  :stages (lir)
+  (description
+    "A target description is available."))
+
+(define-capability
+  :id "instruction-cost-model"
+  :name "Instruction Cost Model"
+  :stages (lir)
+  (description
+    "A cost model for target instructions is available."))
+
+(define-capability
+  :id "register-constraints"
+  :name "Register Constraints"
+  :stages (lir)
+  (description
+    "Register class and operand constraints are available."))
+
+(define-capability
+  :id "register-classes"
+  :name "Register Classes"
+  :stages (lir)
+  (description
+    "The target register classes are defined."))
+
+(define-capability
+  :id "instruction-encodings"
+  :name "Instruction Encodings"
+  :stages (lir)
+  (description
+    "Instruction encoding information is available."))
+
+(define-capability
+  :id "flag-semantics"
+  :name "Flag Semantics"
+  :stages (lir)
+  (description
+    "The target condition flag semantics are defined."))
+
+(define-capability
+  :id "condition-codes"
+  :name "Condition Codes"
+  :stages (lir)
+  (description
+    "The target condition code representation is available."))
+
+(define-capability
+  :id "addressing-modes"
+  :name "Addressing Modes"
+  :stages (lir)
+  (description
+    "The target addressing modes are defined."))
+
+(define-capability
+  :id "calling-convention"
+  :name "Calling Convention"
+  :stages (lir)
+  (description
+    "The target calling convention is defined."))
+
+(define-capability
+  :id "abi-information"
+  :name "ABI Information"
+  :stages (lir)
+  (description
+    "The target ABI is described."))
+
+(define-capability
+  :id "aggregate-layout"
+  :name "Aggregate Layout"
+  :stages (lir)
+  (description
+    "Aggregate type layout information is available."))
+
+(define-capability
+  :id "stack-frame-information"
+  :name "Stack Frame Information"
+  :stages (lir)
+  (description
+    "Stack frame layout information is available."))
+
+(define-capability
+  :id "spill-slot-information"
+  :name "Spill Slot Information"
+  :stages (lir)
+  (description
+    "Spill slot assignment information is available."))
+
+(define-capability
+  :id "interference-information"
+  :name "Interference Information"
+  :stages (lir)
+  (description
+    "Register interference information is available."))
+
+(define-capability
+  :id "coalescing-information"
+  :name "Coalescing Information"
+  :stages (lir)
+  (description
+    "Register coalescing opportunities are identified."))
+
+(define-capability
+  :id "rematerialization-information"
+  :name "Rematerialization Information"
+  :stages (lir)
+  (description
+    "Rematerializable computations are identified."))
+
+(define-capability
+  :id "frame-pointer-information"
+  :name "Frame Pointer Information"
+  :stages (lir)
+  (description
+    "Frame pointer usage information is available."))
+
+(define-capability
+  :id "varargs-information"
+  :name "Varargs Information"
+  :stages (lir)
+  (description
+    "Varargs calling convention information is available."))
+
+(define-capability
+  :id "aggregate-argument-information"
+  :name "Aggregate Argument Information"
+  :stages (lir)
+  (description
+    "Aggregate argument passing information is available."))
+
+(define-capability
+  :id "return-value-information"
+  :name "Return Value Information"
+  :stages (lir)
+  (description
+    "Return value passing information is available."))
+
+(define-capability
+  :id "argument-lowering-information"
+  :name "Argument Lowering Information"
+  :stages (lir)
+  (description
+    "Argument lowering rules are available."))
+
+(define-capability
+  :id "instruction-selection-information"
+  :name "Instruction Selection Information"
+  :stages (lir)
+  (description
+    "Instruction selection patterns are available."))
+
+(define-capability
+  :id "peephole-information"
+  :name "Peephole Information"
+  :stages (lir)
+  (description
+    "Peephole optimization patterns are available."))
+
+(define-capability
+  :id "block-layout-information"
+  :name "Block Layout Information"
+  :stages (lir)
+  (description
+    "Basic block layout information is available."))
+
+(define-capability
+  :id "hot-cold-information"
+  :name "Hot Cold Information"
+  :stages (lir)
+  (description
+    "Hot and cold code region information is available."))
+
+(define-capability
+  :id "function-splitting-information"
+  :name "Function Splitting Information"
+  :stages (lir)
+  (description
+    "Function splitting opportunities are identified."))
+
+(define-capability
+  :id "extension-semantics"
+  :name "Extension Semantics"
+  :stages (lir)
+  (description
+    "Sign and zero extension semantics are defined."))
+
+(define-capability
+  :id "commutativity-information"
+  :name "Commutativity Information"
+  :stages (lir)
+  (description
+    "Operation commutativity facts are available."))
+
+(define-capability
+  :id "identity-information"
+  :name "Identity Information"
+  :stages (lir)
+  (description
+    "Operation identity element facts are available."))
+
+(define-capability
+  :id "carry-information"
+  :name "Carry Information"
+  :stages (lir)
+  (description
+    "Add-with-carry and subtract-with-borrow facts are available."))
+
+(define-capability
+  :id "rotate-information"
+  :name "Rotate Information"
+  :stages (lir)
+  (description
+    "Rotate and shift facts are available."))
+
+(define-capability
+  :id "accumulate-information"
+  :name "Accumulate Information"
+  :stages (lir)
+  (description
+    "Multiply-accumulate facts are available."))
+
+(define-capability
+  :id "saturation-information"
+  :name "Saturation Information"
+  :stages (lir)
+  (description
+    "Saturating arithmetic facts are available."))
+
+(define-capability
+  :id "bit-manipulation-information"
+  :name "Bit Manipulation Information"
+  :stages (lir)
+  (description
+    "Bit manipulation instruction facts are available."))
+
+(define-capability
+  :id "load-store-pair-information"
+  :name "Load Store Pair Information"
+  :stages (lir)
+  (description
+    "Load-store pair instruction facts are available."))
+
+(define-capability
+  :id "add-with-carry-information"
+  :name "Add With Carry Information"
+  :stages (lir)
+  (description
+    "Add-with-carry instruction facts are available."))
+
+(define-capability
+  :id "vector-operations"
+  :name "Vector Operations"
+  :stages (mir lir)
+  (description
+    "The IR models vector and SIMD operations."))
+
+(define-capability
+  :id "vectorization-information"
+  :name "Vectorization Information"
+  :stages (mir lir)
+  (description
+    "Vectorization legality and cost information is available."))
+
+(define-capability
+  :id "parallel-execution"
+  :name "Parallel Execution"
+  :stages (mir)
+  (description
+    "The execution model supports parallel execution."))
+
+(define-capability
+  :id "parallelization-information"
+  :name "Parallelization Information"
+  :stages (mir)
+  (description
+    "Parallelization legality information is available."))

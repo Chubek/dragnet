@@ -1,0 +1,18 @@
+;;; Transformation composition.
+;;; Composition is valid only when the output contract of the first
+;;; transformation is compatible with the input contract of the second.
+
+(define-monoid
+  :id "blackstone.monoid.transformation-composition"
+  :name "Transformation Composition"
+  :carrier transformation
+  :operation transformation-compose
+  :identity identity-transformation
+  (laws
+    (associative transformation-compose)
+    (left-identity transformation-compose identity-transformation)
+    (right-identity transformation-compose identity-transformation))
+  (description
+    "Transformation composition with the identity transformation as identity."
+    " The carrier is restricted to transformations whose output contract"
+    " satisfies the input contract of the next transformation."))

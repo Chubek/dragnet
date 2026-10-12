@@ -1,0 +1,148 @@
+//===- registers_x86_64.dl ----------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/*
+This module stablishes basic information about register:
+ - Which registers and tracked/considered in the different analyses
+ - Whether they all callee or caller saved according to the ABI
+
+*/
+reg_map_rule("AL","RAX").
+reg_map_rule("BL","RBX").
+reg_map_rule("CL","RCX").
+reg_map_rule("DL","RDX").
+reg_map_rule("R8B","R8").
+reg_map_rule("R9B","R9").
+reg_map_rule("R10B","R10").
+reg_map_rule("R11B","R11").
+reg_map_rule("R12B","R12").
+reg_map_rule("R13B","R13").
+reg_map_rule("R14B","R14").
+reg_map_rule("R15B","R15").
+reg_map_rule("AX","RAX").
+reg_map_rule("BX","RBX").
+reg_map_rule("CX","RCX").
+reg_map_rule("DX","RDX").
+reg_map_rule("DI","RDI").
+reg_map_rule("SI","RSI").
+reg_map_rule("BP","RBP").
+reg_map_rule("SP","RSP").
+reg_map_rule("EAX","RAX").
+reg_map_rule("EBX","RBX").
+reg_map_rule("ECX","RCX").
+reg_map_rule("EDX","RDX").
+reg_map_rule("EDI","RDI").
+reg_map_rule("ESI","RSI").
+reg_map_rule("EBP","RBP").
+reg_map_rule("ESP","RSP").
+reg_map_rule("R8D","R8").
+reg_map_rule("R9D","R9").
+reg_map_rule("R10D","R10").
+reg_map_rule("R11D","R11").
+reg_map_rule("R12D","R12").
+reg_map_rule("R13D","R13").
+reg_map_rule("R14D","R14").
+reg_map_rule("R15D","R15").
+
+reg_map_rule("EFLAGS", "RFLAGS").
+
+general_purpose_reg("RAX").
+general_purpose_reg("RBX").
+general_purpose_reg("RCX").
+general_purpose_reg("RDX").
+general_purpose_reg("RDI").
+general_purpose_reg("RSI").
+general_purpose_reg("RBP").
+general_purpose_reg("R8").
+general_purpose_reg("R9").
+general_purpose_reg("R10").
+general_purpose_reg("R11").
+general_purpose_reg("R12").
+general_purpose_reg("R13").
+general_purpose_reg("R14").
+general_purpose_reg("R15").
+
+function_non_maintained_reg("RAX").
+function_non_maintained_reg("RCX").
+function_non_maintained_reg("RDX").
+
+function_non_maintained_reg("R8").
+function_non_maintained_reg("R9").
+function_non_maintained_reg("R10").
+function_non_maintained_reg("R11").
+
+// Additional volatile registers according to the 'System V AMD64 ABI' calling convention.
+function_non_maintained_reg("RDI"),
+function_non_maintained_reg("RSI"):-
+    binary_format("ELF").
+
+pc_reg("RIP").
+
+frame_pointer("RBP").
+
+stack_pointer("RSP").
+
+return_reg("RAX").
+
+condition_flags_reg("RFLAGS").
+
+// Microsoft x64
+integer_reg_param("RCX",1),
+integer_reg_param("RDX",2),
+integer_reg_param("R8",3),
+integer_reg_param("R9",4):-
+    binary_format("PE").
+
+// System V X86_64
+integer_reg_param("RDI",1),
+integer_reg_param("RSI",2),
+integer_reg_param("RDX",3),
+integer_reg_param("RCX",4),
+integer_reg_param("R8",5),
+integer_reg_param("R9",6):-
+    binary_format("ELF").
+
+register_size_bytes(Reg,1):-
+    Reg = "DIL";
+    Reg = "SIL";
+    Reg = "BPL";
+    Reg = "SPL".
+
+register_size_bytes(Reg,8):-
+    Reg = "RAX";
+    Reg = "RBX";
+    Reg = "RCX";
+    Reg = "RDX";
+    Reg = "RBP";
+    Reg = "RSI";
+    Reg = "RDI";
+    Reg = "RSP".
+
+register_size_bytes(Reg8,1),
+register_size_bytes(Reg16,2),
+register_size_bytes(Reg32,4),
+register_size_bytes(Reg64,8):-
+    Index = range(8,16,1),
+    Reg8 = cat("R", to_string(Index), "B"),
+    Reg16 = cat("R", to_string(Index), "W"),
+    Reg32 = cat("R", to_string(Index), "D"),
+    Reg64 = cat("R", to_string(Index)).

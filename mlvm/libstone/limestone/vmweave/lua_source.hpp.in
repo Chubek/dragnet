@@ -1,0 +1,2 @@
+#pragma once
+inline constexpr const char* vmweave_lua_source = R"VMWEAVE_LUA(@VMWEAVE_LUA_SOURCE@)VMWEAVE_LUA";

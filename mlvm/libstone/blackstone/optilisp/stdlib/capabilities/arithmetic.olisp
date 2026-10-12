@@ -1,0 +1,149 @@
+;;; Arithmetic and numeric-semantics capabilities.
+;;; These declare the numeric domains and behaviors kernels may rely on.
+
+(define-capability
+  :id "typed-expressions"
+  :name "Typed Expressions"
+  :stages (hir mir)
+  (description
+    "Expressions carry explicit type information, including integer width and signedness."))
+
+(define-capability
+  :id "integer-constant-operands"
+  :name "Integer Constant Operands"
+  :stages (hir mir)
+  (description
+    "Integer operands are known compile-time constants."))
+
+(define-capability
+  :id "floating-point-constant-operands"
+  :name "Floating-Point Constant Operands"
+  :stages (hir mir)
+  (description
+    "Floating-point operands are known compile-time constants."))
+
+(define-capability
+  :id "compile-time-constant-operands"
+  :name "Compile-Time Constant Operands"
+  :stages (hir)
+  (description
+    "All operands of an expression are known at compile time."))
+
+(define-capability
+  :id "constant-semantics"
+  :name "Constant Semantics"
+  :stages (hir mir)
+  (description
+    "The IR defines the compile-time evaluation semantics of constant expressions."))
+
+(define-capability
+  :id "integer-overflow-semantics"
+  :name "Integer Overflow Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines whether integer overflow is modular, trapping, wrapping, or undefined."))
+
+(define-capability
+  :id "signed-arithmetic"
+  :name "Signed Arithmetic"
+  :stages (hir mir lir)
+  (description
+    "The target arithmetic follows signed integer semantics."))
+
+(define-capability
+  :id "unsigned-arithmetic"
+  :name "Unsigned Arithmetic"
+  :stages (hir mir lir)
+  (description
+    "The target arithmetic follows unsigned integer semantics."))
+
+(define-capability
+  :id "modular-arithmetic"
+  :name "Modular Arithmetic"
+  :stages (hir mir lir)
+  (description
+    "Integer arithmetic is defined modulo 2^N for the operand width."))
+
+(define-capability
+  :id "trapping-arithmetic"
+  :name "Trapping Arithmetic"
+  :stages (hir mir lir)
+  (description
+    "Arithmetic operations trap on overflow or division by zero."))
+
+(define-capability
+  :id "wrapping-arithmetic"
+  :name "Wrapping Arithmetic"
+  :stages (hir mir lir)
+  (description
+    "Arithmetic operations wrap on overflow without trapping."))
+
+(define-capability
+  :id "division-semantics"
+  :name "Division Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines division and remainder semantics, including division by zero."))
+
+(define-capability
+  :id "shift-semantics"
+  :name "Shift Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines shift and rotate semantics for the operand width."))
+
+(define-capability
+  :id "bitwise-semantics"
+  :name "Bitwise Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines bitwise and, or, xor, and not semantics."))
+
+(define-capability
+  :id "boolean-semantics"
+  :name "Boolean Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines Boolean and, or, and not semantics."))
+
+(define-capability
+  :id "comparison-semantics"
+  :name "Comparison Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines ordered and equality comparison semantics."))
+
+(define-capability
+  :id "cast-semantics"
+  :name "Cast Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines truncation, extension, and conversion semantics for casts."))
+
+(define-capability
+  :id "floating-point-semantics"
+  :name "Floating-Point Semantics"
+  :stages (hir mir lir)
+  (description
+    "The IR defines floating-point rounding, exceptions, and special values."))
+
+(define-capability
+  :id "reassociation-permitted"
+  :name "Reassociation Permitted"
+  :stages (hir mir)
+  (description
+    "The active semantics permit reassociation of floating-point or integer operations."))
+
+(define-capability
+  :id "fast-math"
+  :name "Fast-Math"
+  :stages (hir mir)
+  (description
+    "The active semantics permit aggressive floating-point transformations."))
+
+(define-capability
+  :id "floating-point-contraction-permitted"
+  :name "Floating-Point Contraction Permitted"
+  :stages (hir mir)
+  (description
+    "The active semantics permit contracting multiply-add into fused operations."))

@@ -1,0 +1,13 @@
+(define-monoid
+  :id "blackstone.monoid.set-intersection"
+  :name "Set Intersection"
+  :carrier set
+  :operation set-intersection
+  :identity universal-set
+  (laws
+    (associative set-intersection)
+    (left-identity set-intersection universal-set)
+    (right-identity set-intersection universal-set))
+  (description
+    "Set intersection with the universal set as identity. The universal set must"
+    " be defined over the fact domain for the identity law to hold."))

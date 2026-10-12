@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.calling-convention.aggregate-argument-lowering"
+  :name "Aggregate Argument Lowering"
+  :stage lir
+  (category calling-convention-lowering)
+  (paradigms target-specific)
+  (objective "Lower aggregate arguments to the target calling convention.")
+  (requires
+    (capability machine-operations)
+    (capability calling-convention)
+    (capability aggregate-argument-information)
+    (capability aggregate-layout))
+  (preconditions
+    (calling-convention-is-defined))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (aggregate-arg arg) (calling-convention-aggregate-arg lowered)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Lowers aggregate arguments to the target calling convention.")
+  (limitations "Applies only when the calling convention is defined.")
+  (documentation
+    (purpose "Lower aggregate arguments to the target calling convention.")
+    (motivation "Aggregate argument lowering maps aggregates to registers and stack.")
+    (applicability "Applies to aggregate arguments when the calling convention is defined.")
+    (semantic-assumptions "The calling convention is defined.")
+    (known-limitations "Does not lower when the calling convention is undefined.")
+    (testing-strategy "Small, large, and boundary aggregate cases are exercised.")))

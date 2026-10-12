@@ -1,0 +1,3 @@
+; Source expressions remain distinct from lowered TraceLambda nodes.
+(lambda twice (twice 21))
+(if (eq 1 1) ((lambda x (add x x)) 21) -1)

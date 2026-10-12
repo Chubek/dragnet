@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.branch-condition"
+  :name "Branch Condition Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Combine a comparison with a subsequent branch to use condition flags directly.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability flag-semantics))
+  (preconditions
+    (target-supports-condition-flags)
+    (semantics-match))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (sequence (machine-op :kind "COMPARE") (machine-op :kind "BRANCH"))
+             (target-pattern :name "combined-branch-condition-pattern")))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Combines a comparison with a branch to use condition flags directly.")
+  (limitations "Applies only when the target supports condition flags.")
+  (documentation
+    (purpose "Combine comparisons with branches to use condition flags.")
+    (motivation "Branch condition combining reduces instruction count.")
+    (applicability "Applies to comparison-branch sequences when the target supports condition flags.")
+    (semantic-assumptions "The target supports condition flags with matching semantics.")
+    (known-limitations "Does not combine when the target lacks condition flags.")
+    (testing-strategy "Supported, unsupported, and semantics-mismatch cases are exercised.")))

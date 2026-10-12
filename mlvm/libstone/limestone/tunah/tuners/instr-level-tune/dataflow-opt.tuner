@@ -1,0 +1,55 @@
+; =============================================================================
+; Tunah tuner -- data flow optimization
+; =============================================================================
+; Purpose       : Remove merge instructions whose incoming values are already
+;                the same value. A merge that receives one value on every edge
+;                computes that value, and an identical load on both edges is a
+;                single load, which is the load forwarding that data flow
+;                analysis exists to expose.
+; Stage         : Instruction level machine IL, after the merge points of a
+;                region are known but before instruction selection.
+; Vocabulary    : phi, sel and the loads from the shared directory vocabulary.
+;                ite is deliberately absent: a predicated select is a control
+;                flow operator and belongs to ctrlflow-opt.tuner, and mov/copy
+;                elimination belongs to reduntant-instr-elim.tuner. No rule
+;                body is shared between those files and this one.
+; Preconditions : phi takes the value of whichever edge was taken, so phi of
+;                one value is that value. sel(a, b, c) yields a when c is
+;                non-zero. Loads are not speculatable here: the rule below
+;                removes a load only when both edges load the same address in
+;                the same width, so the two loads are the same value and at
+;                most one of them can be live. Loads with side effects, traps
+;                or ordering constraints must not be represented as loadN; the
+;                adapter has to reject them before ingestion.
+; Cost model    : A merge costs 3 and a load costs 2, so both rules are
+;                cost-reducing and win extraction.
+; Termination   : Every rule deletes a merge node, and no rule creates a merge,
+;                so each matched subtree strictly shrinks. The nested select
+;                rule consumes one select and produces one, but it also
+;                removes the duplicated condition operand, so the matched
+;                subterm strictly decreases and the set is monotone.
+;
+; Operator signatures required by this file:
+; signatures: phi 2, sel 3, load32 1, load64 1
+; =============================================================================
+
+; A merge that receives the same value on both edges computes that value.
+(rule df-phi-same-arms (phi ?a ?a) ?a)
+; Two loads of the same address and width in the same width are one value, so
+; the merge above them is that load. This is redundant load elimination across
+; an edge pair.
+(rule df-phi-same-load32 (phi (load32 ?p) (load32 ?p)) (load32 ?p))
+; Same, for the double width load.
+(rule df-phi-same-load64 (phi (load64 ?p) (load64 ?p)) (load64 ?p))
+; A select whose arms agree is that value, whatever the condition.
+(rule df-sel-same-arms (sel ?a ?a ?c) ?a)
+; Two loads of the same address and width under a select are one value, so
+; the select is that load.
+(rule df-sel-same-load32 (sel (load32 ?p) (load32 ?p) ?c) (load32 ?p))
+; Same, for the double width load.
+(rule df-sel-same-load64 (sel (load64 ?p) (load64 ?p) ?c) (load64 ?p))
+; A select nested immediately below a select with the same condition and the
+; same false arm is redundant: the inner select already returns ?a when ?c is
+; non-zero and ?b when it is not, which is what the outer one returns. The
+; condition is evaluated once instead of twice, and one select is deleted.
+(rule df-sel-nested (sel (sel ?a ?b ?c) ?b ?c) (sel ?a ?b ?c))

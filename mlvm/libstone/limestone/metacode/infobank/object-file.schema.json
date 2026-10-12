@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:isa-description-bundle:object-file:1",
+  "title": "Limestone Object File Metadata",
+  "description": "The optional tooling.object_file contract. Runtime validation also checks power-of-two alignment, unique type/name identities, bit/storage consistency, and absolute-PC bias legality.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "machine", "endianness", "flags", "osabi", "abi_version", "text_alignment", "relocations"],
+  "properties": {
+    "format": {"enum": ["elf32", "elf64"]},
+    "version": {"const": 1},
+    "machine": {"type": "integer", "minimum": 1, "maximum": 65535},
+    "endianness": {"enum": ["little", "big"]},
+    "flags": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "osabi": {"type": "integer", "minimum": 0, "maximum": 255},
+    "abi_version": {"type": "integer", "minimum": 0, "maximum": 255},
+    "text_alignment": {"type": "integer", "minimum": 1, "maximum": 9223372036854775808},
+    "opaque_section_types": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 1610612736, "maximum": 2147483647}
+    },
+    "relocations": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["type", "name", "kind", "storage_bytes", "bit_offset", "bits", "scale", "signed"],
+        "properties": {
+          "type": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["absolute", "pc_relative"]},
+          "storage_bytes": {"type": "integer", "minimum": 1, "maximum": 8},
+          "bit_offset": {"type": "integer", "minimum": 0, "maximum": 63},
+          "bits": {"type": "integer", "minimum": 1, "maximum": 64},
+          "scale": {"type": "integer", "minimum": 1, "maximum": 18446744073709551615},
+          "signed": {"type": "boolean"},
+          "implicit_addend_signed": {"type": "boolean"},
+          "pc_bias": {"type": "integer", "minimum": -9223372036854775808, "maximum": 9223372036854775807}
+        }
+      }
+    }
+  }
+}

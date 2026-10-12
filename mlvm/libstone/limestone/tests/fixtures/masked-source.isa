@@ -1,0 +1,10 @@
+arch masked_source { word_size=64; addr_size=64; endian=little; }
+profile { family="fixture"; model="masked-register-machine"; version="1"; execution_model="register-counter"; }
+tooling { bin2bin={schema_version=1; instruction_encoding="masked"; execution_domain="bytecode"; word_size=64; address_size=64; endianness="little";}; }
+regclass G { r0(64)=0, r1(64)=1, r2(64)=2, }
+encoding ADD { width=16; base=1; mask=255; fields={dst={lsb=8; width=2; kind=register; class=G;}; src={lsb=10; width=2; kind=register; class=G;}; imm={lsb=12; width=4; kind=signed;};}; }
+encoding BR { width=16; base=2; mask=255; fields={target={lsb=8; width=8; kind=pc_relative; pc_base=end;};}; }
+encoding RET { width=16; base=3; mask=65535; }
+op add { encoding=ADD; semantics="(set $dst (add $src $imm))"; tooling={binary_translation={schema_version=1; equivalence_basis="semantics";};}; }
+op branch { encoding=BR; semantics="(branch_if flag $target)"; tooling={binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=conditional_branch; target_operand=target;};}; }
+op ret { encoding=RET; semantics="(return)"; tooling={binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=return;};}; }

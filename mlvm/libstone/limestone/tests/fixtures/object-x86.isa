@@ -1,0 +1,14 @@
+arch object_x86 { word_size=64; addr_size=64; endian=little; }
+profile { family="fixture"; model="ELF64-x86-64-relocation-contract"; version="1"; }
+tooling { object_file={
+  format=elf64; version=1; machine=62; endianness=little; flags=0;
+  osabi=0; abi_version=0; text_alignment=16;
+  opaque_section_types=[1879048193];
+  relocations=[
+    {type=1; name=abs64; kind=absolute; storage_bytes=8; bit_offset=0; bits=64; scale=1; signed=false;},
+    {type=2; name=pc32; kind=pc_relative; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=true;},
+    {type=4; name=plt32; kind=pc_relative; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=true;},
+    {type=10; name=abs32; kind=absolute; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=false;},
+    {type=11; name=signed32; kind=absolute; storage_bytes=4; bit_offset=0; bits=32; scale=1; signed=true;}
+  ];
+}; }

@@ -1,0 +1,33 @@
+namespace limestone::syntax::schedrow;
+parser schedrow;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Region | Instruction | MachineModel | Bundle;
+node Region { RegionKind region_kind; Name name; RegionItem* items; }
+token RegionKind;
+sum RegionItem = Instruction | Dependency | Bundle | Attribute;
+node Instruction { Name name; InstructionItem* items; }
+sum InstructionItem = RegisterOperand | Attribute;
+node RegisterOperand { OperandRole role; Ref reference; }
+token OperandRole;
+node Dependency { Attribute* attributes; }
+node Bundle { Name name; RegionItem* items; }
+node MachineModel { Name name; Attribute* attributes; }
+node Attribute { FieldName name; Value? value_data; Object? section; }
+sum FieldName = Ident | String;
+sum Value = String | Integer | Real | Boolean | Ident | Ref | Array | Object | Range | SExpr;
+node Range { Integer lower @0; Integer upper @1; }
+node Array { Value* items; }
+node Object { Entry* entries; }
+sum Entry = Attribute | Flag | Binding;
+node Flag { Ident name; }
+node Binding { Ref reference; Value value_data; }
+node SExpr { SExprItem* items; }
+sum SExprItem = String | Integer | Ident | Ref | SExpr;
+sum Name = Ident | String | Ref;
+token Ref;
+token Integer;
+token Real;
+token Boolean;
+token String;
+token Ident;

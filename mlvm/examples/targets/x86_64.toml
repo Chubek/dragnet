@@ -1,0 +1,42 @@
+# MLVM raw-link contract 1: x86-64 ELF64 little-endian, static relocations.
+version = 1
+class = 64
+machine = 62
+endianness = "little"
+flags = 0
+osabi = 0
+abi_version = 0
+text_alignment = 16
+
+[[relocations]]
+type = 1
+name = "R_X86_64_64"
+kind = "absolute"
+storage_bytes = 8
+bit_offset = 0
+bits = 64
+scale = 1
+signed = false
+implicit_addend_signed = false
+
+[[relocations]]
+type = 2
+name = "R_X86_64_PC32"
+kind = "pc_relative"
+storage_bytes = 4
+bit_offset = 0
+bits = 32
+scale = 1
+signed = true
+implicit_addend_signed = true
+
+[[relocations]]
+type = 4
+name = "R_X86_64_PLT32"
+kind = "pc_relative"
+storage_bytes = 4
+bit_offset = 0
+bits = 32
+scale = 1
+signed = true
+implicit_addend_signed = true

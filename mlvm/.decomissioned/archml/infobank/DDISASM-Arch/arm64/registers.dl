@@ -1,0 +1,79 @@
+//===- registers.dl -----------------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2020 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/*
+This module establishes basic information about register:
+ - Which registers and tracked/considered in the different analyses
+ - Whether they all callee or caller saved according to the ABI
+*/
+
+register_size_bytes(Reg32, 4),
+register_size_bytes(Reg64, 8),
+reg_map_rule(Reg32, Reg64),
+general_purpose_reg(Reg64):-
+    I = range(0,29),
+    Reg32 = cat("W", to_string(I)),
+    Reg64 = cat("X", to_string(I)).
+
+register_size_bytes("W29", 4).
+register_size_bytes("W30", 4).
+register_size_bytes("WSP", 4).
+register_size_bytes("FP", 8).
+register_size_bytes("LR", 8).
+register_size_bytes("SP", 8).
+
+reg_map_rule("W29", "FP").
+reg_map_rule("W30", "LR").
+reg_map_rule("WSP", "SP").
+
+general_purpose_reg("FP").
+general_purpose_reg("LR").
+
+// Use the 'System V AMD64 ABI' calling convention.
+function_non_maintained_reg(Reg):-
+    I = range(0,19),
+    Reg = cat("X", to_string(I)).
+
+function_non_maintained_reg("FP").
+
+// PC is not a register in aarch64
+pc_reg(""):-
+    false.
+
+// TODO:
+frame_pointer(""):-
+    false.
+
+stack_pointer("SP").
+
+return_reg("X0").
+
+condition_flags_reg("NZCV").
+
+integer_reg_param("X0",1).
+integer_reg_param("X1",2).
+integer_reg_param("X2",3).
+integer_reg_param("X3",4).
+integer_reg_param("X4",5).
+integer_reg_param("X5",6).
+integer_reg_param("X6",7).
+integer_reg_param("X7",8).

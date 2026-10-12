@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-compare"
+  :name "Integer Comparison Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate an integer comparison whose operands are both known constants.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (fold (compare op (integer a) (integer b)) (boolean-result (integer-compare op a b))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a constant integer comparison with its Boolean compile-time value.")
+  (limitations "Requires both operands to be known constants.")
+  (documentation
+    (purpose "Fold a constant integer comparison into its Boolean result.")
+    (motivation "Removing constant comparisons reduces run-time work and enables control-flow simplification.")
+    (applicability "Applies to integer comparison nodes with two known integer constant operands.")
+    (semantic-assumptions "The IR's comparison semantics are preserved.")
+    (known-limitations "Does not fold non-constant operands.")
+    (testing-strategy "All comparison operators and equal/unequal operand cases are exercised.")))

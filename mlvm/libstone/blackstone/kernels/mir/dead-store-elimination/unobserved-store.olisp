@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.mir.dead-store-elimination.unobserved-store"
+  :name "Dead Store Elimination"
+  :stage mir
+  (category dead-store-elimination)
+  (paradigms memory-optimization data-flow-analysis)
+  (objective "Remove a store whose written value cannot be observed.")
+  (requires
+    (capability ssa-form)
+    (analysis memory-dependence-analysis)
+    (analysis liveness-analysis))
+  (preconditions
+    (proven-store-is-overwritten-before-observation)
+    (proven-no-intervening-read-of-overwritten-value))
+  (forbids
+    (unknown-memory-dependence)
+    (unmodeled-observable-store-effects))
+  (transform
+    (eliminate (store :id overwritten-store)))
+  (correctness
+    (preserve-observable-memory-behavior))
+  (expected-effects "Removes a store whose value cannot be observed.")
+  (limitations "Applies only when the stored value is provably overwritten before any observation.")
+  (documentation
+    (purpose "Remove stores whose written value cannot be observed.")
+    (motivation "Dead store elimination reduces memory traffic.")
+    (applicability "Applies to stores whose value is overwritten before any read.")
+    (semantic-assumptions "The stored value is provably overwritten before any observation.")
+    (known-limitations "Does not remove stores with unknown aliasing or unmodeled observable effects.")
+    (testing-strategy "Overwritten, read-before-overwrite, and unknown-alias cases are exercised.")))

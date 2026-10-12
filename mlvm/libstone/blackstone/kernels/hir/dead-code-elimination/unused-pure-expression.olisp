@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.hir.dead-code-elimination.unused-pure-expression"
+  :name "HIR Dead Code Elimination of Unused Pure Expressions"
+  :stage hir
+  (category dead-code-elimination)
+  (paradigms data-flow-analysis rule-based)
+  (objective "Remove a pure expression whose result is unused.")
+  (requires
+    (capability typed-expressions)
+    (analysis liveness-analysis))
+  (preconditions
+    (expression-is-pure)
+    (result-is-unused))
+  (forbids
+    (operation-has-observable-side-effects)
+    (operation-may-trap))
+  (transform
+    (eliminate (expression :id unused-expression)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes a pure expression with an unused result.")
+  (limitations "Applies only to pure expressions with unused results.")
+  (documentation
+    (purpose "Eliminate unused pure expressions.")
+    (motivation "Removing dead code reduces instruction count and code size.")
+    (applicability "Applies to pure expressions whose results have no uses.")
+    (semantic-assumptions "The expression is pure and its result is unused.")
+    (known-limitations "Does not remove expressions with side effects or potential traps.")
+    (testing-strategy "Used, unused, pure, and effectful cases are exercised.")))

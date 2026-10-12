@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.calling-convention.varargs-lowering"
+  :name "Varargs Lowering"
+  :stage lir
+  (category calling-convention-lowering)
+  (paradigms target-specific)
+  (objective "Lower varargs function calls to the target calling convention.")
+  (requires
+    (capability machine-operations)
+    (capability calling-convention)
+    (capability varargs-information))
+  (preconditions
+    (calling-convention-is-defined))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (varargs-call f args) (calling-convention-varargs-call lowered)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Lowers varargs function calls to the target calling convention.")
+  (limitations "Applies only when the calling convention is defined.")
+  (documentation
+    (purpose "Lower varargs function calls to the target calling convention.")
+    (motivation "Varargs lowering maps variadic arguments to registers and stack.")
+    (applicability "Applies to varargs function calls when the calling convention is defined.")
+    (semantic-assumptions "The calling convention is defined.")
+    (known-limitations "Does not lower when the calling convention is undefined.")
+    (testing-strategy "Fixed, variable, and boundary argument cases are exercised.")))

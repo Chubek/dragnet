@@ -1,0 +1,113 @@
+;;; Data-flow and value-information capabilities.
+
+(define-capability
+  :id "constant-value-information"
+  :name "Constant Value Information"
+  :stages (hir mir)
+  (description
+    "An analysis provides known constant values for definitions."))
+
+(define-capability
+  :id "range-information"
+  :name "Range Information"
+  :stages (mir lir)
+  (description
+    "An analysis provides value range facts for definitions."))
+
+(define-capability
+  :id "value-range-information"
+  :name "Value Range Information"
+  :stages (mir lir)
+  (description
+    "An analysis provides interval or bitwise value range facts."))
+
+(define-capability
+  :id "reaching-definitions"
+  :name "Reaching Definitions"
+  :stages (mir)
+  (description
+    "An analysis provides reaching definition facts."))
+
+(define-capability
+  :id "liveness-information"
+  :name "Liveness Information"
+  :stages (mir lir)
+  (description
+    "An analysis provides live-in and live-out facts for variables."))
+
+(define-capability
+  :id "live-range-information"
+  :name "Live Range Information"
+  :stages (lir)
+  (description
+    "An analysis provides live range facts for register allocation."))
+
+(define-capability
+  :id "assume-information"
+  :name "Assume Information"
+  :stages (mir)
+  (description
+    "The IR carries assumptions that constrain value ranges."))
+
+(define-capability
+  :id "null-state-information"
+  :name "Null State Information"
+  :stages (mir lir)
+  (description
+    "An analysis tracks whether pointers may be null."))
+
+(define-capability
+  :id "bounds-information"
+  :name "Bounds Information"
+  :stages (mir lir)
+  (description
+    "An analysis provides array bounds and allocation size facts."))
+
+(define-capability
+  :id "call-graph"
+  :name "Call Graph"
+  :stages (mir)
+  (description
+    "An analysis provides the call graph."))
+
+(define-capability
+  :id "interprocedural-summaries"
+  :name "Interprocedural Summaries"
+  :stages (mir)
+  (description
+    "Interprocedural summary information is available."))
+
+(define-capability
+  :id "function-boundary-information"
+  :name "Function Boundary Information"
+  :stages (mir)
+  (description
+    "Function boundaries and local versus global variables are known."))
+
+(define-capability
+  :id "devirtualization-information"
+  :name "Devirtualization Information"
+  :stages (mir)
+  (description
+    "The dynamic type of virtual call receivers is known."))
+
+(define-capability
+  :id "tail-call-information"
+  :name "Tail Call Information"
+  :stages (mir lir)
+  (description
+    "An analysis identifies tail call positions."))
+
+(define-capability
+  :id "call-site-information"
+  :name "Call Site Information"
+  :stages (mir lir)
+  (description
+    "Detailed call site information, including argument counts, is available."))
+
+(define-capability
+  :id "profile-information"
+  :name "Profile Information"
+  :stages (mir lir)
+  (description
+    "Execution profile information is available."))

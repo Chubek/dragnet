@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""validate-kernels -- run all six Blackstone validation layers.
+
+Usage:
+    validate-kernels [--root DIR] [--skip-schema] [--quiet]
+
+Exit status:
+    0  all kernels valid
+    1  validation failed
+    2  invalid command-line usage
+    3  input/output or format error
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "optilisp" / "src"))
+
+from optilisp.errors import SEVERITY_ERROR, SEVERITY_WARNING  # noqa: E402
+from optilisp.validate import validate_all  # noqa: E402
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="validate-kernels",
+        description="Validate the Blackstone kernel database.",
+    )
+    parser.add_argument(
+        "--root",
+        default=None,
+        help="Blackstone project root (default: auto-detect from script location)",
+    )
+    parser.add_argument(
+        "--skip-schema",
+        action="store_true",
+        help="Skip JSON Schema validation (Layer 2b)",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Only print errors, not warnings or notes",
+    )
+    args = parser.parse_args(argv)
+
+    if args.root is not None:
+        root = Path(args.root)
+    else:
+        root = Path(__file__).resolve().parents[1]
+
+    if not root.is_dir():
+        print(f"validate-kernels: root directory not found: {root}", file=sys.stderr)
+        return 3
+
+    from optilisp.errors import DiagnosticSink
+
+    sink = DiagnosticSink()
+    db = validate_all(root, sink=sink, skip_schema=args.skip_schema)
+
+    shown = 0
+    for d in sink.items:
+        if args.quiet and d.severity == SEVERITY_ERROR:
+            pass
+        elif args.quiet:
+            continue
+        print(d.render())
+        shown += 1
+
+    n_err = len(sink.errors)
+    n_warn = len(sink.warnings)
+    print(
+        f"validate-kernels: {len(db.kernels)} kernels, "
+        f"{n_err} error(s), {n_warn} warning(s)"
+    )
+    if not sink.items:
+        print("validate-kernels: all kernels valid")
+    return 1 if n_err else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

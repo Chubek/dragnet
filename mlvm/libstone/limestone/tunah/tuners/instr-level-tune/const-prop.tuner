@@ -1,0 +1,55 @@
+; =============================================================================
+; Tunah tuner -- constant propagation
+; =============================================================================
+; Purpose       : Propagate a value to the places that use it. A copy is not an
+;                observable result, so an e-class that holds a copy also holds
+;                the copied value; once that equality is in the e-graph, every
+;                use of the copy is a use of the value, and a use of a literal
+;                operand reaches the constant the literal denotes. The
+;                normalisation that puts a moved value into copy form is
+;                stated once, in reduntant-instr-elim.tuner.
+; Stage         : Instruction level machine IL, during value numbering.
+; Vocabulary    : copy, sel and phi from the shared directory vocabulary. No
+;                arithmetic operator appears here; purely algebraic identities
+;                belong to alg-sim.tuner and literal evaluation to
+;                const-folding.tuner, so a rule body appears in exactly one
+;                file of this directory.
+; Preconditions : A copy is an ordinary data movement with no observable
+;                behaviour of its own, and it is not a barrier, so a use of a
+;                copy is a use of the copied value on every path. Every rule
+;                here replaces one spelling of a value with another and none of
+;                them deletes a memory effect, so none of them can move an
+;                observable operation.
+; Cost model    : Both spellings of a value are equivalent under the size cost
+;                model, so propagation never biases extraction; it only
+;                enlarges the set of terms available to later rules.
+; Termination   : cp-copy-collapse is a union of two e-classes and cannot add
+;                a node. The other rules only delete copy wrappers, so each
+;                application removes exactly one node from the matched subterm
+;                and no rule can re-create it without consuming another node.
+;                The set is therefore monotone and each site is rewritten at
+;                most once per copy eliminated.
+;
+; Operator signatures required by this file:
+; signatures: copy 1, sel 3, phi 2
+; =============================================================================
+
+; A copy denotes the value it copies, so the two belong to one e-class. This
+; is the rule that makes every other propagation in this file, and every
+; constant fold over a moved literal, reachable.
+(rule cp-copy-collapse (copy ?x) ?x)
+; A select of two copies is a select of the copied values, so the wrapper can
+; be dropped from the first arm without changing the selected value.
+(rule cp-sel-lift-copy-left (sel (copy ?a) (copy ?b) ?c) (sel ?a ?b ?c))
+; Same, for the second arm; the condition operand is never a data operand.
+(rule cp-sel-lift-copy-right (sel ?a (copy ?b) ?c) (sel ?a ?b ?c))
+; A merge whose first input is a copy is a merge of the copied value, which is
+; what makes the value available on the incoming edge.
+(rule cp-phi-lift-copy-left (phi (copy ?a) ?b) (phi ?a ?b))
+; Same, for the second input of the merge.
+(rule cp-phi-lift-copy-right (phi ?a (copy ?b)) (phi ?a ?b))
+; A select with a known true condition is its first operand, so no propagation
+; of the condition is needed to know which value survives.
+(rule cp-sel-const-true (sel ?a ?b 1) ?a)
+; A select with a known false condition is its second operand.
+(rule cp-sel-const-false (sel ?a ?b 0) ?b)

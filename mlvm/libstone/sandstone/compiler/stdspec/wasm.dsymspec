@@ -1,0 +1,355 @@
+-- wasm.dsymspec — WebAssembly 2.0 (wasm32/wasm64), stack/value-type model.
+-- Note: WebAssembly is a structured stack machine, not a register machine;
+-- operands are LEB128 indices/immediates (modelled as fixed-width imm here).
+-- Data: isa_reference wasm quick spec (i32/i64/f32/f64/v128 + sections +
+-- block/loop/if/br/call + load/store align+offset), wasm_oracle litdir
+-- (wasm-spec.txt, wasm-2-specs.txt, art-of-wasm.txt).
+-- Strata: base(mvp) | simd | bulk-memory | multi-value | reference-types |
+--   tail-calls | threads | sign-ext | gc.
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "wasm", subarch = "wasm32",
+    addr_size = 32, op_size = 32, addr_def = 32, align = 1,
+    byte_order = "little", obj_format = "wasm", abi = "wasm-stack",
+    calling_conv = "wasm-c-abi",
+    features = { "mvp", "sign-ext", "bulk-memory" },
+}
+
+symas.feature{ name = "mvp", desc = "WebAssembly 1.0 MVP" }
+symas.feature{ name = "simd", desc = "128-bit fixed-width SIMD" }
+symas.feature{ name = "bulk-memory", desc = "bulk memory operations" }
+symas.feature{ name = "multi-value", desc = "multi-value returns" }
+symas.feature{ name = "reference-types", desc = "reference types (funcref/externref)" }
+symas.feature{ name = "tail-calls", desc = "tail calls" }
+symas.feature{ name = "threads", desc = "threads/atomics" }
+symas.feature{ name = "sign-ext", desc = "sign-extension operators" }
+symas.feature{ name = "nontrapping-fptoint", desc = "non-trapping float-to-int" }
+symas.feature{ name = "gc", desc = "garbage collection (struct/array)" }
+symas.feature{ name = "priv", desc = "privileged host imports (wasi)" }
+
+-- No GPR file: typed operand stack + locals/globals modelled as specials.
+symas.register{ name = "stack", class = "special", width = 32, enc = 0 }
+symas.register{ name = "memory0", class = "special", width = 32, enc = 0 }
+symas.register{ name = "table0", class = "special", width = 32, enc = 0 }
+symas.register{ name = "global0", class = "special", width = 32, enc = 0 }
+
+-- Single-byte opcodes + LEB128 immediates (modelled as emit8 + emit_imm).
+symas.encoder{ name = "unreachable", source = "emit8(0x00);", max_bytes = 1 }
+symas.encoder{ name = "nop",  source = "emit8(0x01);", max_bytes = 1 }
+symas.encoder{ name = "block", source = "emit8(0x02); emit_imm(1, type);", max_bytes = 2 }
+symas.encoder{ name = "loop", source = "emit8(0x03); emit_imm(1, type);", max_bytes = 2 }
+symas.encoder{ name = "if",   source = "emit8(0x04); emit_imm(1, type);", max_bytes = 2 }
+symas.encoder{ name = "else", source = "emit8(0x05);", max_bytes = 1 }
+symas.encoder{ name = "end",  source = "emit8(0x0B);", max_bytes = 1 }
+symas.encoder{ name = "br",   source = "emit8(0x0C); emit_imm(4, label);", max_bytes = 5 }
+symas.encoder{ name = "br_if", source = "emit8(0x0D); emit_imm(4, label);", max_bytes = 5 }
+symas.encoder{ name = "return", source = "emit8(0x0F);", max_bytes = 1 }
+symas.encoder{ name = "call", source = "emit8(0x10); emit_imm(4, fn); emit_relocation(sym, R_WASM_FUNCTION_INDEX_LEB);", max_bytes = 5, max_relocs = 1 }
+symas.encoder{ name = "call_indirect", source = "emit8(0x11); emit_imm(4, type); emit_imm(4, table);", max_bytes = 9 }
+symas.encoder{ name = "drop", source = "emit8(0x1A);", max_bytes = 1 }
+symas.encoder{ name = "select", source = "emit8(0x1B);", max_bytes = 1 }
+symas.encoder{ name = "localget", source = "emit8(0x20); emit_imm(4, idx);", max_bytes = 5 }
+symas.encoder{ name = "localset", source = "emit8(0x21); emit_imm(4, idx);", max_bytes = 5 }
+symas.encoder{ name = "localtee", source = "emit8(0x22); emit_imm(4, idx);", max_bytes = 5 }
+symas.encoder{ name = "globalget", source = "emit8(0x23); emit_imm(4, idx);", max_bytes = 5 }
+symas.encoder{ name = "i32load", source = "emit8(0x28); emit_imm(4, align); emit_imm(4, off);", max_bytes = 9 }
+symas.encoder{ name = "i64load", source = "emit8(0x29); emit_imm(4, align); emit_imm(4, off);", max_bytes = 9 }
+symas.encoder{ name = "i32store", source = "emit8(0x36); emit_imm(4, align); emit_imm(4, off);", max_bytes = 9 }
+symas.encoder{ name = "i64store", source = "emit8(0x37); emit_imm(4, align); emit_imm(4, off);", max_bytes = 9 }
+symas.encoder{ name = "memsize", source = "emit8(0x3F); emit8(0x00);", max_bytes = 2 }
+symas.encoder{ name = "memgrow", source = "emit8(0x40); emit8(0x00);", max_bytes = 2 }
+symas.encoder{ name = "memcopy", source = "emit8(0xFC); emit8(0x0A);", max_bytes = 2 }
+symas.encoder{ name = "memfill", source = "emit8(0xFC); emit8(0x0B);", max_bytes = 2 }
+symas.encoder{ name = "i32const", source = "emit8(0x41); emit_imm(4, imm);", max_bytes = 5 }
+symas.encoder{ name = "i64const", source = "emit8(0x42); emit_imm(8, imm);", max_bytes = 9 }
+symas.encoder{ name = "i32add", source = "emit8(0x6A);", max_bytes = 1 }
+symas.encoder{ name = "i32sub", source = "emit8(0x6B);", max_bytes = 1 }
+symas.encoder{ name = "i32mul", source = "emit8(0x6C);", max_bytes = 1 }
+symas.encoder{ name = "i32div", source = "emit8(0x6D);", max_bytes = 1 }
+symas.encoder{ name = "i32and", source = "emit8(0x71);", max_bytes = 1 }
+symas.encoder{ name = "i32or",  source = "emit8(0x72);", max_bytes = 1 }
+symas.encoder{ name = "i32xor", source = "emit8(0x73);", max_bytes = 1 }
+symas.encoder{ name = "i32eqz", source = "emit8(0x45);", max_bytes = 1 }
+symas.encoder{ name = "i64add", source = "emit8(0x7C);", max_bytes = 1 }
+symas.encoder{ name = "f32add", source = "emit8(0x92);", max_bytes = 1 }
+symas.encoder{ name = "f64add", source = "emit8(0xA0);", max_bytes = 1 }
+symas.encoder{ name = "i32wrap", source = "emit8(0xA7);", max_bytes = 1 }
+symas.encoder{ name = "i32extend", source = "emit8(0xC0);", max_bytes = 1 }
+symas.encoder{ name = "v128load", source = "emit8(0xFD); emit8(0x00); emit_imm(4, align); emit_imm(4, off);", max_bytes = 10 }
+symas.encoder{ name = "i32x4add", source = "emit8(0xFD); emit8(0x4E);", max_bytes = 2 }
+symas.encoder{ name = "atomicadd", source = "emit8(0xFE); emit8(0x1E); emit_imm(4, align); emit_imm(4, off);", max_bytes = 10 }
+symas.encoder{ name = "returncall", source = "emit8(0x12); emit_imm(4, fn);", max_bytes = 5 }
+
+local function idx() return { kind = "imm", width = 32, signed = false, imm_min = 0, imm_max = 4294967295 } end
+
+for _, m in ipairs({ "unreachable", "nop", "block", "loop", "if", "else",
+    "end", "br", "br_if", "return", "call", "call_indirect", "drop",
+    "select", "local.get", "local.set", "local.tee", "global.get",
+    "i32.load", "i64.load", "i32.store", "i64.store", "memory.size",
+    "memory.grow", "memory.copy", "memory.fill", "i32.const", "i64.const",
+    "i32.add", "i32.sub", "i32.mul", "i32.div_s", "i32.and", "i32.or",
+    "i32.xor", "i32.eqz", "i64.add", "f32.add", "f64.add", "i32.wrap_i64",
+    "i32.extend8_s", "v128.load", "i32x4.add", "i32.atomic.add",
+    "return_call" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "unreachable", encoder = "unreachable", flags = { "terminator", "may_trap" } }
+symas.form{ mnemonic = "nop", encoder = "nop" }
+symas.form{ mnemonic = "block", encoder = "block", operands = { idx() } }
+symas.form{ mnemonic = "loop", encoder = "loop", operands = { idx() } }
+symas.form{ mnemonic = "if", encoder = "if", flags = { "cond_branch" }, operands = { idx() } }
+symas.form{ mnemonic = "else", encoder = "else" }
+symas.form{ mnemonic = "end", encoder = "end" }
+symas.form{ mnemonic = "br", encoder = "br", flags = { "branch", "terminator" }, operands = { idx() } }
+symas.form{ mnemonic = "br_if", encoder = "br_if", flags = { "cond_branch" }, operands = { idx() } }
+symas.form{ mnemonic = "return", encoder = "return", flags = { "return", "terminator" } }
+symas.form{ mnemonic = "call", encoder = "call", flags = { "branch", "reloc" }, operands = { { kind = "sym", width = 32 } } }
+symas.form{ mnemonic = "call_indirect", encoder = "call_indirect", flags = { "branch" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "drop", encoder = "drop" }
+symas.form{ mnemonic = "select", encoder = "select" }
+symas.form{ mnemonic = "local.get", encoder = "localget", operands = { idx() } }
+symas.form{ mnemonic = "local.set", encoder = "localset", operands = { idx() } }
+symas.form{ mnemonic = "local.tee", encoder = "localtee", operands = { idx() } }
+symas.form{ mnemonic = "global.get", encoder = "globalget", operands = { idx() } }
+symas.form{ mnemonic = "i32.load", encoder = "i32load", flags = { "reads_mem" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "i64.load", encoder = "i64load", flags = { "reads_mem" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "i32.store", encoder = "i32store", flags = { "writes_mem" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "i64.store", encoder = "i64store", flags = { "writes_mem" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "memory.size", encoder = "memsize", flags = { "reads_mem" } }
+symas.form{ mnemonic = "memory.grow", encoder = "memgrow", flags = { "writes_mem" } }
+symas.form{ mnemonic = "memory.copy", encoder = "memcopy", required = { "bulk-memory" }, flags = { "reads_mem", "writes_mem" } }
+symas.form{ mnemonic = "memory.fill", encoder = "memfill", required = { "bulk-memory" }, flags = { "writes_mem" } }
+symas.form{ mnemonic = "i32.const", encoder = "i32const", operands = {
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "i64.const", encoder = "i64const", operands = {
+    { kind = "imm", width = 32, signed = true, imm_min = -2147483648, imm_max = 2147483647 } } }
+symas.form{ mnemonic = "i32.add", encoder = "i32add" }
+symas.form{ mnemonic = "i32.sub", encoder = "i32sub" }
+symas.form{ mnemonic = "i32.mul", encoder = "i32mul" }
+symas.form{ mnemonic = "i32.div_s", encoder = "i32div", flags = { "may_trap" } }
+symas.form{ mnemonic = "i32.and", encoder = "i32and" }
+symas.form{ mnemonic = "i32.or", encoder = "i32or" }
+symas.form{ mnemonic = "i32.xor", encoder = "i32xor" }
+symas.form{ mnemonic = "i32.eqz", encoder = "i32eqz" }
+symas.form{ mnemonic = "i64.add", encoder = "i64add" }
+symas.form{ mnemonic = "f32.add", encoder = "f32add" }
+symas.form{ mnemonic = "f64.add", encoder = "f64add" }
+symas.form{ mnemonic = "i32.wrap_i64", encoder = "i32wrap" }
+symas.form{ mnemonic = "i32.extend8_s", encoder = "i32extend", required = { "sign-ext" } }
+symas.form{ mnemonic = "v128.load", encoder = "v128load", required = { "simd" }, flags = { "reads_mem" },
+    operands = { idx(), idx() } }
+symas.form{ mnemonic = "i32x4.add", encoder = "i32x4add", required = { "simd" } }
+symas.form{ mnemonic = "i32.atomic.add", encoder = "atomicadd", required = { "threads" },
+    flags = { "reads_mem", "writes_mem" }, operands = { idx(), idx() } }
+symas.form{ mnemonic = "return_call", encoder = "returncall", required = { "tail-calls" },
+    flags = { "branch", "terminator" }, operands = { { kind = "sym", width = 32 } } }
+
+symas.syntax{ name = "default", comment = ";;", separator = " " }
+symas.syntax{ name = "wat", comment = ";;", separator = " " }
+
+symas.section{ name = "wasm.type", flags = { "alloc", "readonly", "meta" }, align = 1, content = "meta" }
+symas.section{ name = "wasm.import", flags = { "alloc", "readonly", "meta" }, align = 1, content = "meta" }
+symas.section{ name = "wasm.function", flags = { "alloc", "code" }, align = 1, content = "code" }
+symas.section{ name = "wasm.table", flags = { "alloc", "readonly", "meta" }, align = 1, content = "meta" }
+symas.section{ name = "wasm.memory", flags = { "write", "alloc", "data" }, align = 1, content = "data" }
+symas.section{ name = "wasm.global", flags = { "write", "alloc", "data" }, align = 1, content = "data" }
+symas.section{ name = "wasm.export", flags = { "alloc", "readonly", "meta" }, align = 1, content = "meta" }
+symas.section{ name = "wasm.code", flags = { "exec", "alloc", "code" }, align = 1, content = "code" }
+symas.section{ name = "wasm.data", flags = { "write", "alloc", "data" }, align = 1, content = "data" }
+
+symas.linkage{ name = "func_export", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "memory_export", binding = "global", visibility = "default", symtype = "object" }
+symas.linkage{ name = "local_func", binding = "local", visibility = "default", symtype = "func" }
+
+symas.reloc{ name = "R_WASM_FUNCTION_INDEX_LEB", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_WASM_TABLE_INDEX_SLEB", width = 32, signed = true, expr = "S + A" }
+symas.reloc{ name = "R_WASM_MEMORY_ADDR_LEB", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_WASM_TYPE_INDEX_LEB", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_WASM_GLOBAL_INDEX_LEB", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_WASM_FUNCTION_OFFSET_I32", width = 32, expr = "S + A" }
+
+symas.debug{ msg = "wasm stack machine: mvp+simd+bulk+threads+tail stratification", kind = "target", ref = "" }
+symas.debug{ msg = "simd forms require simd", kind = "form", ref = "v128.load" }
+symas.debug{ msg = "atomic forms require threads", kind = "form", ref = "i32.atomic.add" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources: isa_reference WebAssembly quick spec (structured control flow with
+-- block/loop/if markers, a value stack rather than a register file, LEB128
+-- immediates, MVP plus sign-extension, non-trapping float-to-int, bulk memory,
+-- SIMD v128 and multi-value), wasm_oracle (typed function references, tail
+-- calls), toolchain_orace (WASM function sections, table/memory).
+-- WebAssembly has no machine pipeline of its own: the engine compiles to the
+-- host, so the "models" below describe the structured-control-flow shapes the
+-- lowering must produce, and the sched records the typical host costs of the
+-- operations a naive interpreter pays.
+
+symas.model{
+    name = "liftoff", vendor = "wasm", issue_width = 1, rob = 0,
+    load_latency = 1, mispredict = 20,
+    flags = { "in_order", "has_stalls", "default" },
+    desc = "baseline (Liftoff-style) compilation: one operator per stack slot",
+}
+symas.model{
+    name = "turbofan", vendor = "wasm", issue_width = 6, rob = 256,
+    load_latency = 5, mispredict = 14,
+    flags = { "out_of_order", "has_stalls", "forwarding" },
+    desc = "optimising pipeline: wasm value stack is resolved into SSA registers",
+}
+symas.unit{ name = "w-stack", model = "liftoff", kind = "other", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "w-alu",   model = "liftoff", kind = "int", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "w-ldst",  model = "liftoff", kind = "load", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "w-br",    model = "liftoff", kind = "branch", count = 1, latency = 1, throughput = 1 }
+symas.unit{ name = "o-alu",   model = "turbofan", kind = "int", count = 4, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "o-ldst",  model = "turbofan", kind = "load", count = 2, latency = 5, throughput = 1 }
+symas.unit{ name = "o-simd",  model = "turbofan", kind = "vector", count = 2, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "o-br",    model = "turbofan", kind = "branch", count = 1, latency = 1, throughput = 1 }
+
+symas.sched{ form = "nop", name = "Nop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+symas.sched{ form = "i32.add", name = "I32Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.sub", name = "I32Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.mul", name = "I32Binop", latency = 3, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.div_s", name = "I32Div", latency = 20, uops = 1, flags = { "multicycle", "may_fault" },
+             writes = { "w-alu" } }
+symas.sched{ form = "i32.and", name = "I32Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.or", name = "I32Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.xor", name = "I32Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.eqz", name = "I32Compare", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i64.add", name = "I64Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "f32.add", name = "F32Binop", latency = 4, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "f64.add", name = "F64Binop", latency = 4, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.const", name = "I32Const", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "i64.const", name = "I64Const", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "local.get", name = "LocalGet", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "local.set", name = "LocalSet", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "local.tee", name = "LocalTee", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "global.get", name = "GlobalGet", latency = 2, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "i32.load", name = "I32Load", latency = 5, uops = 1, flags = { "may_fault" }, writes = { "w-ldst" } }
+symas.sched{ form = "i64.load", name = "I64Load", latency = 5, uops = 1, flags = { "may_fault" }, writes = { "w-ldst" } }
+symas.sched{ form = "i32.store", name = "I32Store", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "w-ldst" } }
+symas.sched{ form = "i64.store", name = "I64Store", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "w-ldst" } }
+symas.sched{ form = "v128.load", name = "V128Load", latency = 5, uops = 1, flags = { "may_fault" }, writes = { "w-ldst" } }
+symas.sched{ form = "i32x4.add", name = "V128Binop", latency = 1, uops = 1, writes = { "w-alu" } }
+symas.sched{ form = "i32.atomic.add", name = "AtomicRMW", latency = 20, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "w-ldst" } }
+symas.sched{ form = "memory.size", name = "MemorySize", latency = 1, uops = 1, writes = { "w-ldst" } }
+symas.sched{ form = "memory.grow", name = "MemoryGrow", latency = 100, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "w-ldst" } }
+symas.sched{ form = "memory.copy", name = "BulkMemory", latency = 20, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "w-ldst" } }
+symas.sched{ form = "memory.fill", name = "BulkMemory", latency = 20, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "w-ldst" } }
+symas.sched{ form = "i32.wrap_i64", name = "IWrap", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "i32.extend8_s", name = "SignExtend", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "select", name = "Select", latency = 1, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "drop", name = "Drop", latency = 0, uops = 1, writes = { "w-stack" } }
+symas.sched{ form = "call", name = "Call", latency = 20, uops = 1, flags = { "serializing" }, writes = { "w-br" } }
+symas.sched{ form = "call_indirect", name = "CallIndirect", latency = 30, uops = 1, flags = { "serializing" }, writes = { "w-br" } }
+symas.sched{ form = "return_call", name = "Call", latency = 20, uops = 1, flags = { "serializing" }, writes = { "w-br" } }
+symas.sched{ form = "br", name = "Br", latency = 1, uops = 1, flags = { "fused" }, writes = { "w-br" } }
+symas.sched{ form = "br_if", name = "BrIf", latency = 1, uops = 1, flags = { "fused" }, writes = { "w-br" } }
+symas.sched{ form = "return", name = "Return", latency = 1, uops = 1, flags = { "serializing" }, writes = { "w-br" } }
+symas.sched{ form = "block", name = "Block", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "loop", name = "Loop", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "if", name = "If", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "else", name = "Else", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "end", name = "End", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "unreachable", name = "Unreachable", latency = 1, uops = 1, flags = { "side_effects" }, writes = { "w-br" } }
+
+symas.tune{ model = "liftoff", kind = "strategy", name = "stack-slot-allocation", value = 0,
+            desc = "baseline compilation keeps one host slot per wasm stack entry" }
+symas.tune{ model = "turbofan", kind = "strategy", name = "stack-to-ssa", value = 1,
+            desc = "the optimising pipeline eliminates the operand stack entirely" }
+symas.tune{ model = "liftoff", kind = "avoid", form = "memory.copy", value = 2,
+            desc = "bulk memory helpers dominate the baseline cost model" }
+symas.tune{ model = "liftoff", kind = "avoid", form = "memory.grow", value = 4 }
+symas.tune{ model = "liftoff", kind = "avoid", form = "call_indirect", value = 3,
+            desc = "an indirect call defeats the baseline compiler's inlining" }
+symas.tune{ model = "liftoff", kind = "prefer", form = "return_call", value = 3, features = { "tail-calls" },
+            desc = "a tail call becomes a plain jump in every engine" }
+symas.tune{ model = "turbofan", kind = "prefer", form = "return_call", value = 4, features = { "tail-calls" } }
+symas.tune{ model = "turbofan", kind = "avoid", form = "i32.div_s", value = 3 }
+symas.tune{ model = "turbofan", kind = "threshold", name = "inlining-budget", value = 60,
+            desc = "small wasm functions are inlined; large ones become real calls" }
+symas.tune{ model = "liftoff", kind = "threshold", name = "inlining-budget", value = 0 }
+symas.tune{ model = "liftoff", kind = "strategy", name = "bounds-check", value = 1,
+            desc = "baseline keeps every bounds check; the optimising pass removes provably safe ones" }
+symas.tune{ model = "turbofan", kind = "strategy", name = "bounds-check", value = 0 }
+
+symas.isel{ node = "add", form = "i32.add", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(add i32, W:$a, W:$b)" }
+symas.isel{ node = "add", form = "i64.add", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(add i64, W:$a, W:$b)" }
+symas.isel{ node = "sub", form = "i32.sub", kind = "node", cost = 1, complexity = 1, pattern = "(sub i32, W:$a, W:$b)" }
+symas.isel{ node = "and", form = "i32.and", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(and i32, W:$a, W:$b)" }
+symas.isel{ node = "or", form = "i32.or", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(or i32, W:$a, W:$b)" }
+symas.isel{ node = "xor", form = "i32.xor", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(xor i32, W:$a, W:$b)" }
+symas.isel{ node = "mul", form = "i32.mul", kind = "node", cost = 3, complexity = 1, pattern = "(mul i32, W:$a, W:$b)" }
+symas.isel{ node = "sdiv", form = "i32.div_s", kind = "node", cost = 20, complexity = 2,
+            flags = { "unprofitable" }, pattern = "(sdiv i32, W:$a, W:$b)" }
+symas.isel{ node = "fadd", form = "f32.add", kind = "node", cost = 4, complexity = 1, pattern = "(fadd float, W:$a, W:$b)" }
+symas.isel{ node = "fadd", form = "f64.add", kind = "node", cost = 4, complexity = 1, pattern = "(fadd double, W:$a, W:$b)" }
+symas.isel{ node = "trunc", form = "i32.wrap_i64", kind = "node", cost = 1, complexity = 1, required = { "sign-ext" },
+            pattern = "(trunc i64 to i32)" }
+symas.isel{ node = "sext", form = "i32.extend8_s", kind = "node", cost = 1, complexity = 1, required = { "sign-ext" },
+            pattern = "(sext i8 to i32)" }
+symas.isel{ node = "select", form = "select", kind = "select", cost = 1, complexity = 1,
+            pattern = "(select (setcc W:$c), W:$a, W:$b)" }
+symas.isel{ node = "load", form = "i32.load", kind = "node", cost = 5, complexity = 1, pattern = "(load i32, addr: W:$a)" }
+symas.isel{ node = "load", form = "i64.load", kind = "node", cost = 5, complexity = 1, pattern = "(load i64, addr: W:$a)" }
+symas.isel{ node = "store", form = "i32.store", kind = "node", cost = 1, complexity = 1, pattern = "(store i32, addr: W:$a)" }
+symas.isel{ node = "store", form = "i64.store", kind = "node", cost = 1, complexity = 1, pattern = "(store i64, addr: W:$a)" }
+symas.isel{ node = "load", form = "v128.load", kind = "node", cost = 5, complexity = 1, required = { "simd" } }
+symas.isel{ node = "add", form = "i32x4.add", kind = "node", cost = 1, complexity = 1, required = { "simd" },
+            pattern = "(add <4 x i32>, ...)" }
+symas.isel{ node = "atomicrmw", form = "i32.atomic.add", kind = "node", cost = 20, complexity = 2,
+            required = { "threads" }, pattern = "atomic read-modify-write" }
+symas.isel{ node = "br", form = "br", kind = "node", cost = 1, complexity = 1, pattern = "(br label)" }
+symas.isel{ node = "br", form = "br_if", kind = "node", cost = 1, complexity = 1, pattern = "(brcond (setcc W:$c))" }
+symas.isel{ node = "br", form = "return", kind = "node", cost = 1, complexity = 1, pattern = "RETURNADDR" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 20, complexity = 1, pattern = "(call W:$f)" }
+symas.isel{ node = "br", form = "call_indirect", kind = "node", cost = 30, complexity = 2, pattern = "(call W:$f)(args)" }
+symas.isel{ node = "br", form = "return_call", kind = "node", cost = 20, complexity = 2, required = { "tail-calls" },
+            pattern = "tail call: a call in return position" }
+symas.isel{ node = "COPY", form = "local.get", kind = "copy", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "COPY", form = "i32.const", kind = "copy", cost = 1, complexity = 1,
+            pattern = "constant materialization" }
+symas.isel{ node = "globaladdr", form = "global.get", kind = "node", cost = 2, complexity = 1 }
+symas.isel{ node = "memcpy", form = "memory.copy", kind = "node", cost = 20, complexity = 2, required = { "bulk-memory" } }
+symas.isel{ node = "memset", form = "memory.fill", kind = "node", cost = 20, complexity = 2, required = { "bulk-memory" } }
+symas.isel{ node = "memsize", form = "memory.size", kind = "node", cost = 1, complexity = 1 }
+symas.isel{ node = "memgrow", form = "memory.grow", kind = "node", cost = 100, complexity = 2, flags = { "unprofitable" } }
+symas.isel{ node = "stackrestore", form = "drop", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "br", form = "block", kind = "node", cost = 0, complexity = 1, flags = { "prefer" },
+            pattern = "a block that is never branched out of is removed by the validator" }
+symas.isel{ node = "br", form = "loop", kind = "node", cost = 0, complexity = 1,
+            pattern = "a loop label is the target of a backward branch" }
+symas.isel{ node = "br", form = "if", kind = "node", cost = 0, complexity = 2,
+            pattern = "conditional block: both arms must have the same type" }
+symas.isel{ node = "br", form = "unreachable", kind = "node", cost = 1, complexity = 3, flags = { "unprofitable" },
+            pattern = "an unreachable instruction after a return" }
+
+symas.fuse{ name = "br_if-end", a = "br_if", b = "end", kind = "branch_pair",
+            flags = { "profitable", "adjacent", "suppress_unfuse" },
+            pattern = "a br_if to the immediately enclosing block end is a plain conditional jump" }
+symas.fuse{ name = "if-else-end", a = "if", b = "else", kind = "macro",
+            flags = { "profitable", "adjacent" },
+            pattern = "the structured markers are erased by the validator; only the branches remain" }
+symas.fuse{ name = "br-br", a = "br", b = "br", kind = "branch_pair",
+            flags = { "profitable", "adjacent" }, pattern = "two gotos form a switch diamond" }
+symas.fuse{ name = "local.get-local.set", a = "local.get", b = "local.set", kind = "macro", latency = 1,
+            flags = { "profitable", "adjacent", "same_reg" },
+            pattern = "a get/set pair on the same local is a copy and is eliminated" }
+symas.fuse{ name = "call-return_call", a = "call", b = "return_call", kind = "branch_pair",
+            features = { "tail-calls" }, flags = { "profitable", "adjacent" },
+            pattern = "a call in return position becomes a jump" }
+symas.fuse{ name = "add-load", a = "i32.add", b = "i32.load", kind = "mem_arith", latency = 5,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "i32x4.add-v128.load", a = "v128.load", b = "i32x4.add", kind = "mem_arith", latency = 5,
+            features = { "simd" }, flags = { "profitable", "adjacent" } }
+print(symas.emit())

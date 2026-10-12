@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.dead-code-elimination.unused-results"
+  :name "MIR Dead Code Elimination of Unused Results"
+  :stage mir
+  (category dead-code-elimination)
+  (paradigms ssa-based data-flow-analysis)
+  (objective "Remove SSA instructions whose results are unused and whose execution has no observable effect.")
+  (requires
+    (capability ssa-form)
+    (analysis liveness-analysis))
+  (preconditions
+    (result-is-unused)
+    (instruction-has-no-observable-effects))
+  (forbids
+    (operation-has-observable-side-effects)
+    (operation-may-trap))
+  (transform
+    (eliminate (instruction :id dead-instruction)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes SSA instructions with unused results and no observable effects.")
+  (limitations "Applies only to instructions with unused results and no observable effects.")
+  (documentation
+    (purpose "Eliminate SSA instructions with unused results.")
+    (motivation "Dead code elimination reduces instruction count and code size.")
+    (applicability "Applies to SSA instructions whose results have no uses and have no observable effects.")
+    (semantic-assumptions "The instruction has no observable effects and its result is unused.")
+    (known-limitations "Does not remove instructions with side effects or potential traps.")
+    (testing-strategy "Used, unused, pure, and effectful cases are exercised.")))

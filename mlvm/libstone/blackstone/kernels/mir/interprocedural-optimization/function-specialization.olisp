@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.function-specialization"
+  :name "Function Specialization"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural specialization)
+  (objective "Create a specialized copy of a function with constant arguments bound.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis))
+  (preconditions
+    (argument-is-constant)
+    (function-body-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (specialize (function f) (constant-args c) (specialized-function f-spec)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Creates a specialized function with constant arguments bound.")
+  (limitations "Applies only when the argument is constant and the function body is available.")
+  (documentation
+    (purpose "Create specialized function copies with constant arguments bound.")
+    (motivation "Function specialization enables downstream optimizations.")
+    (applicability "Applies to functions called with constant arguments.")
+    (semantic-assumptions "The argument is constant and the function body is available.")
+    (known-limitations "Does not specialize when the function body is unavailable.")
+    (testing-strategy "Constant, non-constant, and recursive cases are exercised.")))

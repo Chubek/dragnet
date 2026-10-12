@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.loop.normalization"
+  :name "Loop Normalization"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Normalize a loop to have a single entry, a single latch, and a canonical induction variable.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information))
+  (preconditions
+    (loop-is-normalizable))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (canonicalize (loop l) (normalized-loop l-norm)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Normalizes a loop to canonical form.")
+  (limitations "Applies only to normalizable loops.")
+  (documentation
+    (purpose "Normalize loops to canonical form.")
+    (motivation "Loop normalization enables downstream loop optimizations.")
+    (applicability "Applies to loops that can be normalized.")
+    (semantic-assumptions "The loop is normalizable.")
+    (known-limitations "Does not normalize irreducible loops.")
+    (testing-strategy "Normal, irreducible, and multi-entry cases are exercised.")))

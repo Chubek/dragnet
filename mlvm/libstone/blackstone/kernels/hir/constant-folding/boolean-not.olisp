@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.boolean-not"
+  :name "Boolean Not Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate a Boolean not whose operand is a known constant.")
+  (requires
+    (capability typed-expressions)
+    (capability compile-time-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (fold (boolean-not (boolean a)) (boolean-result (bool-not a))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a constant Boolean not with its compile-time value.")
+  (limitations "Requires a known constant operand.")
+  (documentation
+    (purpose "Fold a constant Boolean not into its compile-time result.")
+    (motivation "Removing constant Boolean operations reduces run-time work.")
+    (applicability "Applies to Boolean not nodes with a known Boolean constant operand.")
+    (semantic-assumptions "The IR's Boolean semantics are preserved.")
+    (known-limitations "Does not propagate constants.")
+    (testing-strategy "Both truth values are exercised.")))

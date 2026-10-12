@@ -1,0 +1,223 @@
+; =============================================================================
+; Tunah tuner -- constant folding
+; =============================================================================
+; Purpose       : Evaluate operations whose operands are all literal constants so
+;                that the saturated e-graph holds the folded literal and the
+;                cost-driven extractor prefers it.
+; Stage         : Instruction level machine IL, before value numbering.
+; Vocabulary    : The shared integer vocabulary of this directory. Every rule
+;                here is fully literal, so no variable, type, purity or
+;                memory analysis is required to justify it.
+; Soundness     : Each rule states a total identity of the integer model
+;                declared below. Because the two sides contain no variables,
+;                soundness is decidable by evaluation alone, and the harness
+;                in tests/tunah_tuners.cpp re-derives every right hand side with a
+;                reference evaluator.
+; Cost model    : A literal costs 1 and an application costs 1 + arity, so a
+;                folded literal is always the cheapest representative of its
+;                e-class. Folding can therefore never lose extraction.
+; Termination   : Every rule strictly decreases the number of nodes in the
+;                matched subterm, so no rule can re-introduce its own shape and
+;                the set is monotone. It adds at most one literal per constant
+;                subterm present in the input.
+;
+; Semantic model shared by every tuner file in this directory:
+;   * Integers are two's complement with wrapping arithmetic, so the rules are
+;     checked at element widths W of 8, 16, 32 and 64 bits by the corpus harness.
+;   * Shift counts are reduced modulo W. The IL adapter must establish this
+;     model explicitly; it is not inferred as a property of every target ISA.
+;   * Literals are written in decimal, negatives included.
+;   * A literal inside an av- pattern denotes a broadcast lane.
+;   * (ite c a b) yields a when c is non-zero and b otherwise.
+;   * (sel a b c) is the data-move select: a when c is non-zero, else b.
+;   * (mov s d) copies s into d, so it denotes the value of s.
+;   * (brz c t f) transfers control to t when c is zero, else to f.
+;   * (brnz c t f) transfers control to t when c is non-zero, else to f.
+;   * (seq a b) evaluates a, then b, in that order inside one basic block.
+;   * (loadN p) reads N bits little endian from the byte addressed by p and
+;     (storeN p v) writes them, over 8-bit bytes.
+;   * Bare symbols such as L1 are opaque basic block labels.
+;
+; Operator signatures required by this file:
+; signatures: iadd 2, isub 2, imul 2, iand 2, ior 2, ixor 2, ishl 2, ishr 2,
+;             isar 2, udiv 2, urem 2, sdiv 2, srem 2, ineg 1, inot 1
+; =============================================================================
+
+; 0 + 0 is 0.
+(rule cf-add-0-0 (iadd 0 0) 0)
+; 1 + 2 is 3.
+(rule cf-add-1-2 (iadd 1 2) 3)
+; 7 + 9 is 16.
+(rule cf-add-7-9 (iadd 7 9) 16)
+; 12 + 30 is 42.
+(rule cf-add-12-30 (iadd 12 30) 42)
+; 100 + 155 is 255.
+(rule cf-add-100-155 (iadd 100 155) 255)
+; 0 + 5 is 5.
+(rule cf-add-0-5 (iadd 0 5) 5)
+; 13 + -13 wraps to 0.
+(rule cf-add-13-neg-13 (iadd 13 -13) 0)
+
+; 5 - 3 is 2.
+(rule cf-sub-5-3 (isub 5 3) 2)
+; 9 - 4 is 5.
+(rule cf-sub-9-4 (isub 9 4) 5)
+; 42 - 17 is 25.
+(rule cf-sub-42-17 (isub 42 17) 25)
+; 0 - 8 is -8.
+(rule cf-sub-0-8 (isub 0 8) -8)
+; 6 - 6 is 0.
+(rule cf-sub-6-6 (isub 6 6) 0)
+; 100 - 155 is -55.
+(rule cf-sub-100-155 (isub 100 155) -55)
+
+; 0 * 5 is 0.
+(rule cf-mul-0-5 (imul 0 5) 0)
+; 1 * 9 is 9.
+(rule cf-mul-1-9 (imul 1 9) 9)
+; 3 * 7 is 21.
+(rule cf-mul-3-7 (imul 3 7) 21)
+; 6 * 8 is 48.
+(rule cf-mul-6-8 (imul 6 8) 48)
+; 12 * 12 is 144.
+(rule cf-mul-12-12 (imul 12 12) 144)
+; 5 * 0 is 0.
+(rule cf-mul-5-0 (imul 5 0) 0)
+
+; 12 AND 10 is 8.
+(rule cf-and-12-10 (iand 12 10) 8)
+; 255 AND 15 is 15.
+(rule cf-and-255-15 (iand 255 15) 15)
+; 0 AND 9 is 0.
+(rule cf-and-0-9 (iand 0 9) 0)
+; 7 AND 7 is 7.
+(rule cf-and-7-7 (iand 7 7) 7)
+; 60 AND 13 is 12.
+(rule cf-and-60-13 (iand 60 13) 12)
+
+; 12 OR 10 is 14.
+(rule cf-or-12-10 (ior 12 10) 14)
+; 0 OR 9 is 9.
+(rule cf-or-0-9 (ior 0 9) 9)
+; 4 OR 4 is 4.
+(rule cf-or-4-4 (ior 4 4) 4)
+; 8 OR 1 is 9.
+(rule cf-or-8-1 (ior 8 1) 9)
+; 0 OR 0 is 0.
+(rule cf-or-0-0 (ior 0 0) 0)
+
+; 12 XOR 10 is 6.
+(rule cf-xor-12-10 (ixor 12 10) 6)
+; 7 XOR 7 is 0.
+(rule cf-xor-7-7 (ixor 7 7) 0)
+; 5 XOR 0 is 5.
+(rule cf-xor-5-0 (ixor 5 0) 5)
+; 60 XOR 13 is 49.
+(rule cf-xor-60-13 (ixor 60 13) 49)
+; 0 XOR 0 is 0.
+(rule cf-xor-0-0 (ixor 0 0) 0)
+
+; 1 << 0 is 1.
+(rule cf-shl-1-0 (ishl 1 0) 1)
+; 1 << 1 is 2.
+(rule cf-shl-1-1 (ishl 1 1) 2)
+; 1 << 2 is 4.
+(rule cf-shl-1-2 (ishl 1 2) 4)
+; 3 << 2 is 12.
+(rule cf-shl-3-2 (ishl 3 2) 12)
+; 5 << 3 is 40.
+(rule cf-shl-5-3 (ishl 5 3) 40)
+; 0 << 3 is 0.
+(rule cf-shl-0-3 (ishl 0 3) 0)
+
+; 8 >> 0 is 8, the shift is the identity.
+(rule cf-shr-8-0 (ishr 8 0) 8)
+; 8 >> 1 is 4, the count is taken modulo the element width.
+(rule cf-shr-8-1 (ishr 8 1) 4)
+; 9 >> 2 is 2.
+(rule cf-shr-9-2 (ishr 9 2) 2)
+; 12 >> 2 is 3.
+(rule cf-shr-12-2 (ishr 12 2) 3)
+; 40 >> 3 is 5.
+(rule cf-shr-40-3 (ishr 40 3) 5)
+; 0 >> 2 is 0.
+(rule cf-shr-0-2 (ishr 0 2) 0)
+
+; -8 >> 0 is -8, sign extension of the same value.
+(rule cf-sar-neg8-0 (isar -8 0) -8)
+; -8 >> 1 is -4.
+(rule cf-sar-neg8-1 (isar -8 1) -4)
+; -8 >> 2 is -2.
+(rule cf-sar-neg8-2 (isar -8 2) -2)
+; -8 >> 3 is -1.
+(rule cf-sar-neg8-3 (isar -8 3) -1)
+; -1 >> 1 is -1, an arithmetic shift replicates the sign bit.
+(rule cf-sar-neg1-1 (isar -1 1) -1)
+; -9 >> 2 is -3.
+(rule cf-sar-neg9-2 (isar -9 2) -3)
+
+; 7 / 1 is 7.
+(rule cf-udiv-7-1 (udiv 7 1) 7)
+; 9 / 2 is 4, unsigned division truncates.
+(rule cf-udiv-9-2 (udiv 9 2) 4)
+; 12 / 3 is 4.
+(rule cf-udiv-12-3 (udiv 12 3) 4)
+; 255 / 16 is 15.
+(rule cf-udiv-255-16 (udiv 255 16) 15)
+; 0 / 5 is 0, a defined quotient for a nonzero divisor.
+(rule cf-udiv-0-5 (udiv 0 5) 0)
+
+; 7 mod 1 is 0.
+(rule cf-urem-7-1 (urem 7 1) 0)
+; 9 mod 2 is 1.
+(rule cf-urem-9-2 (urem 9 2) 1)
+; 12 mod 5 is 2.
+(rule cf-urem-12-5 (urem 12 5) 2)
+; 255 mod 17 is 0.
+(rule cf-urem-255-17 (urem 255 17) 0)
+; 0 mod 5 is 0.
+(rule cf-urem-0-5 (urem 0 5) 0)
+
+; 7 / 1 is 7.
+(rule cf-sdiv-7-1 (sdiv 7 1) 7)
+; -7 / 2 is -3, signed division truncates toward zero.
+(rule cf-sdiv-neg7-2 (sdiv -7 2) -3)
+; 7 / -2 is -3.
+(rule cf-sdiv-7-neg2 (sdiv 7 -2) -3)
+; -7 / -2 is 3.
+(rule cf-sdiv-neg7-neg2 (sdiv -7 -2) 3)
+; 12 / 5 is 2.
+(rule cf-sdiv-12-5 (sdiv 12 5) 2)
+; -1 / 1 is -1.
+(rule cf-sdiv-neg1-1 (sdiv -1 1) -1)
+
+; 7 mod 1 is 0.
+(rule cf-srem-7-1 (srem 7 1) 0)
+; -7 mod 2 is -1, the remainder takes the sign of the dividend.
+(rule cf-srem-neg7-2 (srem -7 2) -1)
+; 7 mod -2 is 1.
+(rule cf-srem-7-neg2 (srem 7 -2) 1)
+; -7 mod -2 is -1.
+(rule cf-srem-neg7-neg2 (srem -7 -2) -1)
+; 12 mod 5 is 2.
+(rule cf-srem-12-5 (srem 12 5) 2)
+; -1 mod 1 is 0.
+(rule cf-srem-neg1-1 (srem -1 1) 0)
+
+; Negating 0 is 0.
+(rule cf-neg-0 (ineg 0) 0)
+; Negating 5 is -5.
+(rule cf-neg-5 (ineg 5) -5)
+; Negating 1 is -1.
+(rule cf-neg-1 (ineg 1) -1)
+; Negating 7 is -7.
+(rule cf-neg-7 (ineg 7) -7)
+
+; Inverting 0 is -1, all bits set.
+(rule cf-not-0 (inot 0) -1)
+; Inverting 5 is -6.
+(rule cf-not-5 (inot 5) -6)
+; Inverting 12 is -13.
+(rule cf-not-12 (inot 12) -13)
+; Inverting -1 is 0.
+(rule cf-not-neg1 (inot -1) 0)

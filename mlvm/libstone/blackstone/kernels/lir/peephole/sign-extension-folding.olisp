@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.peephole.sign-extension-folding"
+  :name "Sign Extension Folding"
+  :stage lir
+  (category peephole-optimization)
+  (paradigms target-specific rule-based)
+  (objective "Fold sign extension operations when the sign is already known.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability extension-semantics))
+  (preconditions
+    (sign-is-known))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (sign-extend x) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Folds sign extension when the sign is already known.")
+  (limitations "Applies only when the sign is known.")
+  (documentation
+    (purpose "Fold sign extension when the sign is known.")
+    (motivation "Sign extension folding reduces instruction count.")
+    (applicability "Applies to sign extension operations when the sign is known.")
+    (semantic-assumptions "The sign is known.")
+    (known-limitations "Does not fold when the sign is unknown.")
+    (testing-strategy "Known, unknown, and boundary sign cases are exercised.")))

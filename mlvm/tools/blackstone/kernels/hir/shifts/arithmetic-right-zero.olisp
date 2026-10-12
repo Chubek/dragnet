@@ -1,0 +1,36 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.hir.shifts.arithmetic-right-zero"
+  :name "Arithmetic right zero"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (ashr x zero) with x when the declared proof obligations hold.")
+  (requires
+    (capability typed-expressions)
+    (capability shift-semantics))
+  (preconditions shift-count-is-zero operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires )
+    (invalidates constant-value-analysis range-analysis)
+    (preserves))
+  (transform (rewrite (ashr x zero) x))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. The operator is arithmetic right shift at a fixed width.")
+  (documentation
+    (purpose "Replace (ashr x zero) with x when the declared proof obligations hold.")
+    (motivation "Expose the arithmetic right zero opportunity for planners with explicit legality facts.")
+    (stage "NodeHIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (ashr x zero); require a proven true shift-count-is-zero fact.")
+    (preconditions "Required true facts: shift-count-is-zero, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: typed-expressions, shift-semantics; analyses: none. Results must be current.")
+    (transformation "Replace (ashr x zero) with x when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "The operator is arithmetic right shift at a fixed width.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. The operator is arithmetic right shift at a fixed width.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.hir.shifts.arithmetic-right-zero. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

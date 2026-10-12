@@ -1,0 +1,41 @@
+local source,output=arg[1],arg[2]
+package.path=source.."/vmweave/?.lua;"..package.path
+local vmweave=require("vmweave")
+local function invalid(fn) assert(not pcall(fn)) end
+local function make(reverse)
+  local vm=vmweave.vm("Example")
+  if reverse then vm:state("pc",{type="u64"}):state("acc",{type="i64"})
+  else vm:state("acc",{type="i64"}):state("pc",{type="u64"}) end
+  vm:instruction("increment",{body="  vm->acc += 2; vm->pc += 1;"})
+  vm:instruction("empty")
+  return vm
+end
+local vm=make(false)
+assert(vm:emit()==make(true):emit())
+local metadata={type="u8"};vm:state("buffer",{type="u8",count=4});vm:state("copied",metadata);metadata.type="invalid"
+assert(vm:emit():find("uint8_t copied;",1,true))
+invalid(function() vmweave.vm("bad-name") end)
+invalid(function() vmweave.vm("int") end)
+invalid(function() vmweave.vm("x\n*/") end)
+invalid(function() vm:state("pc",{type="u64"}) end)
+invalid(function() vm:state("x",{type="invalid"}) end)
+invalid(function() vm:state("x",{type="u8",count=0}) end)
+invalid(function() vm:state("x",{type="u8",count=1.5}) end)
+invalid(function() vm:state("x",{type="u8",unexpected=true}) end)
+invalid(function() vm:instruction("increment") end)
+invalid(function() vm:instruction("new",{body=7}) end)
+invalid(function() vm:instruction("new",{body="\0"}) end)
+invalid(function() vm.state("x",{type="u8"}) end)
+invalid(function() vm:emit({dispatch="unknown"}) end)
+invalid(function() vm:emit({hooks=true}) end)
+local dispatched=vmweave.vm("Dispatch")
+dispatched:state("acc",{type="i64"}):instruction("add",{opcode=7,body="  vm->acc += 1;"})
+invalid(function() dispatched:instruction("duplicate",{opcode=7}) end)
+invalid(function() dispatched:instruction("negative",{opcode=-1}) end)
+local generated=dispatched:emit({dispatch="switch",hooks=true})
+assert(generated==dispatched:emit({dispatch="switch",hooks=true}))
+local file=assert(io.open(output,"w"));file:write(vm:emit())
+file:write(generated)
+file:write("\nstatic int veto(Dispatch_vm *vm, uint32_t opcode, void *data) { (void)vm; (void)opcode; (void)data; return 9; }\n")
+file:write("\nint main(void) { Example_vm vm = {0}; Dispatch_vm d; Dispatch_init(&d); if (Dispatch_step(&d, 7) || d.acc != 1 || Dispatch_step(&d, 123) != -1 || d.acc != 1) return 2; d.vmweave_before = veto; if (Dispatch_step(&d, 7) != 9 || d.acc != 1) return 3; Example_increment(&vm); Example_empty(&vm); return vm.acc == 2 && vm.pc == 1 ? 0 : 1; }\n")
+assert(file:close())

@@ -1,0 +1,65 @@
+//===- jump_operations.dl -----------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/**
+The set of jump operations in ARM
+*/
+
+/**
+Define jump operations that may have a condition code
+*/
+.decl jump_operation_may_have_cc(Operation:symbol)
+jump_operation_may_have_cc("B").
+jump_operation_may_have_cc("BX").
+
+jump_operation(Operation):-
+    jump_operation_may_have_cc(Operation).
+
+jump_operation(Operation):-
+    jump_operation_may_have_cc(Base),
+    condition_code_map(Suffix,_),
+    Operation = cat(Base,Suffix).
+
+jump_operation("TBB").
+jump_operation("TBH").
+
+jump_operation("CBZ").
+jump_operation("CBNZ").
+
+// Jump operations with standard condition codes are captured by the generic
+// conditional_operation rule in arch_arm.dl
+conditional_operation("CBZ","E").
+conditional_operation("CBNZ","NE").
+
+jump_operation_op_index(Operation,1):-
+    (
+        jump_operation(Operation)
+        ;
+        // mov pc, r
+        move_operation(Operation)
+        ;
+        // ldr pc, [..]
+        load_operation(Operation)
+    ).
+
+call_operation_op_index(Operation,1):-
+    call_operation(Operation).

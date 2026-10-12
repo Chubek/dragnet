@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.peephole.operand-commutation"
+  :name "Operand Commutation"
+  :stage lir
+  (category peephole-optimization)
+  (paradigms target-specific rule-based)
+  (objective "Commute operands of a commutative operation to enable other optimizations.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability commutativity-information))
+  (preconditions
+    (operation-is-commutative))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (commutative-op a b) (commutative-op b a)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Commutes operands of a commutative operation.")
+  (limitations "Applies only to commutative operations.")
+  (documentation
+    (purpose "Commute operands to enable other optimizations.")
+    (motivation "Operand commutation canonicalizes operand order.")
+    (applicability "Applies to commutative operations.")
+    (semantic-assumptions "The operation is commutative.")
+    (known-limitations "Does not commute non-commutative operations.")
+    (testing-strategy "Commutative, non-commutative, and boundary cases are exercised.")))

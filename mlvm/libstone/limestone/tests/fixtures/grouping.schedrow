@@ -1,0 +1,25 @@
+machine_model dual {
+  issue { width = 2; }
+  resources { A = 1; B = 1; }
+}
+region ports {
+  bundle %44 {
+    issue { width = 2; slots = [0, 1]; }
+    instruction %8 {
+      opcode = flexible; latency = 0;
+      resources = [{ alternatives = [A, B]; }];
+    }
+    instruction %2 {
+      opcode = fixed; latency = 0;
+      issue { width = 1; slots = [0]; }
+      resources = [{ resource = A; }];
+    }
+  }
+}
+region fusion {
+  groups = [{ id = 5; kind = fusion; members = [%30, %99];
+              pattern = produce-consume; benefit = 100; }];
+  instruction %30 { opcode = produce; latency = 4; def %1; }
+  instruction %4 { opcode = unrelated; latency = 0; priority = 50; }
+  instruction %99 { opcode = consume; latency = 0; use %1; }
+}

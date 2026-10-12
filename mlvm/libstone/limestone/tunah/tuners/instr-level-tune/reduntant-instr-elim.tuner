@@ -1,0 +1,49 @@
+; =============================================================================
+; Tunah tuner -- redundant instruction elimination
+; =============================================================================
+; Purpose       : Delete an instruction whose result is a value that the block
+;                already holds, that is, a move of a value to itself and any
+;                chain of moves and copies that can be shortened to one.
+; Stage         : Instruction level machine IL, register assignment aware.
+; Vocabulary    : mov and copy from the shared directory vocabulary. No
+;                arithmetic, merge, memory or control operator appears here:
+;                merging identical incoming values is dataflow-opt.tuner,
+;                removing an operation with a neutral operand is
+;                alg-sim.tuner, and deleting an instruction from a window is
+;                peephole-opt.tuner. No rule body is shared with those files.
+; Preconditions : (mov s d) copies s into d, so its result is the value of s.
+;                A copy has no observable behaviour of its own, so a copy of a
+;                copy is a copy of the original value. A self move leaves the
+;                destination already holding the source value, so the move has
+;                no effect and cannot be observed, even by a later partial
+;                register write, because the model records whole registers.
+; Cost model    : Every rule removes an instruction, so all of them win
+;                extraction under the size cost model.
+; Termination   : rie-mov-chain and rie-mov-of-copy replace a two-instruction
+;                value with a one-instruction value, so the matched subterm
+;                strictly shrinks. rie-copy-of-copy is a union of e-classes
+;                that adds no node. rie-mov-self deletes its match outright.
+;                No rule creates a move or a copy, so the set is monotone.
+;
+; Operator signatures required by this file:
+; signatures: mov 2, copy 1
+; =============================================================================
+
+; A move whose source and destination are the same register has no effect, so
+; the instruction is dead and its result is the value already there.
+(rule rie-mov-self (mov ?d ?d) ?d)
+; A move is a copy of its source; naming it as a copy lets the copy collapse
+; in the e-graph and makes the moved value available to every other tuner.
+(rule rie-mov-is-copy (mov ?s ?d) (copy ?s))
+; Copying a copy is copying the original value, so the inner copy is redundant.
+(rule rie-copy-of-copy (copy (copy ?x)) (copy ?x))
+; Copying a moved value is copying the source of the move, so the move is
+; redundant once its result is only a copy.
+(rule rie-copy-of-mov (copy (mov ?s ?d)) (copy ?s))
+; A move of a move is a move of the original source: the destination receives
+; the same value with one instruction instead of two. The intermediate
+; definition dies, and because the model treats a move as a whole-register
+; copy there is no partial value to preserve.
+(rule rie-mov-chain (mov (mov ?s ?t) ?d) (mov ?s ?d))
+; A move of a copy is a move of the copied value, for the same reason.
+(rule rie-mov-of-copy (mov (copy ?s) ?d) (mov ?s ?d))

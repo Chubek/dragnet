@@ -1,0 +1,52 @@
+namespace limestone::syntax::limeburg;
+parser limeburg;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = RuleSet | Nonterminal | Terminal | Rule | Tree | Include;
+node RuleSet { Name name; RuleDeclaration* declarations; }
+sum RuleDeclaration = Nonterminal | Terminal | Rule | Include;
+node Nonterminal { Ident name; Unsigned? number; }
+node Terminal { Ident name; Unsigned arity; }
+node Rule { Unsigned? number; Ident result; Pattern pattern; Name instruction; RuleOption* options; }
+sum RuleOption = Cost | Priority | Type | Immediate | SideEffects | ExternalOnly | Origin | Where | MemoryContract;
+node MemoryContract { Object access; }
+node Where { Object constraints; }
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Ident | Array | Object;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+node Cost { Integer amount; }
+node Priority { Integer amount; }
+node Type { Ident name; }
+node Immediate { Integer lower @0; Integer upper @1; }
+node SideEffects { Boolean enabled; }
+node ExternalOnly { Boolean enabled; }
+node Pattern { Ident symbol; PatternArguments? arguments; PatternConstraint* constraints; }
+node PatternArguments { Pattern* children; }
+sum PatternConstraint = TypeConstraint | ImmediateConstraint | BindingConstraint | RegisterClassConstraint;
+node TypeConstraint { Ident name; }
+node ImmediateConstraint { Integer lower @0; Integer upper @1; }
+node BindingConstraint { Ident name; }
+node RegisterClassConstraint { Ident name; }
+node Tree { Name name; TreeNode* nodes; Root root_node; }
+node TreeNode { Ref result @0; Ref* operands @1; Ident opcode; TypeConstraint? type; Integer? immediate; NodeProperty* properties; }
+sum NodeProperty = NodeClass | Required | ProducesValue | SideEffect | MayTrap | Call | Terminator | Origin | KnownConstant | Properties;
+node Properties { Object fields; }
+node KnownConstant { Integer amount; }
+node NodeClass { Ident name; }
+node Required { Boolean enabled; }
+node ProducesValue { Boolean enabled; }
+node SideEffect { Boolean enabled; }
+node MayTrap { Boolean enabled; }
+node Call { Boolean enabled; }
+node Terminator { Boolean enabled; }
+node Origin { String name; }
+node Root { Ref reference; Ident nonterminal; }
+node Include { String path; }
+sum Name = Ident | String;
+token Ref;
+token Unsigned;
+token Integer;
+token String;
+token Ident;
+token Boolean;

@@ -1,0 +1,31 @@
+;;; Loop and polyhedral analyses.
+
+(define-analysis
+  :id "loop-invariant-analysis"
+  :name "Loop Invariant Analysis"
+  (description
+    "Identifies loop-invariant computations."))
+
+(define-analysis
+  :id "polyhedral-analysis"
+  :name "Polyhedral Analysis"
+  (description
+    "Computes polyhedral representations of iteration domains and accesses."))
+
+(define-analysis
+  :id "side-effect-analysis"
+  :name "Side Effect Analysis"
+  (description
+    "Identifies operations with side effects."))
+
+(define-analysis
+  :id "exception-analysis"
+  :name "Exception Analysis"
+  (description
+    "Computes exceptional control flow facts."))
+
+(define-analysis
+  :id "profile-analysis"
+  :name "Profile Analysis"
+  (description
+    "Collects execution profile information."))

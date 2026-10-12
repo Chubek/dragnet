@@ -1,0 +1,42 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.mir.loops.zero-trip-loop-elision"
+  :name "Zero trip loop elision"
+  :stage mir
+  (category loop-optimization)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (loop body bound) with (bypass-loop body) when the declared proof obligations hold.")
+  (requires
+    (capability ssa-form)
+    (capability explicit-control-flow)
+    (capability loop-information)
+    (analysis dominator-analysis)
+    (analysis loop-nest-analysis)
+    (analysis induction-variable-analysis)
+    (analysis side-effect-analysis)
+    (analysis exception-analysis))
+  (preconditions zero-trip-count-and-entry-effects-preserved operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires dominator-analysis loop-nest-analysis induction-variable-analysis side-effect-analysis exception-analysis)
+    (invalidates constant-value-analysis dominator-analysis exception-analysis induction-variable-analysis liveness-analysis loop-nest-analysis side-effect-analysis)
+    (preserves))
+  (transform (rewrite (loop body bound) (bypass-loop body)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Retain bound evaluation, entry checks, exit phi values, and any effects before the first iteration.")
+  (documentation
+    (purpose "Replace (loop body bound) with (bypass-loop body) when the declared proof obligations hold.")
+    (motivation "Expose the zero trip loop elision opportunity for planners with explicit legality facts.")
+    (stage "NodeMIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (loop body bound); require a proven true zero-trip-count-and-entry-effects-preserved fact.")
+    (preconditions "Required true facts: zero-trip-count-and-entry-effects-preserved, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: ssa-form, explicit-control-flow, loop-information; analyses: dominator-analysis, loop-nest-analysis, induction-variable-analysis, side-effect-analysis, exception-analysis. Results must be current.")
+    (transformation "Replace (loop body bound) with (bypass-loop body) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Retain bound evaluation, entry checks, exit phi values, and any effects before the first iteration.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Retain bound evaluation, entry checks, exit phi values, and any effects before the first iteration.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.mir.loops.zero-trip-loop-elision. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

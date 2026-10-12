@@ -1,0 +1,280 @@
+-- spirv.dsymspec — SPIR-V 1.6 (compute/graphics IR), logical layout.
+-- Instructions are 32-bit little-endian words; word 0 = (wordcount << 16) |
+-- opcode. SSA <id> operands throughout (modelled as imm ids).
+-- Data: isa_reference SPIR-V quick spec (5-word header, OpLoad/OpStore/
+-- OpFAdd word-0 layout), TableGen SPIRV target, wasm_oracle-adjacent
+-- graphics literature.
+-- Strata: base(core 1.6) | shader | kernel | addresses | int8/16/64 |
+--   float16/64 | matrix?/vector16 | atomic | group | priv(ocl).
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "spirv", subarch = "spirv1.6",
+    addr_size = 32, op_size = 32, addr_def = 64, align = 4,
+    byte_order = "little", obj_format = "spirv", abi = "spirv-logical",
+    calling_conv = "spirv-logical",
+    features = { "core", "shader", "addresses" },
+}
+
+symas.feature{ name = "core", desc = "SPIR-V 1.6 core" }
+symas.feature{ name = "shader", desc = "shader capability" }
+symas.feature{ name = "kernel", desc = "kernel capability" }
+symas.feature{ name = "addresses", desc = "Addresses capability" }
+symas.feature{ name = "int8", desc = "Int8 capability" }
+symas.feature{ name = "int16", desc = "Int16 capability" }
+symas.feature{ name = "int64", desc = "Int64 capability" }
+symas.feature{ name = "float16", desc = "Float16 capability" }
+symas.feature{ name = "float64", desc = "Float64 capability" }
+symas.feature{ name = "vector16", desc = "Vector16 capability" }
+symas.feature{ name = "atomic", desc = "atomic storage (OpAtomicIAdd)" }
+symas.feature{ name = "group", desc = "group operations" }
+symas.feature{ name = "priv", desc = "OpenCL stdlib (privileged host)" }
+
+-- SPIR-V uses SSA ids, not named registers; model two id banks.
+for i = 0, 7 do
+    symas.register{ name = "%idtype" .. i, class = "special", width = 32, enc = i }
+end
+symas.register{ name = "bound", class = "special", width = 32, enc = 0 }
+symas.register{ name = "schema", class = "special", width = 32, enc = 0 }
+
+local function id() return { kind = "imm", width = 32, signed = false, imm_min = 0, imm_max = 4294967295 } end
+
+symas.encoder{ name = "nop",  source = "emit32le(0x00010000);", max_bytes = 4 }
+symas.encoder{ name = "undef", source = "emit32le(0x00010001);", max_bytes = 4 }
+symas.encoder{ name = "name", source = "emit32le(0x00020005); emit_imm(4, target);", max_bytes = 8 }
+symas.encoder{ name = "entrypoint", source = "emit32le(0x0004000F); emit_imm(4, model); emit_imm(4, fn);", max_bytes = 12 }
+symas.encoder{ name = "execmode", source = "emit32le(0x00030010); emit_imm(4, fn); emit_imm(4, mode);", max_bytes = 12 }
+symas.encoder{ name = "memorymodel", source = "emit32le(0x0003000E); emit_imm(4, addr); emit_imm(4, mem);", max_bytes = 12 }
+symas.encoder{ name = "typevoid", source = "emit32le(0x00020013); emit_imm(4, result);", max_bytes = 8 }
+symas.encoder{ name = "typeint", source = "emit32le(0x00040015); emit_imm(4, result); emit_imm(4, width); emit_imm(4, sign);", max_bytes = 16 }
+symas.encoder{ name = "typefloat", source = "emit32le(0x00030016); emit_imm(4, result); emit_imm(4, width);", max_bytes = 12 }
+symas.encoder{ name = "typevector", source = "emit32le(0x00040017); emit_imm(4, result); emit_imm(4, comp); emit_imm(4, count);", max_bytes = 16 }
+symas.encoder{ name = "constant", source = "emit32le(0x0004002B); emit_imm(4, type); emit_imm(4, result); emit_imm(4, value);", max_bytes = 16 }
+symas.encoder{ name = "function", source = "emit32le(0x00050036); emit_imm(4, type); emit_imm(4, result); emit_imm(4, ctrl); emit_imm(4, ftype);", max_bytes = 20 }
+symas.encoder{ name = "param", source = "emit32le(0x00030037); emit_imm(4, type); emit_imm(4, result);", max_bytes = 12 }
+symas.encoder{ name = "label", source = "emit32le(0x000200F8); emit_imm(4, result);", max_bytes = 8 }
+symas.encoder{ name = "variable", source = "emit32le(0x0004003B); emit_imm(4, type); emit_imm(4, result); emit_imm(4, storage);", max_bytes = 16 }
+symas.encoder{ name = "decorate", source = "emit32le(0x00030047); emit_imm(4, target); emit_imm(4, deco);", max_bytes = 12 }
+symas.encoder{ name = "load", source = "emit32le(0x0004003D); emit_imm(4, type); emit_imm(4, result); emit_imm(4, ptr);", max_bytes = 16 }
+symas.encoder{ name = "store", source = "emit32le(0x0003003E); emit_imm(4, ptr); emit_imm(4, object);", max_bytes = 12 }
+symas.encoder{ name = "accesschain", source = "emit32le(0x00040041); emit_imm(4, type); emit_imm(4, result); emit_imm(4, base);", max_bytes = 16 }
+symas.encoder{ name = "iadd", source = "emit32le(0x00050080); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "isub", source = "emit32le(0x00050081); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "imul", source = "emit32le(0x00050082); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "fadd", source = "emit32le(0x00050083); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "fmul", source = "emit32le(0x00050085); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "logicaland", source = "emit32le(0x000500A8); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "select", source = "emit32le(0x000600A9); emit_imm(4, type); emit_imm(4, result); emit_imm(4, cond); emit_imm(4, o1);", max_bytes = 24 }
+symas.encoder{ name = "iequal", source = "emit32le(0x000500AA); emit_imm(4, type); emit_imm(4, result); emit_imm(4, op1); emit_imm(4, op2);", max_bytes = 20 }
+symas.encoder{ name = "phi",  source = "emit32le(0x000400F0); emit_imm(4, type); emit_imm(4, result); emit_imm(4, v0);", max_bytes = 16 }
+symas.encoder{ name = "branch", source = "emit32le(0x000200F9); emit_imm(4, target);", max_bytes = 8 }
+symas.encoder{ name = "branchcond", source = "emit32le(0x000400FA); emit_imm(4, cond); emit_imm(4, t); emit_imm(4, f);", max_bytes = 16 }
+symas.encoder{ name = "return", source = "emit32le(0x000100FD);", max_bytes = 4 }
+symas.encoder{ name = "returnvalue", source = "emit32le(0x000200FE); emit_imm(4, value);", max_bytes = 8 }
+symas.encoder{ name = "function_end", source = "emit32le(0x00010038);", max_bytes = 4 }
+symas.encoder{ name = "call", source = "emit32le(0x00040039); emit_imm(4, type); emit_imm(4, result); emit_imm(4, fn);", max_bytes = 16 }
+symas.encoder{ name = "barrier", source = "emit32le(0x000300F6); emit_imm(4, scope); emit_imm(4, semantics);", max_bytes = 12 }
+symas.encoder{ name = "atomiciadd", source = "emit32le(0x000600E1); emit_imm(4, type); emit_imm(4, result); emit_imm(4, ptr); emit_imm(4, value);", max_bytes = 24 }
+symas.encoder{ name = "extinst", source = "emit32le(0x0005000B); emit_imm(4, type); emit_imm(4, result); emit_imm(4, set); emit_imm(4, inst);", max_bytes = 20 }
+
+for _, m in ipairs({ "nop", "undef", "name", "entrypoint", "execmode",
+    "memorymodel", "typevoid", "typeint", "typefloat", "typevector",
+    "constant", "function", "param", "label", "variable", "decorate",
+    "load", "store", "accesschain", "iadd", "isub", "imul", "fadd",
+    "fmul", "logicaland", "select", "iequal", "phi", "branch",
+    "branchcond", "return", "returnvalue", "function_end", "call",
+    "barrier", "atomiciadd", "extinst" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "nop", encoder = "nop" }
+symas.form{ mnemonic = "undef", encoder = "undef", operands = { id(), id() } }
+symas.form{ mnemonic = "name", encoder = "name", operands = { id() } }
+symas.form{ mnemonic = "entrypoint", encoder = "entrypoint", required = { "shader" }, operands = { id(), id(), id() } }
+symas.form{ mnemonic = "execmode", encoder = "execmode", required = { "shader" }, operands = { id(), id() } }
+symas.form{ mnemonic = "memorymodel", encoder = "memorymodel", operands = { id(), id() } }
+symas.form{ mnemonic = "typevoid", encoder = "typevoid", operands = { id() } }
+symas.form{ mnemonic = "typeint", encoder = "typeint", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "typefloat", encoder = "typefloat", operands = { id(), id() } }
+symas.form{ mnemonic = "typevector", encoder = "typevector", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "constant", encoder = "constant", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "function", encoder = "function", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "param", encoder = "param", operands = { id(), id() } }
+symas.form{ mnemonic = "label", encoder = "label", operands = { id() } }
+symas.form{ mnemonic = "variable", encoder = "variable", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "decorate", encoder = "decorate", operands = { id(), id() } }
+symas.form{ mnemonic = "load", encoder = "load", flags = { "reads_mem" }, operands = { id(), id(), id() } }
+symas.form{ mnemonic = "store", encoder = "store", flags = { "writes_mem" }, operands = { id(), id() } }
+symas.form{ mnemonic = "accesschain", encoder = "accesschain", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "iadd", encoder = "iadd", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "isub", encoder = "isub", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "imul", encoder = "imul", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "fadd", encoder = "fadd", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "fmul", encoder = "fmul", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "logicaland", encoder = "logicaland", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "select", encoder = "select", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "iequal", encoder = "iequal", operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "phi", encoder = "phi", operands = { id(), id(), id() } }
+symas.form{ mnemonic = "branch", encoder = "branch", flags = { "branch", "terminator" }, operands = { id() } }
+symas.form{ mnemonic = "branchcond", encoder = "branchcond", flags = { "cond_branch", "terminator" },
+    operands = { id(), id(), id() } }
+symas.form{ mnemonic = "return", encoder = "return", flags = { "return", "terminator" } }
+symas.form{ mnemonic = "returnvalue", encoder = "returnvalue", flags = { "return", "terminator" }, operands = { id() } }
+symas.form{ mnemonic = "function_end", encoder = "function_end", flags = { "terminator" } }
+symas.form{ mnemonic = "call", encoder = "call", flags = { "branch" }, operands = { id(), id(), id() } }
+symas.form{ mnemonic = "barrier", encoder = "barrier", required = { "group" } , operands = { id(), id() } }
+symas.form{ mnemonic = "atomiciadd", encoder = "atomiciadd", required = { "atomic" },
+    flags = { "reads_mem", "writes_mem" }, operands = { id(), id(), id(), id() } }
+symas.form{ mnemonic = "extinst", encoder = "extinst", required = { "priv" }, operands = { id(), id(), id(), id() } }
+
+symas.syntax{ name = "default", comment = ";", separator = " " }
+symas.syntax{ name = "asm", comment = ";", separator = " " }
+
+symas.section{ name = "spirv.module", flags = { "alloc", "code" }, align = 4, content = "code" }
+symas.section{ name = "spirv.debug", flags = { "debug", "meta" }, align = 4, content = "meta" }
+symas.section{ name = "spirv.annotations", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+
+symas.linkage{ name = "entry_export", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "func_local", binding = "local", visibility = "default", symtype = "func" }
+
+symas.reloc{ name = "R_SPIRV_WORD", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_SPIRV_ID", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_SPIRV_TYPE", width = 32, expr = "S + A" }
+
+symas.debug{ msg = "spirv 1.6 logical: types/consts/functions + arith + cf + atomics", kind = "target", ref = "" }
+symas.debug{ msg = "shader entry forms require shader", kind = "form", ref = "entrypoint" }
+symas.debug{ msg = "atomic forms require atomic", kind = "form", ref = "atomiciadd" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources: isa_reference SPIR-V quick spec (5-word header, OpLoad/OpStore/
+-- OpAccessChain, SSA ids, structured control flow, OpPhi at block boundaries,
+-- decorations, group operations), and the SPIR-V -> SPIR-V/MLIR lowering rules
+-- (OpAccessChain folds into the memory access, OpPhi becomes a register copy or
+-- is eliminated by a block-level assignment, OpCompositeExtract indexes at
+-- compile time).
+-- SPIR-V is an IR: the "models" below describe the code shapes a consumer
+-- lowers to, and the sched records the per-op cost of doing so.
+
+symas.model{
+    name = "ir", vendor = "spirv", issue_width = 1, rob = 0,
+    load_latency = 1, mispredict = 1,
+    flags = { "in_order", "complete", "default" },
+    desc = "unlowered SPIR-V: every operation is one IR node",
+}
+symas.model{
+    name = "lowered", vendor = "spirv", issue_width = 4, rob = 0,
+    load_latency = 4, mispredict = 10,
+    flags = { "out_of_order", "has_stalls", "forwarding" },
+    features = { "core", "shader" },
+    desc = "after access-chain folding and phi elimination: direct-to-SSA form",
+}
+symas.unit{ name = "spirv-alu", model = "lowered", kind = "int", count = 4, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "spirv-ld",  model = "lowered", kind = "load", count = 2, latency = 4, throughput = 1 }
+symas.unit{ name = "spirv-ctrl",model = "lowered", kind = "branch", count = 1, latency = 1, throughput = 1 }
+
+symas.sched{ form = "nop", name = "OpNop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+symas.sched{ form = "undef", name = "OpUndef", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "entrypoint", name = "OpEntryPoint", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "execmode", name = "OpExecutionMode", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "memorymodel", name = "OpMemoryModel", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "typevoid", name = "OpTypeVoid", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "typeint", name = "OpTypeInt", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "typefloat", name = "OpTypeFloat", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "typevector", name = "OpTypeVector", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "constant", name = "OpConstant", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "function", name = "OpFunction", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "function_end", name = "OpFunctionEnd", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "param", name = "OpFunctionParameter", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "label", name = "OpLabel", latency = 0, uops = 1, flags = { "barrier" }, writes = {} }
+symas.sched{ form = "variable", name = "OpVariable", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "decorate", name = "OpDecorate", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "name", name = "OpName", latency = 0, uops = 1, writes = {} }
+symas.sched{ form = "accesschain", name = "OpAccessChain", latency = 1, uops = 1, writes = { "spirv-alu" } }
+symas.sched{ form = "load", name = "OpLoad", latency = 4, uops = 1, flags = { "may_fault" }, writes = { "spirv-ld" } }
+symas.sched{ form = "store", name = "OpStore", latency = 1, uops = 1, flags = { "may_fault" }, writes = { "spirv-ld" } }
+symas.sched{ form = "iadd", name = "OpIAdd", latency = 1, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "isub", name = "OpISub", latency = 1, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "imul", name = "OpIMul", latency = 3, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "logicaland", name = "OpLogicalAnd", latency = 1, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "iequal", name = "OpIEqual", latency = 1, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "select", name = "OpSelect", latency = 1, uops = 1, writes = { "spirv-alu" } }
+symas.sched{ form = "fadd", name = "OpFAdd", latency = 4, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "fmul", name = "OpFMul", latency = 4, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+symas.sched{ form = "phi", name = "OpPhi", latency = 1, uops = 1, writes = { "spirv-alu" } }
+symas.sched{ form = "branch", name = "OpBranch", latency = 1, uops = 1, flags = { "fused" }, writes = { "spirv-ctrl" } }
+symas.sched{ form = "branchcond", name = "OpBranchConditional", latency = 1, uops = 1, flags = { "fused" }, writes = { "spirv-ctrl" } }
+symas.sched{ form = "return", name = "OpReturn", latency = 1, uops = 1, flags = { "serializing" }, writes = { "spirv-ctrl" } }
+symas.sched{ form = "returnvalue", name = "OpReturnValue", latency = 0, uops = 1, writes = { "spirv-ctrl" } }
+symas.sched{ form = "call", name = "OpFunctionCall", latency = 20, uops = 1, flags = { "serializing" }, writes = { "spirv-ctrl" } }
+symas.sched{ form = "barrier", name = "OpControlBarrier", latency = 30, uops = 1, flags = { "serializing", "barrier" },
+             writes = { "spirv-ctrl" } }
+symas.sched{ form = "atomiciadd", name = "OpAtomicIAdd", latency = 400, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "spirv-ld" } }
+symas.sched{ form = "extinst", name = "OpExtInst", latency = 4, uops = 1, writes = { "spirv-alu" }, reads = { "spirv-alu" } }
+
+symas.tune{ model = "lowered", kind = "prefer", form = "accesschain", value = 3,
+            desc = "fold OpAccessChain into the following OpLoad/OpStore" }
+symas.tune{ model = "lowered", kind = "avoid", form = "phi", value = 3,
+            desc = "a phi with one incoming value is a copy; a critical-edge phi needs a real block" }
+symas.tune{ model = "lowered", kind = "avoid", form = "barrier", value = 4,
+            desc = "workgroup barriers are expensive; the model keeps them precise" }
+symas.tune{ model = "lowered", kind = "avoid", form = "atomiciadd", value = 3 }
+symas.tune{ model = "lowered", kind = "strategy", name = "phi-elimination", value = 1,
+            desc = "resolve every phi to a register copy before scheduling" }
+symas.tune{ model = "lowered", kind = "strategy", name = "access-chain-folding", value = 1,
+            desc = "resolve access chains against base pointers and constant indices" }
+symas.tune{ model = "ir", kind = "strategy", name = "no-optimization", value = 0,
+            desc = "an unlowered bank is a faithful description only" }
+
+symas.isel{ node = "add", form = "iadd", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(OpIAdd %a %b)" }
+symas.isel{ node = "sub", form = "isub", kind = "node", cost = 1, complexity = 1, pattern = "(OpISub %a %b)" }
+symas.isel{ node = "mul", form = "imul", kind = "node", cost = 3, complexity = 1, pattern = "(OpIMul %a %b)" }
+symas.isel{ node = "and", form = "logicaland", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(OpLogicalAnd %a %b)" }
+symas.isel{ node = "icmp", form = "iequal", kind = "node", cost = 1, complexity = 1, pattern = "(OpIEqual %a %b)" }
+symas.isel{ node = "select", form = "select", kind = "select", cost = 1, complexity = 1, pattern = "(OpSelect %c %a %b)" }
+symas.isel{ node = "fadd", form = "fadd", kind = "node", cost = 4, complexity = 1, pattern = "(OpFAdd %a %b)" }
+symas.isel{ node = "fmul", form = "fmul", kind = "node", cost = 4, complexity = 1, pattern = "(OpFMul %a %b)" }
+symas.isel{ node = "load", form = "load", kind = "node", cost = 4, complexity = 1, pattern = "(OpLoad %ptr %out)" }
+symas.isel{ node = "store", form = "store", kind = "node", cost = 1, complexity = 1, pattern = "(OpStore %ptr %val)" }
+symas.isel{ node = "load", form = "accesschain", kind = "node", cost = 1, complexity = 2,
+            pattern = "(OpAccessChain %base %idx...)" }
+symas.isel{ node = "br", form = "branch", kind = "node", cost = 1, complexity = 1, pattern = "(OpBranch %label)" }
+symas.isel{ node = "br", form = "branchcond", kind = "node", cost = 1, complexity = 1, pattern = "(OpBranchConditional %c %t %f)" }
+symas.isel{ node = "br", form = "return", kind = "node", cost = 1, complexity = 1, pattern = "return" }
+symas.isel{ node = "br", form = "returnvalue", kind = "node", cost = 0, complexity = 1, pattern = "return with a value" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 20, complexity = 1, pattern = "(OpFunctionCall %f ...)" }
+symas.isel{ node = "COPY", form = "load", kind = "copy", cost = 4, complexity = 2, flags = { "prefer" } }
+symas.isel{ node = "COPY", form = "phi", kind = "copy", cost = 1, complexity = 2,
+            pattern = "a single-predecessor phi is a copy" }
+symas.isel{ node = "COPY", form = "select", kind = "copy", cost = 1, complexity = 2,
+            pattern = "select with a constant condition folds to a copy" }
+symas.isel{ node = "barrier", form = "barrier", kind = "node", cost = 30, complexity = 1,
+            flags = { "side_effects", "prefer" }, pattern = "workgroup execution scope barrier" }
+symas.isel{ node = "atomicrmw", form = "atomiciadd", kind = "node", cost = 400, complexity = 2,
+            required = { "atomic" }, pattern = "device-scope atomic" }
+symas.isel{ node = "math", form = "extinst", kind = "node", cost = 4, complexity = 1, pattern = "GLSL.std.450 extended instruction" }
+symas.isel{ node = "globaladdr", form = "variable", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "constant", form = "constant", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "constant", form = "typeint", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "bitcast", form = "extinst", kind = "node", cost = 1, complexity = 2, pattern = "bit reinterpretation" }
+
+symas.fuse{ name = "accesschain-load", a = "accesschain", b = "load", kind = "mem_arith", latency = 4,
+            flags = { "profitable", "adjacent", "suppress_unfuse" },
+            pattern = "OpAccessChain + OpLoad folds into one address-mode load" }
+symas.fuse{ name = "accesschain-store", a = "accesschain", b = "store", kind = "mem_arith", latency = 1,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "phi-copy", a = "phi", b = "load", kind = "macro", latency = 1,
+            flags = { "profitable", "adjacent" }, pattern = "phi followed by a copy of the incoming value" }
+symas.fuse{ name = "iequal-branchcond", a = "iequal", b = "branchcond", kind = "cmp_branch", latency = 1,
+            flags = { "profitable", "adjacent" },
+            pattern = "the comparison feeds the conditional branch directly" }
+symas.fuse{ name = "iadd-load", a = "iadd", b = "load", kind = "mem_arith", latency = 4,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "iadd-iadd", a = "iadd", b = "iadd", kind = "macro", latency = 1,
+            flags = { "profitable", "adjacent" }, pattern = "reassociation by a scheduler pass" }
+symas.fuse{ name = "call-return", a = "call", b = "return", kind = "branch_pair", latency = 20,
+            flags = { "profitable", "adjacent" }, pattern = "a call in return position becomes a tail call" }
+print(symas.emit())

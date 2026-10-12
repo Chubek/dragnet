@@ -1,0 +1,19 @@
+(define-kernel
+  :id "blackstone.test.valid"
+  :name "Valid Test Kernel"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms rule-based)
+  (objective "A valid kernel used by the test suite.")
+  (requires
+    (capability typed-expressions)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics))
+  (transform
+    (fold (add (integer a) (integer b)) (integer-result (integer-add a b))))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Folds a constant addition.")
+  (limitations "Requires constant operands.")
+  (documentation
+    (purpose "Fold constant additions.")))

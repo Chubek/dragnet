@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.peephole.zero-extension-folding"
+  :name "Zero Extension Folding"
+  :stage lir
+  (category peephole-optimization)
+  (paradigms target-specific rule-based)
+  (objective "Fold zero extension operations when the value is already known to be zero-extended.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability extension-semantics))
+  (preconditions
+    (value-is-already-zero-extended))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (zero-extend x) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Folds zero extension when the value is already zero-extended.")
+  (limitations "Applies only when the value is already zero-extended.")
+  (documentation
+    (purpose "Fold zero extension when the value is already zero-extended.")
+    (motivation "Zero extension folding reduces instruction count.")
+    (applicability "Applies to zero extension operations when the value is already zero-extended.")
+    (semantic-assumptions "The value is already zero-extended.")
+    (known-limitations "Does not fold when the value is not zero-extended.")
+    (testing-strategy "Zero-extended, not-zero-extended, and boundary cases are exercised.")))

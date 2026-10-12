@@ -1,0 +1,10 @@
+machine scalar {
+  regclass G = [$r0, $r1, $r2];
+  operator const(0);
+  operator add(2);
+  instruction CONST { latency = 0; }
+  instruction ADD { latency = 1; }
+  pattern constant: const():i64 -> CONST;
+  pattern sum: add(?lhs:i64, ?rhs:i64):i64 -> ADD;
+  default_register_class = G;
+}

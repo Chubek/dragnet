@@ -1,0 +1,146 @@
+# ISA Tooling Augmentation
+
+Version 1 of the tooling augmentation adds a common, declarative metadata layer to the ISA descriptions.
+
+## Goals
+
+The additions are intentionally useful to several independent consumers:
+
+- instruction scheduling
+- register allocation
+- instruction selection / legalization
+- virtual-machine and code-generator construction
+- disassembly
+- binary lifting and reverse engineering
+
+## Architecture-level `tooling`
+
+Each architecture ISA now has a top-level `tooling` block containing six contracts:
+
+- `scheduling`
+- `register_allocation`
+- `instruction_selection`
+- `vmm`
+- `disassembler`
+- `reverse_engineering`
+
+These describe the *shape* of the information required by a backend. Values that cannot be established from an ISA inventory are explicitly `unknown`, `target_dependent`, `abi_dependent`, or `architecture_specific` rather than being fabricated.
+
+## Per-instruction `op.tooling`
+
+Every real `op` receives:
+
+- `dataflow`: explicit operands, derived uses/defs, flag effects, memory effect, and control-flow category.
+- `scheduling`: latency/resource/throughput placeholders and serialization information.
+- `register_allocation`: operand register-class constraints, fixed-register context, tied/early-clobber slots, spillability.
+- `instruction_selection`: semantic pattern, opcode class, commutativity, immediate/addressing hints, pseudo status.
+- `vmm`: terminator, control-flow kind, memory effect, trapping/atomic/serialization properties.
+- `disassembly`: mnemonic, syntax, encoding reference, encoding width/opcode, operand order.
+- `reverse_engineering`: semantic pattern, control-flow and memory classification, branch-target hints, semantic confidence.
+
+## Important accuracy rule
+
+This augmentation does **not** invent microarchitecture-specific scheduling numbers. Exact latency, reciprocal throughput, port/resource usage, bypass paths, issue/retire widths, and similar values belong in a microarchitecture profile and should be populated from authoritative processor documentation or measured data.
+
+The existing ISA semantics remain the source of truth for instruction meaning. The augmentation is a backend-oriented index over those semantics and encodings.
+
+## Grammar
+
+`isa.peg` now accepts the top-level `tooling { ... }` declaration. Existing declarations remain unchanged.
+
+
+## Bin2Bin translation augmentation
+
+
+The Bin2Bin extension adds a small, stable contract to the existing ISA tooling augmentation. It identifies the architecture information that a binary translator needs to decode instructions, recover data/control flow, preserve architectural state, lower semantic operations, and decide when a translated block may be cached.
+
+The extension is deliberately layered on top of the existing ISA description. It does not replace `semantics`, `encoding`, `operands`, `dataflow`, `vmm`, `disassembly`, or `reverse_engineering`.
+
+## Architecture-level contract
+
+Every supported ISA contains:
+
+```text
+tooling {
+  ...
+  bin2bin = {
+    schema_version = 1;
+    ...
+  };
+}
+```
+
+The block records:
+
+- the execution domain (`native_machine_code`, `bytecode`, `virtual_isa`, etc.);
+- the semantic representation;
+- instruction encoding and width information;
+- word and address sizes;
+- instruction-boundary rules;
+- sources for operands, semantics, dataflow, control flow, and branch targets;
+- the source of implicit architectural-state effects;
+- relocation and indirect-target policies;
+- handling of unknown or unsupported semantics;
+- the basic translation unit used by static, dynamic, and JIT translation;
+- the semantic equivalence basis;
+- conditions under which a translated result can safely participate in the cache.
+
+Values such as microarchitectural latency, throughput, and resource usage remain outside this contract and belong to the existing scheduling/microarchitecture metadata.
+
+## Per-instruction contract
+
+Every real `op` has a nested:
+
+```text
+op {
+  ...
+  tooling = {
+    ...
+    binary_translation = {
+      schema_version = 1;
+      ...
+    };
+  };
+}
+```
+
+The per-instruction block makes the translation-critical effects explicit by indexing the existing instruction semantics and tooling metadata. It records:
+
+- control-flow category;
+- whether the instruction terminates a translation block;
+- branch-target classification;
+- memory effects;
+- trapping, atomic, serialization, and privilege properties;
+- sources for implicit register and flag effects;
+- the instruction-selection pattern used for target lowering;
+- the semantic equivalence basis.
+
+The semantic S-expression remains authoritative for instruction meaning. The Bin2Bin metadata is an index over that representation and the existing tooling contracts.
+
+## Correctness rules
+
+Bin2Bin consumers should:
+
+1. Treat `op.semantics` as the semantic source of truth.
+2. Treat encoding definitions as the source of instruction-boundary and operand-decoding information.
+3. Preserve implicit architectural state unless the semantics explicitly prove that it is unaffected.
+4. Treat `unknown`, `target_dependent`, `abi_dependent`, and `architecture_specific` values conservatively.
+5. Reject or preserve opaque operations when semantics are insufficient for a correctness-preserving translation.
+6. Include the Infobank version and translation-rule version in persistent translation-cache identity.
+7. Never derive microarchitecture-specific performance numbers from this metadata.
+8. Keep static, dynamic, and JIT translation implementations on the same semantic contract.
+
+## Non-native and virtual instruction sets
+
+Not every Infobank entry is a conventional native CPU ISA. PTX, SPIR-V, WebAssembly, DXIL, and other virtual/bytecode/textual representations may appear as translation sources or targets.
+
+`execution_domain` distinguishes these cases so that Bin2Bin can select an appropriate decoder/lifter and execution model instead of assuming a native machine-code byte stream.
+
+## Versioning
+
+The Bin2Bin extension is independently versioned as `schema_version = 1`. This avoids changing the existing tooling augmentation contract while allowing Bin2Bin-specific metadata to evolve independently.
+
+
+## Bin2Bin translation augmentation
+
+The Bin2Bin-specific contract is documented in `BIN2BIN_TRANSLATION.md` and is versioned independently as `schema_version = 1`. It adds architecture-level `tooling.bin2bin` metadata and per-instruction `op.tooling.binary_translation` metadata without changing the existing scheduling, register-allocation, instruction-selection, VMM, disassembly, or reverse-engineering contracts.

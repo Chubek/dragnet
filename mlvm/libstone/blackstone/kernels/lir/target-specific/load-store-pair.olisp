@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.load-store-pair"
+  :name "Load-Store Pair Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select load-store pair instructions for adjacent memory operations when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability load-store-pair-information))
+  (preconditions
+    (target-supports-load-store-pair))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (memory-ops ops) (load-store-pair-instruction instr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects load-store pair instructions for adjacent memory operations.")
+  (limitations "Applies only when the target supports load-store pairs.")
+  (documentation
+    (purpose "Select load-store pair instructions for adjacent memory operations.")
+    (motivation "Load-store pair instructions reduce instruction count.")
+    (applicability "Applies to adjacent memory operations when the target supports load-store pairs.")
+    (semantic-assumptions "The target supports load-store pairs.")
+    (known-limitations "Does not select when the target lacks load-store pairs.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

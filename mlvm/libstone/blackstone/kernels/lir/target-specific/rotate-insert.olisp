@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.rotate-insert"
+  :name "Rotate-Insert Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select rotate-insert instructions for bit manipulation when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability rotate-information))
+  (preconditions
+    (target-supports-rotate-insert))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (bit-manipulation-op op) (rotate-insert-sequence seq)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects rotate-insert instructions for bit manipulation.")
+  (limitations "Applies only when the target supports rotate-insert.")
+  (documentation
+    (purpose "Select rotate-insert instructions for bit manipulation.")
+    (motivation "Rotate-insert instructions reduce bit manipulation instruction count.")
+    (applicability "Applies to bit manipulation operations when the target supports rotate-insert.")
+    (semantic-assumptions "The target supports rotate-insert.")
+    (known-limitations "Does not select when the target lacks rotate-insert.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

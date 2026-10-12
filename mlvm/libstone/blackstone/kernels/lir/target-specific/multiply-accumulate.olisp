@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.multiply-accumulate"
+  :name "Multiply-Accumulate Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select multiply-accumulate instructions for multiply-add patterns when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability accumulate-information))
+  (preconditions
+    (target-supports-multiply-accumulate))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (mul-add-pattern pat) (multiply-accumulate-instruction instr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects multiply-accumulate instructions for multiply-add patterns.")
+  (limitations "Applies only when the target supports multiply-accumulate.")
+  (documentation
+    (purpose "Select multiply-accumulate instructions for multiply-add patterns.")
+    (motivation "Multiply-accumulate instructions reduce instruction count.")
+    (applicability "Applies to multiply-add patterns when the target supports multiply-accumulate.")
+    (semantic-assumptions "The target supports multiply-accumulate.")
+    (known-limitations "Does not select when the target lacks multiply-accumulate.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

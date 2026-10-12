@@ -1,0 +1,44 @@
+namespace limestone::syntax::regtl;
+parser regtl;
+root Document;
+node Document { Unit* units; }
+node Unit { Name name; Declaration* declarations; }
+sum Declaration = RegisterClass | RegisterAlias | LiveRange | Clobber | SpillSlot | Function | Attribute;
+node RegisterClass { Name name; PhysicalList members; }
+node PhysicalList { Physical* registers; }
+node RegisterAlias { Physical first @0; Physical second @1; }
+node LiveRange { Virtual reference; Name register_class; Unsigned begin @0; Unsigned end @1; Constraint* constraints; }
+sum Constraint = Allowed | Forbidden | Fixed | Spillable | Attribute;
+node Allowed { PhysicalList registers; }
+node Forbidden { PhysicalList registers; }
+node Fixed { Physical reference; }
+node Spillable { Boolean enabled; }
+node Clobber { Unsigned position; PhysicalList registers; }
+node SpillSlot { Name name; Attribute* attributes; }
+node Function { Name name; Block* blocks; }
+node Block { Name name; Transfer* transfers; }
+sum Transfer = Move | ParallelCopy | Instruction | Successor | Attribute;
+node Move { Operand destination @0; Operand source_operand @1; }
+node ParallelCopy { Move* moves; }
+node Successor { Name target; }
+node Instruction { Name name; InstructionItem* items; }
+sum InstructionItem = RegisterOperand | Constraint;
+node RegisterOperand { OperandRole role; Operand operand; }
+token OperandRole;
+sum Operand = Virtual | Physical | Immediate | Memory | Slot;
+node Immediate { Integer literal; }
+node Memory { Operand address; }
+node Slot { Name name; }
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Real | Boolean | Ident | Virtual | Physical | Array | Object;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+sum Name = Ident | String;
+token Virtual;
+token Physical;
+token Unsigned;
+token Integer;
+token Real;
+token Boolean;
+token String;
+token Ident;

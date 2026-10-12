@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.register-pressure.register-coalescing"
+  :name "Register Coalescing"
+  :stage lir
+  (category register-pressure-optimization)
+  (paradigms register-pressure-optimization)
+  (objective "Coalesce two virtual registers that are not live simultaneously into a single physical register.")
+  (requires
+    (capability machine-operations)
+    (capability register-constraints)
+    (capability coalescing-information))
+  (preconditions
+    (registers-do-not-interfere))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (coalesce (virtual-reg r1) (virtual-reg r2) (physical-reg pr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Coalesces two non-interfering virtual registers into one physical register.")
+  (limitations "Applies only when the registers do not interfere.")
+  (documentation
+    (purpose "Coalesce non-interfering virtual registers.")
+    (motivation "Register coalescing reduces register pressure.")
+    (applicability "Applies to virtual registers that do not interfere.")
+    (semantic-assumptions "The registers do not interfere.")
+    (known-limitations "Does not coalesce interfering registers.")
+    (testing-strategy "Non-interfering, interfering, and boundary cases are exercised.")))

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.concurrency.fence-elimination"
+  :name "Fence Elimination"
+  :stage mir
+  (category concurrency-optimization)
+  (paradigms concurrency-optimization)
+  (objective "Remove memory fences that are provably unnecessary under the memory model.")
+  (requires
+    (capability atomic-memory-semantics)
+    (capability memory-ordering))
+  (preconditions
+    (fence-is-unnecessary)
+    (no-data-race-is-introduced))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (eliminate (fence :id unnecessary-fence)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes provably unnecessary memory fences.")
+  (limitations "Applies only when the fence is provably unnecessary under the memory model.")
+  (documentation
+    (purpose "Remove unnecessary memory fences.")
+    (motivation "Fence elimination reduces memory ordering overhead.")
+    (applicability "Applies to memory fences that are provably unnecessary.")
+    (semantic-assumptions "The fence is provably unnecessary under the memory model.")
+    (known-limitations "Does not remove fences that enforce required ordering.")
+    (testing-strategy "Necessary, unnecessary, and unknown cases are exercised.")))

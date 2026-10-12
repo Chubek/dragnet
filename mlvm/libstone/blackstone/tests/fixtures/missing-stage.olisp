@@ -1,0 +1,12 @@
+(define-kernel
+  :id "blackstone.test.missing-stage"
+  :name "Missing Stage"
+  (category constant-evaluation)
+  (objective "A kernel missing its stage.")
+  (requires (capability typed-expressions))
+  (preconditions (operation-has-defined-compile-time-semantics))
+  (transform (fold (add (integer a) (integer b)) (integer-result (integer-add a b))))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Folds.")
+  (limitations "None.")
+  (documentation (purpose "Test.")))

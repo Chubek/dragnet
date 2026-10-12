@@ -1,0 +1,12 @@
+(define-monoid
+  :id "blackstone.monoid.boolean-or"
+  :name "Boolean Disjunction"
+  :carrier boolean
+  :operation boolean-or
+  :identity false
+  (laws
+    (associative boolean-or)
+    (left-identity boolean-or false)
+    (right-identity boolean-or false))
+  (description
+    "Boolean disjunction with identity false, suitable for combining conditions."))

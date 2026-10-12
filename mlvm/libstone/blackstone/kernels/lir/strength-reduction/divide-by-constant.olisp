@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.strength-reduction.divide-by-constant"
+  :name "Divide by Constant Strength Reduction"
+  :stage lir
+  (category strength-reduction)
+  (paradigms target-specific cost-model-guided)
+  (objective "Replace a division by a constant with a multiplication by a magic number.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability instruction-cost-model))
+  (preconditions
+    (constant-is-nonzero)
+    (replacement-is-cheaper))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (strength-reduce (div x (integer c)) (magic-multiply-sequence x c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a division by a constant with a magic number multiplication.")
+  (limitations "Applies only when the replacement is cheaper under the target cost model.")
+  (documentation
+    (purpose "Replace division by a constant with a magic number multiplication.")
+    (motivation "Strength reduction replaces expensive operations with cheaper ones.")
+    (applicability "Applies to divisions by a nonzero constant when the replacement is cheaper.")
+    (semantic-assumptions "The replacement preserves the original division semantics.")
+    (known-limitations "Profitability depends on the target cost model.")
+    (testing-strategy "Power-of-two, non-power-of-two, and boundary cases are exercised.")))

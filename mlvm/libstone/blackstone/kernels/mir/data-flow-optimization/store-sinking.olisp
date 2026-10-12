@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.data-flow.store-sinking"
+  :name "Store Sinking"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis memory-optimization)
+  (objective "Sink a store to the points where its value is actually needed.")
+  (requires
+    (capability ssa-form)
+    (analysis memory-dependence-analysis))
+  (preconditions
+    (store-can-be-sunk)
+    (no-intervening-load))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (sink (store addr value) (use-points uses)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Sinks a store to the points where its value is needed.")
+  (limitations "Applies only when the store can be sunk without intervening loads.")
+  (documentation
+    (purpose "Sink stores to their use points.")
+    (motivation "Store sinking reduces the live range of stored values.")
+    (applicability "Applies to stores that can be sunk to their use points.")
+    (semantic-assumptions "The store can be sunk without intervening loads.")
+    (known-limitations "Does not sink stores with intervening loads.")
+    (testing-strategy "Sinkable, non-sinkable, and intervening-load cases are exercised.")))

@@ -1,0 +1,26 @@
+machine_model "metacode:example" {
+  issue { width = 2; }
+  resources { ALU0 ALU1 }
+  timing { add { latency = 1; throughput = 1.0; } }
+}
+schedule_region %loop0 {
+  kind = loop;
+  instruction %i0 {
+    opcode = add;
+    semantic_class = integer;
+    def %r1
+    use %r2
+    implicit_use %flags
+    resources { any_of { ALU0 ALU1 } }
+    register_class { %r1 = GPR; }
+    latency { memory = 5..12; }
+    semantics = (set %r1 (add %r2 1));
+    effects { may_trap }
+  }
+  instruction %i1 { opcode = load; address %r1; def %r3; memory = true; }
+  dependency { producer = %i0; consumer = %i1; kind = true; latency = 1; distance = 1; scheduler_only = false; }
+  bundle %pair { instruction %i2 { opcode = nop; } group = "adjacent"; }
+}
+region empty {}
+instruction standalone { opcode = nop; }
+bundle outside {}

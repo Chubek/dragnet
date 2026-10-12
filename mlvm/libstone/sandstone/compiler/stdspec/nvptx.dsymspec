@@ -1,0 +1,297 @@
+-- nvptx.dsymspec — NVIDIA PTX virtual GPU ISA (sm_80), kernel ABI.
+-- PTX is a textual virtual ISA; registers are typed/unbounded virtual
+-- registers (%r32/%rd64/%f32/%f64/%p8 + specials). Instruction encodings
+-- below are representative SASS-level words, not bit-exact. Cross-checked
+-- via arch_oracle + ccbe_oracle SIMT/vector-ISA topics + toolchain_orace.
+-- Strata: base | sm_70 | sm_80 | sm_90 | mma/wmma | cp.async | shfl/vote |
+--   atomics | priv.
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "nvptx", subarch = "sm_80",
+    addr_size = 64, op_size = 32, addr_def = 64, align = 4,
+    byte_order = "little", obj_format = "ptx", abi = "NVPTX",
+    calling_conv = "nvptx-kernel",
+    features = { "base", "sm_80", "shfl" },
+}
+
+symas.feature{ name = "base", desc = "PTX base integer + moves + branches" }
+symas.feature{ name = "sm_50", desc = "compute capability 5.0" }
+symas.feature{ name = "sm_70", desc = "compute capability 7.0" }
+symas.feature{ name = "sm_80", desc = "compute capability 8.0" }
+symas.feature{ name = "sm_90", desc = "compute capability 9.0 (wgmma/dist)" }
+symas.feature{ name = "mma", desc = "matrix multiply-accumulate" }
+symas.feature{ name = "wmma", desc = "warp matrix ops" }
+symas.feature{ name = "cp.async", desc = "asynchronous copy" }
+symas.feature{ name = "shfl", desc = "warp shuffle" }
+symas.feature{ name = "vote", desc = "warp vote" }
+symas.feature{ name = "atomics", desc = "atomics (atom.add/cas)" }
+symas.feature{ name = "fp16", desc = "half-precision" }
+symas.feature{ name = "bf16", desc = "brain float 16" }
+symas.feature{ name = "priv", desc = "privileged (cluster/barrier cluster)" }
+
+for i = 0, 7 do
+    symas.register{ name = "%p" .. i, class = "mask", width = 8, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "%r" .. i, class = "gpr", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "%rd" .. i, class = "gpr", width = 64, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "%f" .. i, class = "fp", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 31 do
+    symas.register{ name = "%fd" .. i, class = "fp", width = 64, enc = i, flags = { "readable", "writable" } }
+end
+symas.register{ name = "%tid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%ntid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%ctaid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%nctaid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%warpid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%laneid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%clock", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%smid", class = "special", width = 32, enc = 0 }
+symas.register{ name = "%gridid", class = "special", width = 64, enc = 0 }
+
+symas.encoder{ name = "nop",   source = "emit8(0x00);", max_bytes = 1 }
+symas.encoder{ name = "mov",   source = "emit32le(0x80000000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "add",   source = "emit32le(0x80020000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "sub",   source = "emit32le(0x80040000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "mul",   source = "emit32le(0x80050000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "mad",   source = "emit32le(0x80060000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "and",   source = "emit32le(0x80070000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "or",    source = "emit32le(0x80080000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "xor",   source = "emit32le(0x80090000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "shl",   source = "emit32le(0x800A0000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "setp",  source = "emit32le(0x80100000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "cvt",   source = "emit32le(0x80120000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "ld",    source = "emit32le(0x10000000 + dst*256 + addr*65536);", max_bytes = 4 }
+symas.encoder{ name = "st",    source = "emit32le(0x10020000 + addr*65536 + val*256);", max_bytes = 4 }
+symas.encoder{ name = "cpload", source = "emit32le(0x10040000 + dst*256 + addr*65536);", max_bytes = 4 }
+symas.encoder{ name = "atomadd", source = "emit32le(0x10080000 + addr*65536 + val*256);", max_bytes = 4 }
+symas.encoder{ name = "bra",   source = "emit32le(0x20000000); emit_relocation(sym, R_NVPTX_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "call",  source = "emit32le(0x21000000); emit_relocation(sym, R_NVPTX_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "ret",   source = "emit8(0x01);", max_bytes = 1 }
+symas.encoder{ name = "exit",  source = "emit8(0x02);", max_bytes = 1 }
+symas.encoder{ name = "bar",   source = "emit32le(0x22000000 + (imm % 16));", max_bytes = 4 }
+symas.encoder{ name = "membar", source = "emit32le(0x23000000);", max_bytes = 4 }
+symas.encoder{ name = "shfl",  source = "emit32le(0x30000000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "vote",  source = "emit32le(0x31000000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "fadd",  source = "emit32le(0x81000000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "fmul",  source = "emit32le(0x81020000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "mma",   source = "emit64le(0x4000000000000000 + dst*16777216);", max_bytes = 8 }
+
+local function r() return { kind = "reg", class = "gpr", width = 32 } end
+local function wr() return { kind = "reg", class = "gpr", width = 32, access = "write" } end
+local function ff() return { kind = "reg", class = "fp", width = 32 } end
+local function wff() return { kind = "reg", class = "fp", width = 32, access = "write" } end
+
+for _, m in ipairs({ "nop", "mov", "add", "sub", "mul", "mad", "and",
+    "or", "xor", "shl", "setp", "cvt", "ld", "st", "cp.async", "atom.add",
+    "bra", "call", "ret", "exit", "bar.sync", "membar", "shfl", "vote",
+    "fadd", "fmul", "mma" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "nop", encoder = "nop" }
+symas.form{ mnemonic = "mov", encoder = "mov", operands = { wr(), r() } }
+symas.form{ mnemonic = "add", encoder = "add", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "sub", encoder = "sub", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "mul", encoder = "mul", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "mad", encoder = "mad", operands = { wr(), r(), r(), r() } }
+symas.form{ mnemonic = "and", encoder = "and", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "or",  encoder = "or",  operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "xor", encoder = "xor", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "shl", encoder = "shl", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "setp", encoder = "setp", operands = {
+    { kind = "reg", class = "mask", width = 8, access = "write" }, r(), r() } }
+symas.form{ mnemonic = "cvt", encoder = "cvt", operands = { wr(), r() } }
+symas.form{ mnemonic = "ld", encoder = "ld", flags = { "reads_mem" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "st", encoder = "st", flags = { "writes_mem" }, operands = { r(), r() } }
+symas.form{ mnemonic = "cp.async", encoder = "cpload", required = { "cp.async" },
+    flags = { "reads_mem", "writes_mem" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "atom.add", encoder = "atomadd", required = { "atomics" },
+    flags = { "reads_mem", "writes_mem" }, operands = { r(), r() } }
+symas.form{ mnemonic = "bra", encoder = "bra", flags = { "branch", "terminator", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "call", encoder = "call", flags = { "branch", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "ret", encoder = "ret", flags = { "return", "terminator" } }
+symas.form{ mnemonic = "exit", encoder = "exit", flags = { "terminator" } }
+symas.form{ mnemonic = "bar.sync", encoder = "bar", operands = {
+    { kind = "imm", width = 8, signed = false, imm_min = 0, imm_max = 15 } } }
+symas.form{ mnemonic = "membar", encoder = "membar" }
+symas.form{ mnemonic = "shfl", encoder = "shfl", required = { "shfl" }, operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "vote", encoder = "vote", required = { "vote" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "fadd", encoder = "fadd", operands = { wff(), ff(), ff() } }
+symas.form{ mnemonic = "fmul", encoder = "fmul", operands = { wff(), ff(), ff() } }
+symas.form{ mnemonic = "mma", encoder = "mma", required = { "mma" }, operands = { wr(), r(), r() } }
+
+symas.syntax{ name = "ptx", comment = "//", separator = ", " }
+symas.syntax{ name = "sass", comment = "//", separator = ", " }
+
+symas.section{ name = ".text", flags = { "exec", "alloc", "code" }, align = 4, content = "code" }
+symas.section{ name = ".param", flags = { "alloc", "data" }, align = 4, content = "data" }
+symas.section{ name = ".shared", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+symas.section{ name = ".const", flags = { "alloc", "readonly", "data" }, align = 4, content = "data" }
+symas.section{ name = ".local", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+symas.section{ name = ".global", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+
+symas.linkage{ name = "kernel_entry", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "func_device", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "var_global", binding = "global", visibility = "default", symtype = "object" }
+
+symas.reloc{ name = "R_NVPTX_NONE", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_NVPTX_ABS64", width = 64, expr = "S + A" }
+symas.reloc{ name = "R_NVPTX_ABS32", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_NVPTX_REL32", width = 32, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_NVPTX_PARAM", width = 64, expr = "S + A" }
+
+symas.debug{ msg = "ptx virtual ISA: base+fp+mma/copy/async+shfl/vote+atomics", kind = "target", ref = "" }
+symas.debug{ msg = "async-copy forms require cp.async", kind = "form", ref = "cp.async" }
+symas.debug{ msg = "mma forms require mma/wmma", kind = "form", ref = "mma" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources: isa_reference PTX quick spec (virtual registers %r/%f/%rd, typed
+-- instructions, predicated execution, warp-level primitives), compute_oracle
+-- (Volta/Turing/Ampere/Ada SM counts, warp scheduler per SM sub-partition, shared
+-- memory latency, tensor cores), ccbe_oracle (PTX to SASS lowering, cp.async
+-- and the LDSM path, WMMA/MMA shapes).
+-- PTX is a virtual ISA: the machine model below describes the GPU the code is
+-- lowered to, and the latencies are the SM memory/ALU costs the SASS scheduler
+-- sees.
+
+symas.model{
+    name = "sm80", vendor = "nvidia", issue_width = 4, rob = 0,
+    load_latency = 400, mispredict = 20, high_latency = 400,
+    flags = { "out_of_order", "has_stalls", "complete", "default" },
+    features = { "base", "sm_80", "cp.async", "atomics" },
+    desc = "A100: 4 warp schedulers per SM, 108 SMEM/SRAM, cp.async global->shared",
+}
+symas.model{
+    name = "sm70", vendor = "nvidia", issue_width = 4, rob = 0,
+    load_latency = 500, mispredict = 20,
+    flags = { "out_of_order", "has_stalls", "complete" },
+    features = { "base", "sm_70", "wmma" },
+    desc = "Volta/Turing: 4 schedulers, tensor cores, no cp.async",
+}
+symas.unit{ name = "sm80-fma",   model = "sm80", kind = "fp", count = 64, latency = 4, throughput = 1, flags = { "superscalar" } }
+symas.unit{ name = "sm80-alu",   model = "sm80", kind = "int", count = 64, latency = 4, throughput = 1, flags = { "superscalar" } }
+symas.unit{ name = "sm80-lsu",   model = "sm80", kind = "load", count = 32, latency = 400, throughput = 1 }
+symas.unit{ name = "sm80-smem",  model = "sm80", kind = "load", count = 32, latency = 30, throughput = 1 }
+symas.unit{ name = "sm80-tensor",model = "sm80", kind = "complex", count = 4, latency = 32, throughput = 1, flags = { "noncoincident" } }
+symas.unit{ name = "sm80-xu",    model = "sm80", kind = "other", count = 4, latency = 16, throughput = 1 }
+symas.unit{ name = "sm70-fma",   model = "sm70", kind = "fp", count = 64, latency = 4, throughput = 1 }
+symas.unit{ name = "sm70-alu",   model = "sm70", kind = "int", count = 64, latency = 4, throughput = 1 }
+symas.unit{ name = "sm70-lsu",   model = "sm70", kind = "load", count = 32, latency = 500, throughput = 1 }
+symas.unit{ name = "sm70-tensor",model = "sm70", kind = "complex", count = 4, latency = 32, throughput = 1 }
+
+symas.sched{ form = "nop", name = "Nop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+symas.sched{ form = "mov", name = "WriteALU", latency = 4, uops = 1, writes = { "sm80-fma" }, reads = { "sm80-fma" } }
+symas.sched{ form = { "add", "sub", "and", "or", "xor", "shl" }, name = "WriteALU", latency = 4, uops = 1,
+             writes = { "sm80-alu" }, reads = { "sm80-alu" } }
+symas.sched{ form = "mul", name = "WriteIMul", latency = 4, uops = 1, writes = { "sm80-fma" }, reads = { "sm80-fma" } }
+symas.sched{ form = "mad", name = "WriteFMA", latency = 4, uops = 1, writes = { "sm80-fma" }, reads = { "sm80-fma" } }
+symas.sched{ form = { "fadd", "fmul" }, name = "WriteFMA", latency = 4, uops = 1, writes = { "sm80-fma" }, reads = { "sm80-fma" } }
+symas.sched{ form = "cvt", name = "WriteConvert", latency = 4, uops = 1, writes = { "sm80-alu" }, reads = { "sm80-fma" } }
+symas.sched{ form = "setp", name = "WriteSetP", latency = 4, uops = 1, flags = { "side_effects" },
+             writes = { "sm80-alu" }, reads = { "sm80-alu" } }
+symas.sched{ form = "ld", name = "WriteLDG", latency = 400, uops = 1, flags = { "may_fault" }, writes = { "sm80-lsu" } }
+symas.sched{ form = "st", name = "WriteSTG", latency = 400, uops = 1, flags = { "may_fault" }, writes = { "sm80-lsu" } }
+symas.sched{ form = "cp.async", name = "WriteLDGSTS", latency = 400, uops = 1, flags = { "may_fault" },
+             writes = { "sm80-lsu" } }
+symas.sched{ form = "atom.add", name = "WriteATOM", latency = 400, uops = 1, flags = { "may_fault", "side_effects" },
+             writes = { "sm80-lsu" } }
+symas.sched{ form = "bar.sync", name = "WriteBAR", latency = 30, uops = 1, flags = { "serializing", "barrier" },
+             writes = { "sm80-smem" } }
+symas.sched{ form = "membar", name = "WriteMEMBAR", latency = 400, uops = 1, flags = { "serializing", "barrier" },
+             writes = { "sm80-lsu" } }
+symas.sched{ form = "shfl", name = "WriteSHFL", latency = 16, uops = 1, writes = { "sm80-xu" } }
+symas.sched{ form = "vote", name = "WriteVOTE", latency = 16, uops = 1, flags = { "side_effects" }, writes = { "sm80-xu" } }
+symas.sched{ form = "mma", name = "WriteHMMA", latency = 32, uops = 8, flags = { "multicycle" },
+             writes = { "sm80-tensor" }, reads = { "sm80-tensor" } }
+symas.sched{ form = "bra", name = "WriteBRA", latency = 4, uops = 1, flags = { "fused" }, writes = { "sm80-alu" } }
+symas.sched{ form = "call", name = "WriteCALL", latency = 20, uops = 1, flags = { "serializing" }, writes = { "sm80-alu" } }
+symas.sched{ form = "ret", name = "WriteRET", latency = 4, uops = 1, flags = { "serializing" }, writes = { "sm80-alu" } }
+symas.sched{ form = "exit", name = "WriteEXIT", latency = 20, uops = 1, flags = { "side_effects" },
+             writes = { "sm80-alu" } }
+
+symas.tune{ model = "sm80", kind = "prefer", form = "cp.async", value = 4,
+            desc = "Ampere: cp.async overlaps the global load with the previous tile's math" }
+symas.tune{ model = "sm70", kind = "avoid", form = "cp.async", value = 4,
+            desc = "Volta has no cp.async: the load goes through registers" }
+symas.tune{ model = "sm70", kind = "latency", form = "ld", value = 500, flags = { "override" } }
+symas.tune{ model = "sm70", kind = "latency", form = "shfl", value = 20, flags = { "override" } }
+symas.tune{ model = "sm80", kind = "latency", form = "shfl", value = 16, flags = { "override" } }
+symas.tune{ model = "sm70", kind = "prefer", form = "mma", value = 3,
+            desc = "tensor cores are the only way to reach useful FLOPs on Volta" }
+symas.tune{ model = "sm80", kind = "threshold", name = "max-threads-per-block", value = 1024 }
+symas.tune{ model = "sm70", kind = "threshold", name = "max-threads-per-block", value = 1024 }
+symas.tune{ model = "sm80", kind = "strategy", name = "warp-synchronous", value = 1,
+            desc = "a warp executes in lockstep: divergence serialises both paths" }
+symas.tune{ model = "sm80", kind = "strategy", name = "latency-hiding", value = 1,
+            desc = "throughput comes from occupancy, not from reordering" }
+symas.tune{ model = "sm80", kind = "avoid", form = "cvt", value = 2,
+            desc = "IEEE division and conversion run on the SFU at a fraction of the FMA rate" }
+symas.tune{ model = "sm80", kind = "avoid", form = "cvt", value = 2,
+            desc = "conversions occupy the same pipe as the ALU ops" }
+
+symas.isel{ node = "add", form = "add", kind = "node", cost = 4, complexity = 1, flags = { "commutes" },
+            pattern = "(add i32, R:$a, R:$b)" }
+symas.isel{ node = "add", form = "mad", kind = "node", cost = 4, complexity = 3,
+            pattern = "(add (mul R:$a, R:$b), R:$c) contracts into mad" }
+symas.isel{ node = "sub", form = "sub", kind = "node", cost = 4, complexity = 1, pattern = "(sub i32, R:$a, R:$b)" }
+symas.isel{ node = "and", form = "and", kind = "node", cost = 4, complexity = 1, flags = { "commutes" },
+            pattern = "(and i32, R:$a, R:$b)" }
+symas.isel{ node = "or", form = "or", kind = "node", cost = 4, complexity = 1, flags = { "commutes" },
+            pattern = "(or i32, R:$a, R:$b)" }
+symas.isel{ node = "xor", form = "xor", kind = "node", cost = 4, complexity = 1, flags = { "commutes" },
+            pattern = "(xor i32, R:$a, R:$b)" }
+symas.isel{ node = "shl", form = "shl", kind = "node", cost = 4, complexity = 1, pattern = "(shl i32, R:$a, R:$b)" }
+symas.isel{ node = "mul", form = "mul", kind = "node", cost = 4, complexity = 1, pattern = "(mul i32, R:$a, R:$b)" }
+symas.isel{ node = "fmul", form = "fmul", kind = "node", cost = 4, complexity = 1, pattern = "(fmul float, R:$a, R:$b)" }
+symas.isel{ node = "fadd", form = "fadd", kind = "node", cost = 4, complexity = 1, pattern = "(fadd float, R:$a, R:$b)" }
+symas.isel{ node = "fma", form = "mma", kind = "node", cost = 32, complexity = 4, required = { "mma" },
+            pattern = "wmma/mma tile operation" }
+symas.tune{ model = "sm80", kind = "threshold", name = "sfu-throughput", value = 4,
+            desc = "reciprocal and division throughput is one quarter of the FMA rate" }
+symas.isel{ node = "sitofp", form = "cvt", kind = "node", cost = 4, complexity = 1, pattern = "(sitofp float, i32)" }
+symas.isel{ node = "icmp", form = "setp", kind = "node", cost = 4, complexity = 1, flags = { "side_effects" },
+            pattern = "(icmp i32, R:$a, R:$b)" }
+symas.isel{ node = "load", form = "ld", kind = "node", cost = 400, complexity = 1, pattern = "(load i32, addr: p)" }
+symas.isel{ node = "store", form = "st", kind = "node", cost = 400, complexity = 1, pattern = "(store i32, addr: p)" }
+symas.isel{ node = "load", form = "cp.async", kind = "node", cost = 400, complexity = 2, required = { "cp.async" },
+            pattern = "asynchronous global -> shared copy" }
+symas.isel{ node = "atomicrmw", form = "atom.add", kind = "node", cost = 400, complexity = 2, required = { "atomics" } }
+symas.isel{ node = "load", form = "shfl", kind = "node", cost = 16, complexity = 2, required = { "shfl" },
+            pattern = "warp shuffle for a register exchange" }
+symas.isel{ node = "load", form = "vote", kind = "node", cost = 16, complexity = 2, required = { "vote" },
+            pattern = "warp vote for a ballot" }
+symas.isel{ node = "barrier", form = "bar.sync", kind = "node", cost = 30, complexity = 1, flags = { "side_effects", "prefer" } }
+symas.isel{ node = "MEMBARRIER", form = "membar", kind = "node", cost = 400, complexity = 1, flags = { "side_effects" } }
+symas.isel{ node = "br", form = "bra", kind = "node", cost = 4, complexity = 1, pattern = "(br label)" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 20, complexity = 1, pattern = "(call ...)" }
+symas.isel{ node = "br", form = "ret", kind = "node", cost = 4, complexity = 1, pattern = "RETURNADDR" }
+symas.isel{ node = "br", form = "exit", kind = "node", cost = 20, complexity = 2, pattern = "kernel exit" }
+symas.isel{ node = "COPY", form = "mov", kind = "copy", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "select", form = "setp", kind = "select", cost = 4, complexity = 2,
+            pattern = "predicated execution replaces a branch" }
+symas.isel{ node = "workitem.id", form = "mov", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+
+symas.fuse{ name = "mul-add", a = "mul", b = "fadd", kind = "mul_add", latency = 4,
+            flags = { "profitable", "adjacent" },
+            pattern = "mad/ffma contraction: one FMA pipe op instead of two" }
+symas.fuse{ name = "cp.async-bar.sync", a = "cp.async", b = "bar.sync", kind = "mem_arith", latency = 400,
+            required = { "cp.async" }, flags = { "profitable", "adjacent", "suppress_unfuse" },
+            pattern = "the barrier that waits for the asynchronous copy" }
+symas.fuse{ name = "ld-bar.sync", a = "ld", b = "bar.sync", kind = "branch_pair", latency = 400,
+            flags = { "profitable", "adjacent" }, pattern = "synchronous shared-memory pipeline" }
+symas.fuse{ name = "mma-mma", a = "mma", b = "mma", kind = "macro", latency = 32,
+            flags = { "profitable", "adjacent" },
+            pattern = "consecutive tensor-core operations keep the pipe busy" }
+symas.fuse{ name = "setp-bra", a = "setp", b = "bra", kind = "cmp_branch", latency = 4,
+            flags = { "profitable", "requires_flags", "adjacent" } }
+symas.fuse{ name = "shfl-bra", a = "shfl", b = "bra", kind = "branch_pair", latency = 16,
+            flags = { "profitable", "adjacent" }, pattern = "warp-synchronous programming idiom" }
+print(symas.emit())

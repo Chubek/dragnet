@@ -1,0 +1,26 @@
+(define-kernel
+  :id "blackstone.mir.interpreter.bytecode-peephole"
+  :name "Bytecode Peephole Optimization"
+  :stage mir
+  (category interpreter-optimization)
+  (paradigms interpreter-optimization rule-based)
+  (objective "Replace a sequence of bytecode instructions with an equivalent shorter sequence.")
+  (requires
+    (capability interpreter-bytecode))
+  (preconditions
+    (bytecode-sequence-has-equivalent))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (bytecode-sequence seq) (optimized-sequence opt)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a bytecode sequence with an equivalent shorter sequence.")
+  (limitations "Applies only when an equivalent shorter sequence exists.")
+  (documentation
+    (purpose "Replace bytecode sequences with shorter equivalents.")
+    (motivation "Bytecode peephole optimization reduces instruction count.")
+    (applicability "Applies to bytecode sequences with a known shorter equivalent.")
+    (semantic-assumptions "The replacement sequence is semantically equivalent.")
+    (known-limitations "Does not replace sequences without a known equivalent.")
+    (testing-strategy "Redundant, equivalent, and non-equivalent sequence cases are exercised.")))

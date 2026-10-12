@@ -1,0 +1,20 @@
+machine_model fixture {
+  issue { width = 2; }
+  resources { ALU = 1; LOAD = 1; }
+  timing { add { latency = 3; throughput = 0.5; resources = [{resource = ALU; duration = 2;}]; } }
+  critical_path = true;
+  custom { retained = [1, "two", true]; }
+}
+region test {
+  instruction %9 {
+    opcode = add; def %7; use %input;
+    result_latency { %7 = 2; }
+    register_classes { %7 = G; %input = G; }
+    pressure_delta { G = 1; }
+    origin = "fixture";
+  }
+  instruction %2 { opcode = load; latency = 1; use %7; def %8; resources = [{resource = LOAD;}]; memory { read = true; address_space = heap; alias_sets = [17]; size = 8; alignment = 8; } }
+  instruction %5 { opcode = ret; latency = 0; use %8; control_flow = return; }
+  dependency { producer = %9; consumer = %2; kind = true; latency = 2; scheduler_only = false; }
+  notes { retained = "metadata"; }
+}

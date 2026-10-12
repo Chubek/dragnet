@@ -1,0 +1,65 @@
+; =============================================================================
+; Tunah tuner -- control flow simplification
+; =============================================================================
+; Purpose       : Collapse predication and branching whose decision is already
+;                known, and delete the code that a branch can never reach.
+; Stage         : Instruction level machine IL, on the branch skeleton of a
+;                basic block.
+; Vocabulary    : ite, brz, brnz, jmp, seq from the shared directory
+;                vocabulary. Block labels are opaque bare symbols and need no
+;                signature. Comparison operators are not consumed here: the
+;                conditions reaching these rules are compared elsewhere and
+;                arrive as an ite or as a plain operand.
+; Preconditions :
+;   * (ite c a b) is a predicated value, evaluated in the current block. It is
+;     not control flow, so folding it never changes the block boundaries.
+;   * (brz c t f) transfers control to t when c is zero and to f otherwise, so
+;     both arms leave the block. (brnz c t f) is its negation. A block whose
+;     arms are t and f is equivalent to an unconditional jump to whichever
+;     arm is selected.
+;   * (seq a b) evaluates a then b in one basic block, so a jmp in the first
+;     position leaves the second position unreachable.
+; Cost model    : Every rule removes an instruction, and the size cost model
+;                prefers the result, so none of these rewrites can lose
+;                extraction.
+; Termination   : Each rule deletes at least one node and no rule introduces a
+;                branch, an ite or a jmp, so the matched shapes shrink
+;                monotonically. The two flip rules form a bounded two cycle on
+;                one node shape; the set is closed.
+;
+; Operator signatures required by this file:
+; signatures: ite 3, brz 3, brnz 3, jmp 1, seq 2
+; =============================================================================
+
+; A non-zero condition selects the first arm, so the ite is that arm.
+(rule cfo-ite-const-true (ite 1 ?a ?b) ?a)
+; A zero condition selects the second arm.
+(rule cfo-ite-const-false (ite 0 ?a ?b) ?b)
+; Both arms of a predication produce the same value, so the condition is dead
+; and the ite is that value.
+(rule cfo-ite-same-arms (ite ?c ?a ?a) ?a)
+; A branch on a zero constant always takes the first target.
+(rule cfo-brz-const-zero (brz 0 ?t ?f) (jmp ?t))
+; A branch on a non-zero constant never takes the first target.
+(rule cfo-brz-const-nonzero (brz 1 ?t ?f) (jmp ?f))
+; A branch on a non-zero constant always takes the first target.
+(rule cfo-brnz-const-nonzero (brnz 1 ?t ?f) (jmp ?t))
+; A branch on a zero constant never takes the first target.
+(rule cfo-brnz-const-zero (brnz 0 ?t ?f) (jmp ?f))
+; Both arms of a branch on zero reach the same block, so the branch is an
+; unconditional transfer regardless of the condition.
+(rule cfo-brz-same-target (brz ?c ?t ?t) (jmp ?t))
+; Same, for the branch on non-zero.
+(rule cfo-brnz-same-target (brnz ?c ?t ?t) (jmp ?t))
+; Negating the test and exchanging the arms is the same transfer. Stating both
+; directions gives one canonical spelling, because the extraction tie between
+; two equally cheap arms is then resolved by rule order rather than by input
+; order. Neither rule changes the set of reachable blocks.
+(rule cfo-brz-to-brnz (brz ?c ?t ?f) (brnz ?c ?f ?t))
+; The same exchange for a branch on non-zero.
+(rule cfo-brnz-to-brz (brnz ?c ?t ?f) (brz ?c ?f ?t))
+; A jmp leaves the block, so the second position of the seq is unreachable and
+; the block is the jmp alone. This deletes the dead tail of a block.
+(rule cfo-drop-after-jmp (seq (jmp ?l) (jmp ?m)) (jmp ?l))
+; A jmp leaves the block, so an ite in the second position never executes.
+(rule cfo-drop-after-jmp-ite (seq (jmp ?l) (ite ?c ?a ?b)) (jmp ?l))

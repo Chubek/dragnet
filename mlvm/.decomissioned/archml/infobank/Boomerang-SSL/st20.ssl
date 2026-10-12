@@ -1,0 +1,1442 @@
+#
+# This file is part of the Boomerang Decompiler.
+#
+# See the file "LICENSE.TERMS" for information on usage and
+# redistribution of this file, and for a DISCLAIMER OF ALL
+# WARRANTIES.
+#
+
+SIGN_32_NEG := 0x80000000;
+INF         := 0x7F800000;
+
+INTEGER %Areg[32] -> 0;
+INTEGER %Breg[32] -> 1;
+INTEGER %Creg[32] -> 2;
+
+INTEGER %sp[32] -> 3;
+INTEGER %pc[32] -> -1;
+INTEGER %ZF[1]  -> -1;
+INTEGER %CF[1]  -> -1;
+
+
+#
+# instructions (sorted alphabetically)
+#
+
+# add constant
+INSTRUCTION "adc" (val) {
+    *32* %Areg := %Areg + val
+};
+
+
+# add
+INSTRUCTION "add" () {
+    *32* %Areg := %Breg + %Areg
+    *32* %Breg := %Creg
+};
+
+
+# add with carry
+INSTRUCTION "addc" () {
+    _
+};
+
+
+# adjust work space
+INSTRUCTION "ajw" (val) {
+    *32* %sp := %sp + (4*val)
+};
+
+
+# and
+INSTRUCTION "and" () {
+    *32* %Areg := %Breg & %Areg
+    *32* %Breg := %Creg
+};
+
+
+# anti-rotate stack
+INSTRUCTION "arot" () {
+    _
+};
+
+
+# arithmetic shift right
+INSTRUCTION "ashr" () {
+    *32* %Areg := %Breg >>A %Areg
+    *32* %Breg := %Creg
+};
+
+
+# biquad IIR filter step
+INSTRUCTION "biquad" () {
+    _
+};
+
+
+# load bit
+INSTRUCTION "bitld" () {
+    _
+};
+
+
+# create bit mask
+INSTRUCTION "bitmask" () {
+    _
+};
+
+
+# store bit
+INSTRUCTION "bitst" () {
+    _
+};
+
+
+# breakpoint
+INSTRUCTION "breakpoint" () {
+    _
+};
+
+
+# conditional jump
+INSTRUCTION "cj" (dest) {
+    *32* tmp := %Areg
+    *32* %ZF := [tmp = 0?1:0]
+    *32* %Areg := [tmp = 0?%Areg:%Breg]
+    *32* %Breg := [tmp = 0?%Breg:%Creg]
+
+    tmp ~= 0 => goto dest
+};
+
+
+# conditional jump
+INSTRUCTION "cj1" (val) {
+    *32* tmp := %Areg
+    *32* %ZF := [tmp = 0?1:0]
+    *32* %Areg := [tmp = 0?%Areg:%Breg]
+    *32* %Breg := [tmp = 0?%Breg:%Creg]
+};
+
+
+# dequeue a process
+INSTRUCTION "dequeue" () {
+    _
+};
+
+
+# divide step
+INSTRUCTION "divstep" () {
+    _
+};
+
+
+# duplicate
+INSTRUCTION "dup" () {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := %Areg
+};
+
+
+# exception call
+INSTRUCTION "ecall" () {
+    _
+};
+
+
+# enqueue a process
+INSTRUCTION "enqueue" () {
+    _
+};
+
+
+# equals constant
+INSTRUCTION "eqc" (val) {
+    *32* %Areg := [%Areg = val?1:0]
+};
+
+
+# exception return
+INSTRUCTION "eret" () {
+    _
+};
+
+
+# function call
+INSTRUCTION "fcall" (val) {
+    _
+};
+
+
+# general adjust workspace
+INSTRUCTION "gajw" () {
+    *32* tmp := %sp
+    *32* %sp := %Areg
+    *32* %Areg := tmp
+};
+
+
+# greater than
+INSTRUCTION "gt" () {
+    *32* %Areg := [%Breg > %Areg?1:0]
+    *32* %Breg := %Creg
+};
+
+
+# greater than unsigned
+INSTRUCTION "gtu" () {
+    *32* %Areg := [%Breg >u %Areg?1:0]
+    *32* %Breg := %Creg
+};
+
+
+# input/output
+INSTRUCTION "io" () {
+    _
+};
+
+
+# jump
+INSTRUCTION "j" (dest) {
+    goto dest
+};
+
+
+# jump absolute
+INSTRUCTION "jab" () {
+    _
+};
+
+
+# load byte and increment
+INSTRUCTION "lbinc" () {
+    _
+};
+
+
+# load constant
+INSTRUCTION "ldc" (val) {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := val
+};
+
+
+# load local
+INSTRUCTION "ldl" (val) {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := m[%sp + (val*4)]
+};
+
+
+# load local pointer
+INSTRUCTION "ldlp" (val) {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := %sp + (val*4)
+};
+
+
+# load non-local
+INSTRUCTION "ldnl" (val) {
+    *32* %Areg := m[%Areg + (val * 4)]
+};
+
+
+# load non-local pointer
+INSTRUCTION "ldnlp" (val) {
+    *32* %Areg := %Areg + (val * 4)
+};
+
+
+# load pointer to instruction
+INSTRUCTION "ldpi" () {
+    # A := A + next instruction
+    *32* %Areg := %pc + 2 + %Areg
+};
+
+
+# load product identity
+INSTRUCTION "ldprodid" () {
+    _
+};
+
+
+# load task descriptor
+INSTRUCTION "ldtdesc" () {
+    _
+};
+
+
+# load sixteen and increment
+INSTRUCTION "lsinc" () {
+    _
+};
+
+
+# load sixteen sign extended and increment
+INSTRUCTION "lsxinc" () {
+    _
+};
+
+
+INSTRUCTION "lwinc" () {
+    _
+};
+
+
+# multiply accumulate
+INSTRUCTION "mac" () {
+    _
+};
+
+
+# multiply
+INSTRUCTION "mul" () {
+    *32* %Areg := %Breg * %Areg
+    *32* %Breg := %Creg
+};
+
+
+# negative prefix
+INSTRUCTION "nfix" (val) {
+    _
+};
+
+
+# no operation
+INSTRUCTION "nop" () {
+    _
+};
+
+
+# bitwise not
+INSTRUCTION "not" () {
+    *32* %Areg := ~%Areg
+};
+
+
+# operate
+INSTRUCTION "opr" (val) {
+    _
+};
+
+
+# Bitwise or
+INSTRUCTION "or" () {
+    *32* %Areg := %Breg | %Areg
+    *32* %Breg := %Creg
+};
+
+
+# order
+INSTRUCTION "order" () {
+    _
+};
+
+
+# unsigned order
+INSTRUCTION "orderu" () {
+    _
+};
+
+
+# prefix
+INSTRUCTION "pfix" (val) {
+    _
+};
+
+
+# reverse
+INSTRUCTION "rev" () {
+    *32* tmp := %Areg
+    *32* %Areg := %Breg
+    *32* %Areg := tmp
+};
+
+
+# read modify write
+INSTRUCTION "rmw" () {
+    _
+};
+
+
+# rotate stack
+INSTRUCTION "rot" () {
+    _
+};
+
+
+# run process
+INSTRUCTION "run" () {
+    _
+};
+
+
+INSTRUCTION "saturate" () {
+    _
+};
+
+
+# store byte and increment
+INSTRUCTION "sbinc" () {
+    _
+};
+
+
+# shift left
+INSTRUCTION "shl" () {
+    *32* %Areg := %Breg << %Areg
+    *32* %Breg := %Creg
+};
+
+
+# shift right
+INSTRUCTION "shr" () {
+    *32* %Areg := %Breg >> %Areg
+    *32* %Breg := %Creg
+};
+
+
+# signal
+INSTRUCTION "signal" () {
+    _
+};
+
+
+# initialize short multiply accumulate loop
+INSTRUCTION "smacinit" () {
+    _
+};
+
+
+# short multiply accumulate loop
+INSTRUCTION "smacloop" () {
+    _
+};
+
+
+# short multiply
+INSTRUCTION "smul" () {
+    _
+};
+
+
+# store sixteen and increment
+INSTRUCTION "ssinc" () {
+    _
+};
+
+
+# clear bits in status register
+INSTRUCTION "statusclr" () {
+    _
+};
+
+
+# set bits in status register
+INSTRUCTION "statusset" () {
+    _
+};
+
+
+# test status register
+INSTRUCTION "statustst" () {
+    _
+};
+
+
+# store local
+INSTRUCTION "stl" (val) {
+    *32* m[%sp + (val * 4)] := %Areg
+    *32* %Areg := %Breg
+    *32* %Breg := %Creg
+};
+
+
+# store non-local
+INSTRUCTION "stnl" (val) {
+    *32* m[%Areg + (val * 4) ] := %Breg
+
+    *32* %Areg := %Breg
+    *32* %Breg := %Creg
+
+    *32* %Areg := %Breg
+    *32* %Breg := %Creg
+};
+
+
+# stop process
+INSTRUCTION "stop" () {
+    _
+};
+
+
+# subtract
+INSTRUCTION "sub" () {
+    *32* %Areg := %Breg - %Areg
+    *32* %Breg := %Creg
+};
+
+
+# subtract with carry
+INSTRUCTION "subc" () {
+    _
+};
+
+
+# byte swap 32
+INSTRUCTION "swap32" () {
+    _
+};
+
+
+# store word and increment
+INSTRUCTION "swinc" () {
+    _
+};
+
+
+# timeslice
+INSTRUCTION "timeslice" () {
+    _
+};
+
+
+# unsigned multiply accumulate
+INSTRUCTION "umac" () {
+    _
+};
+
+
+# unsign argument
+INSTRUCTION "unsign" () {
+    _
+};
+
+
+# wait
+INSTRUCTION "wait" () {
+    _
+};
+
+
+# word subscript
+INSTRUCTION "wsub" () {
+    *32* %Areg := (%Breg * 4) + %Areg
+    *32* %Breg := %Creg
+};
+
+
+# sign extend byte to word
+INSTRUCTION "xbword" () {
+    *32* %Areg := sgnex(8, 32, %Areg@[0:7])
+};
+
+
+# exclusive or
+INSTRUCTION "xor" () {
+    *32* %Areg := %Breg ^ %Areg
+    *32* %Breg := %Creg
+};
+
+
+# sign extend sixteen to word
+INSTRUCTION "xsword" () {
+    *32* %Areg := sgnex(16, 32, %Areg)
+};
+
+
+#
+# C2-C4 instructions
+#
+
+# alt start
+INSTRUCTION "altq" () {
+    _
+};
+
+
+# alt end
+INSTRUCTION "altend" () {
+    _
+};
+
+
+# alt wait
+INSTRUCTION "altwt" () {
+    _
+};
+
+
+# byte count
+INSTRUCTION "bcnt" () {
+    *32* %Areg := %Areg * 32
+};
+
+
+# count bits set in word
+INSTRUCTION "bitcnt" () {
+    _
+};
+
+
+# reverse bottom n bits in word
+INSTRUCTION "bitrevnbits" () {
+    _
+};
+
+
+# reverse bits in word
+INSTRUCTION "bitrevword" () {
+    _
+};
+
+
+# byte subscript
+INSTRUCTION "bsub" () {
+    *32* %Areg := %Breg + %Areg
+    *32* %Breg := %Creg
+};
+
+
+# call
+INSTRUCTION "call" (dest) {
+    *32* %sp := %sp - 16
+    *32* m[%sp] := %pc
+    *32* m[%sp+4] := %Areg
+    *32* m[%sp+8] := %Breg
+    *32* m[%sp+12] := %Creg
+
+    call dest
+};
+
+
+# call
+INSTRUCTION "call1" (dest) {
+    *32* %sp := %sp - 16
+    *32* m[%sp] := %pc
+    *32* m[%sp+4] := %Areg
+    *32* m[%sp+8] := %Breg
+    *32* m[%sp+12] := %Creg
+
+    *32* %Areg := %pc
+
+    call dest
+};
+
+
+# call
+INSTRUCTION "call2" (dest) {
+    *32* %sp := %sp - 16
+    *32* m[%sp] := %pc
+    *32* m[%sp+4] := %Areg
+    *32* m[%sp+8] := %Breg
+    *32* m[%sp+12] := %Creg
+    *32* %sp := %sp + 16
+
+    call dest
+};
+
+
+# cause error
+INSTRUCTION "causeerror" () {
+    _
+};
+
+
+# check byte
+INSTRUCTION "cb" () {
+    _
+};
+
+
+# check byte unsigned
+INSTRUCTION "cbu" () {
+    _
+};
+
+
+# check count from 1
+INSTRUCTION "ccnt1" () {
+    _
+};
+
+
+# check floating point error
+INSTRUCTION "cflerr" () {
+    _
+};
+
+
+# check in range
+INSTRUCTION "cir" () {
+    _
+};
+
+
+# check in range unsigned
+INSTRUCTION "ciru" () {
+    _
+};
+
+
+# clock disable
+INSTRUCTION "clockdis" () {
+    _
+};
+
+
+# clock enable
+INSTRUCTION "clockenb" () {
+    _
+};
+
+
+# clear halt-on error flag
+INSTRUCTION "clrhalterr" () {
+    _
+};
+
+
+# calculate CRC on byte
+INSTRUCTION "crcbyte" () {
+    _
+};
+
+
+# calculate CRC on word
+INSTRUCTION "crcword" () {
+    _
+};
+
+
+# check sixteen
+INSTRUCTION "cs" () {
+    _
+};
+
+
+# check single
+INSTRUCTION "csngl" () {
+    _
+};
+
+
+# check sixteen unsigned
+INSTRUCTION "csu" () {
+    _
+};
+
+
+# check subscript from 0
+INSTRUCTION "csub0" () {
+    _
+};
+
+
+# check word
+INSTRUCTION "cword" () {
+    _
+};
+
+
+# device load byte
+INSTRUCTION "devlb" () {
+    *32* %Areg := zfill(8, 32, m[%Areg])
+};
+
+
+# device load sixteen
+INSTRUCTION "devls" () {
+    *32* %Areg := zfill(16, 32, m[%Areg])
+};
+
+
+# device load word
+INSTRUCTION "devlw" () {
+    *32* %Areg := m[%Areg]
+};
+
+
+# device move
+INSTRUCTION "devmove" () {
+    _
+};
+
+
+# device store byte
+INSTRUCTION "devsb" () {
+    *8* m[%Areg] := %Breg
+    *32* %Areg := %Creg
+};
+
+
+# device store sixteen
+INSTRUCTION "devss" () {
+    *16* m[%Areg] := %Breg
+    *32* %Areg := %Creg
+};
+
+
+# device store word
+INSTRUCTION "devsw" () {
+    *32* m[%Areg] := %Breg
+    *32* %Areg := %Creg
+};
+
+
+# difference
+INSTRUCTION "diff" () {
+    *32* %Areg := %Breg - %Areg
+    *32* %Breg := %Creg
+};
+
+
+# disable channel
+INSTRUCTION "disc" () {
+    _
+};
+
+
+# disable skip
+INSTRUCTION "diss" () {
+    _
+};
+
+
+# disable timer
+INSTRUCTION "dist" () {
+    _
+};
+
+
+# divide
+INSTRUCTION "div" () {
+    *32* %Areg := %Breg / %Areg
+    *32* %Breg := %Creg
+};
+
+
+# enable channel
+INSTRUCTION "enbc" () {
+    _
+};
+
+
+# enable skip
+INSTRUCTION "enbs" () {
+    _
+};
+
+
+# enable timer
+INSTRUCTION "enbt" () {
+    _
+};
+
+
+# end process
+INSTRUCTION "endp" () {
+    _
+};
+
+
+# fractional multiply
+INSTRUCTION "fmul" () {
+    _
+};
+
+
+# test for FPU error
+INSTRUCTION "fptesterr" () {
+    _
+};
+
+
+INSTRUCTION "gcall" () {
+    *32* tmp := %Areg
+    *32* %Areg := %pc
+    *32* %pc := tmp
+
+    call tmp
+};
+
+
+# general interrupt disable
+INSTRUCTION "gintdis" () {
+    _
+};
+
+
+# general interrupt enable
+INSTRUCTION "gintenb" () {
+    _
+};
+
+
+# input message
+INSTRUCTION "in" () {
+    _
+};
+
+
+# insert at front of scheduler queue
+INSTRUCTION "insertqueue" () {
+    _
+};
+
+
+# (localised) interrupt disable
+INSTRUCTION "intdis" () {
+    _
+};
+
+
+# (localised) interrupt enable
+INSTRUCTION "intenb" () {
+    _
+};
+
+
+# interrupt return
+INSTRUCTION "iret" () {
+    *32* %Creg := m[%sp+20]
+    *32* %Breg := m[%sp+16]
+    *32* %Areg := m[%sp+12]
+    *32* %pc := m[%sp+8]
+    *32* %sp := m[%sp+4]
+    ret
+    # no status reg yet
+};
+
+
+# long add
+INSTRUCTION "ladd" () {
+    *32* %Areg := %Areg + %Breg + zfill(1, 32, %Creg@[0:0])
+};
+
+
+# load byte
+INSTRUCTION "lb" () {
+    *32* %Areg := m[%Areg]
+};
+
+
+# load byte and sign extend
+INSTRUCTION "lbx" () {
+    *32* %Areg := sgnex(8, 32, m[%Areg])
+};
+
+
+# load clock
+INSTRUCTION "ldclock" () {
+    _
+};
+
+
+# load device identity
+INSTRUCTION "lddevid" () {
+    _
+};
+
+
+# long diff
+INSTRUCTION "ldiff" () {
+    *33* tmp := %Breg - %Areg - zfill(1, 32, %Creg@[0:0])
+    *32* %Areg := tmp@[0:31]
+    *32* %Breg := tmp@[32:32]
+    *32* %Creg := -1
+};
+
+
+# load infinity
+INSTRUCTION "ldinf" () {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := INF
+};
+
+
+# long divide
+INSTRUCTION "ldiv" () {
+    *64* tmp@[0:31] := %Breg
+    *64* tmp@[32:63] := %Creg
+    *32* %Breg := tmp % %Areg
+    *32* %Areg := tmp / %Areg
+    *32* %Creg := -1
+};
+
+
+# load value of MemStart address
+INSTRUCTION "ldmemstartval" () {
+    _
+};
+
+
+# load current priority
+INSTRUCTION "ldpri" () {
+    _
+};
+
+
+# load shadow registers
+INSTRUCTION "ldshadow" () {
+    _
+};
+
+
+# load timer
+INSTRUCTION "ldtimer" () {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := 0
+};
+
+
+# load trap handler
+INSTRUCTION "ldtraph" () {
+    _
+};
+
+
+# load trapped process status
+INSTRUCTION "ldtrapped" () {
+    _
+};
+
+
+# loop end
+INSTRUCTION "lend" () {
+    _
+};
+
+
+# long multiply
+INSTRUCTION "lmul" () {
+    *64* tmp := %Breg * %Areg
+    *32* %Areg := tmp@[0:31]
+    *32* %Breg := tmp@[32:63]
+    *32* %Creg := -1
+};
+
+
+# load sixteen
+INSTRUCTION "ls" () {
+    *32* %Areg := m[%Areg]
+};
+
+
+# long shift left
+INSTRUCTION "lshl" () {
+    *32* %Areg := %Breg >> %Areg
+    *32* %Breg := %Creg
+};
+
+
+# long shift right
+INSTRUCTION "lshr" () {
+    *32* %Areg := %Breg >> %Areg
+    *32* %Breg := %Creg
+};
+
+
+# long subtract
+INSTRUCTION "lsub" () {
+    _
+};
+
+
+# long sum
+INSTRUCTION "lsum" () {
+    _
+};
+
+
+# load sixteen and sign extend
+INSTRUCTION "lsx" () {
+    *32* %Areg := m[%Areg]
+};
+
+
+# minimum integer
+INSTRUCTION "mint" () {
+    *32* %Creg := %Breg
+    *32* %Breg := %Areg
+    *32* %Areg := SIGN_32_NEG
+};
+
+
+# move message
+# special function
+INSTRUCTION "move" () {
+    _
+};
+
+
+# 2D block copy
+INSTRUCTION "move2dall" () {
+    _
+};
+
+
+# initialize data for 2D block move
+INSTRUCTION "move2dinit" () {
+    _
+};
+
+
+# 2D block copy non-zero bytes
+INSTRUCTION "move2dnonzero" () {
+    _
+};
+
+
+# 2D block copy zero bytes
+INSTRUCTION "move2dzero" () {
+    _
+};
+
+
+# normalize
+INSTRUCTION "norm" () {
+    _
+};
+
+
+# output message
+INSTRUCTION "out" () {
+    _
+};
+
+
+# output byte
+INSTRUCTION "outbyte" () {
+    _
+};
+
+
+# output word
+INSTRUCTION "outword" () {
+    _
+};
+
+
+# pop processor stack
+INSTRUCTION "pop" () {
+    *32* %Areg := %Breg
+    *32* %Breg := %Creg
+};
+
+
+# post-normalize correction of single length fp number
+INSTRUCTION "postnormsn" () {
+    _
+};
+
+
+# product
+INSTRUCTION "prod" () {
+    *32* %Areg := %Breg * %Areg
+    *32* %Breg := %Creg
+};
+
+
+# reboot
+INSTRUCTION "reboot" () {
+    _
+};
+
+
+# remainder
+INSTRUCTION "rem" () {
+    *32* %Areg := %Breg % %Areg
+    *32* %Breg := %Creg
+};
+
+
+# reset channel
+INSTRUCTION "resetch" () {
+    _
+};
+
+
+# restart
+INSTRUCTION "restart" () {
+    _
+};
+
+
+# return
+INSTRUCTION "ret" () {
+    *32* %pc := m[%sp]
+    *32* %sp := %sp + 16
+    ret
+};
+
+
+# round single length floating point number
+INSTRUCTION "roundsn" () {
+    _
+};
+
+
+# run process
+INSTRUCTION "runp" () {
+    _
+};
+
+
+# saturating add
+INSTRUCTION "satadd" () {
+    _
+};
+
+
+# saturating multiply
+INSTRUCTION "satmul" () {
+    _
+};
+
+
+# saturating subtract
+INSTRUCTION "satsub" () {
+    _
+};
+
+
+# save high priority queue registers
+INSTRUCTION "saveh" () {
+    _
+};
+
+
+# save low priority queue registers
+INSTRUCTION "savel" () {
+    _
+};
+
+
+# store byte
+INSTRUCTION "sb" () {
+    *8* m[%Areg] := %Breg@[0:7]
+};
+
+
+# set error flags
+INSTRUCTION "seterr" () {
+    _
+};
+
+
+# set halt-on error flag
+INSTRUCTION "sethalterr" () {
+    _
+};
+
+
+# set timeslicing status
+INSTRUCTION "settimeslice" () {
+    _
+};
+
+
+# signed long multiply
+INSTRUCTION "slmul" () {
+    _
+};
+
+
+# store sixteen
+INSTRUCTION "ss" () {
+    *16* m[%Areg] := %Breg@[0:15]
+};
+
+
+# sixteen subscript
+INSTRUCTION "ssub" () {
+    *32* %Areg := (%Breg * 2) + %Areg
+    *32* %Breg := %Creg
+};
+
+# start process
+INSTRUCTION "startp" () {
+    _
+};
+
+
+# store clock register
+INSTRUCTION "stclock" () {
+    _
+};
+
+
+# store high priority back pointer
+INSTRUCTION "sthb" () {
+    _
+};
+
+
+# store high priority front pointer
+INSTRUCTION "sthf" () {
+    _
+};
+
+
+# store low priority back pointer
+INSTRUCTION "stlb" () {
+    _
+};
+
+
+# store low priority front pointer
+INSTRUCTION "stlf" () {
+    _
+};
+
+
+# stop on error
+INSTRUCTION "stoperr" () {
+    _
+};
+
+
+# stop process
+INSTRUCTION "stopp" () {
+    _
+};
+
+
+# store shadow registers
+INSTRUCTION "stshadow" () {
+    _
+};
+
+
+# store timer
+INSTRUCTION "sttimer" () {
+    _
+};
+
+
+# store trap handler
+INSTRUCTION "sttraph" () {
+    _
+};
+
+
+# store trapped process
+INSTRUCTION "sttrapped" () {
+    _
+};
+
+
+# signed timer unsigned long multiply
+INSTRUCTION "sulmul" () {
+    _
+};
+
+
+# sum
+INSTRUCTION "sum" () {
+    _
+};
+
+
+# swap scheduler queue
+INSTRUCTION "swapqueue" () {
+    _
+};
+
+
+# swap timer queue
+INSTRUCTION "swaptimer" () {
+    _
+};
+
+
+# timer alt start
+INSTRUCTION "talt" () {
+    _
+};
+
+
+# timer alt wait
+INSTRUCTION "taltwt" () {
+    _
+};
+
+
+# test error flag
+INSTRUCTION "testerr" () {
+    _
+};
+
+
+# test halt-on error flag
+INSTRUCTION "testhalterr" () {
+    _
+};
+
+
+# test processor analysing
+INSTRUCTION "testpranal" () {
+    _
+};
+
+
+# timer input
+INSTRUCTION "tin" () {
+    _
+};
+
+
+# trap disable
+INSTRUCTION "trapdis" () {
+    _
+};
+
+
+# trap enable
+INSTRUCTION "trapenb" () {
+    _
+};
+
+
+# trap return
+INSTRUCTION "tret" () {
+    ret
+};
+
+
+# unpack single length fp number
+INSTRUCTION "unpacksn" () {
+    _
+};
+
+
+# word count
+INSTRUCTION "wcnt" () {
+    _
+};
+
+
+# form double word subscript
+INSTRUCTION "wsubdb" () {
+    *32* %Areg := (%Breg *8) + %Areg
+    *32* %Breg := %Creg
+};
+
+
+# extend to double
+INSTRUCTION "xdble" () {
+    *32* %Creg := %Breg
+    *32* %Breg := [%Areg@[31:31] = 0?0:-1]
+};
+
+
+# extend word
+INSTRUCTION "xword" () {
+    _
+};

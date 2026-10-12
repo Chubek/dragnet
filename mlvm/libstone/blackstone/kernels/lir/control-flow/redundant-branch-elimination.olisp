@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.control-flow.redundant-branch-elimination"
+  :name "Redundant Branch Elimination"
+  :stage lir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph)
+  (objective "Remove branches that are provably redundant.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (branch-is-redundant))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (branch :id redundant-branch)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes provably redundant branches.")
+  (limitations "Applies only when the branch is provably redundant.")
+  (documentation
+    (purpose "Remove provably redundant branches.")
+    (motivation "Redundant branch elimination reduces code size.")
+    (applicability "Applies to branches that are provably redundant.")
+    (semantic-assumptions "The branch is provably redundant.")
+    (known-limitations "Does not remove branches that are not provably redundant.")
+    (testing-strategy "Redundant, non-redundant, and boundary cases are exercised.")))

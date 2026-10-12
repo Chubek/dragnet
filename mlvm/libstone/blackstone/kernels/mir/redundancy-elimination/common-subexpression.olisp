@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.mir.redundancy-elimination.common-subexpression"
+  :name "Common Subexpression Elimination"
+  :stage mir
+  (category redundancy-elimination)
+  (paradigms ssa-based data-flow-analysis)
+  (objective "Eliminate redundant evaluations when a previously computed expression remains valid at the later use.")
+  (requires
+    (capability ssa-form)
+    (analysis available-expressions-analysis))
+  (preconditions
+    (expression-is-available)
+    (no-intervening-redefinition)
+    (expression-is-pure))
+  (forbids
+    (unknown-memory-dependence)
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (add x y) (use (previous-add x y))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a redundant expression with its previously computed value.")
+  (limitations "Applies only when the expression is available, pure, and not invalidated.")
+  (documentation
+    (purpose "Eliminate redundant expression evaluations.")
+    (motivation "CSE reduces instruction count by reusing available computations.")
+    (applicability "Applies to expressions whose value is already available at the use site.")
+    (semantic-assumptions "The expression is available, pure, and not invalidated by intervening definitions.")
+    (known-limitations "Does not eliminate expressions involving memory without dependence reasoning.")
+    (testing-strategy "Available, invalidated, and memory-involving cases are exercised.")))

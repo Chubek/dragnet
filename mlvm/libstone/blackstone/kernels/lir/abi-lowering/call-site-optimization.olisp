@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.abi.call-site-optimization"
+  :name "Call Site Optimization"
+  :stage lir
+  (category abi-lowering)
+  (paradigms target-specific)
+  (objective "Optimize call sites to reduce calling convention overhead.")
+  (requires
+    (capability machine-operations)
+    (capability calling-convention)
+    (capability call-site-information))
+  (preconditions
+    (calling-convention-is-defined))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (call-site cs) (optimized-call-site opt)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Optimizes call sites to reduce calling convention overhead.")
+  (limitations "Applies only when the calling convention is defined.")
+  (documentation
+    (purpose "Optimize call sites to reduce calling convention overhead.")
+    (motivation "Call site optimization reduces argument passing overhead.")
+    (applicability "Applies to call sites when the calling convention is defined.")
+    (semantic-assumptions "The calling convention is defined.")
+    (known-limitations "Does not optimize when the calling convention is undefined.")
+    (testing-strategy "Simple, complex, and boundary call site cases are exercised.")))

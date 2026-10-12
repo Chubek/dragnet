@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.sub-self"
+  :name "Subtraction of Self Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer subtraction of a value from itself with zero.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (subtraction-of-self-is-zero))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (sub x x) (integer 0)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x - x with 0.")
+  (limitations "Applies only when subtraction of a value from itself yields zero.")
+  (documentation
+    (purpose "Simplify integer subtraction of a value from itself to zero.")
+    (motivation "Removing self-subtraction reduces instruction count.")
+    (applicability "Applies to integer subtraction nodes where both operands are the same value.")
+    (semantic-assumptions "The subtraction operation satisfies x - x = 0 under the declared semantics.")
+    (known-limitations "Does not apply to floating-point subtraction without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

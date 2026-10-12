@@ -1,0 +1,29 @@
+arch native_adapter {
+  version="1";
+  default_register_class=G;
+  profile={execution_model="x86-64-sysv";};
+  tooling={
+    bin2bin={schema_version=1;instruction_encoding=native;codec_adapter="fixture:x86-movabs:1";
+      execution_domain=native_machine_code;word_size=64;address_size=64;endianness=little;};
+    instruction_selection={default_register_class=G;};
+  };
+}
+regclass G {rax(64)=0,}
+encoding constant {width=80;operands={imm={kind=signed;width=64;};};}
+encoding return {width=8;}
+op CONST {
+  encoding=constant;
+  semantics="(set rax $imm)";
+  scheduling={latency=0;};
+  encoding_operands={imm={kind=immediate;index=0;};result={kind=fixed_definition;index=0;register=rax;};};
+  tooling={binary_translation={schema_version=1;equivalence_basis=semantics;};
+    instruction_selection={selection_tree="const():i64";};};
+}
+op RETURN {
+  encoding=return;
+  semantics="(return rax)";
+  scheduling={latency=0;};terminator=true;control_flow=return;
+  encoding_operands={result={kind=fixed_use;index=0;register=rax;};};
+  tooling={binary_translation={schema_version=1;equivalence_basis=semantics;control_flow=return;};
+    instruction_selection={selection_tree="ret(?value:i64)";side_effects=true;};};
+}

@@ -1,0 +1,19 @@
+(define-kernel
+  :id "blackstone.test.contradiction"
+  :name "Contradictory Contract"
+  :stage mir
+  (category loop-optimization)
+  (objective "A kernel that both invalidates and preserves an analysis.")
+  (requires
+    (capability loop-information)
+    (analysis liveness-analysis))
+  (preconditions (loop-is-normalized))
+  (analysis-contract
+    (requires loop-information)
+    (invalidates liveness-information)
+    (preserves liveness-information))
+  (transform (hoist (expression e) (loop l) (preheader p)))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Hoists.")
+  (limitations "None.")
+  (documentation (purpose "Test.")))

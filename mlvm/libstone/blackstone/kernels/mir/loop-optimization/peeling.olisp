@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.loop.peeling"
+  :name "Loop Peeling"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Peel the first or last iteration of a loop to simplify the remaining loop.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information))
+  (preconditions
+    (peeled-iteration-is-safe))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (peel (loop l) (iteration 0)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Peels the first or last iteration of a loop.")
+  (limitations "Applies only when the peeled iteration is safe.")
+  (documentation
+    (purpose "Peel loop iterations to simplify the remaining loop.")
+    (motivation "Loop peeling enables downstream optimizations by simplifying loop structure.")
+    (applicability "Applies to loops where the first or last iteration can be safely peeled.")
+    (semantic-assumptions "The peeled iteration is safe.")
+    (known-limitations "May increase code size.")
+    (testing-strategy "First, last, and middle iteration cases are exercised.")))

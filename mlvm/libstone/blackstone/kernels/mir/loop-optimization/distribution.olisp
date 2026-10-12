@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.loop.distribution"
+  :name "Loop Distribution"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization dependence-analysis)
+  (objective "Distribute a loop into multiple loops over the same iteration space when dependences permit.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis dependence-analysis))
+  (preconditions
+    (dependence-constraints-permit-distribution))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (distribute (loop l) (loops l1 l2)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Distributes a loop into multiple loops over the same iteration space.")
+  (limitations "Applies only when dependence constraints permit distribution.")
+  (documentation
+    (purpose "Distribute a loop into multiple loops.")
+    (motivation "Loop distribution enables parallelization and vectorization.")
+    (applicability "Applies to loops where dependence constraints permit distribution.")
+    (semantic-assumptions "Dependence constraints permit distribution.")
+    (known-limitations "Does not distribute loops with prohibited dependences.")
+    (testing-strategy "Permitted, prohibited, and unknown dependence cases are exercised.")))

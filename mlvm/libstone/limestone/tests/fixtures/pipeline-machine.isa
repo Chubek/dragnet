@@ -1,0 +1,16 @@
+arch pipeline_machine { word_size=64; addr_size=64; endian=little;
+  default_register_class=G; scheduling={issue_width=1;};
+}
+profile { family="fixture"; model="register-machine"; version="1"; execution_model="three-register-i64"; }
+tooling { bin2bin={schema_version=1; instruction_encoding="masked"; execution_domain="bytecode"; word_size=64; address_size=64; endianness="little";}; }
+regclass G { r0(64)=0, r1(64)=1, r2(64)=2, }
+encoding C { width=16; base=1; mask=63; fields={dst={lsb=6; width=2; kind=register; class=G;}; imm={lsb=8; width=8; kind=signed;};}; }
+encoding A { width=8; base=2; mask=3; fields={dst={lsb=2; width=2; kind=register; class=G;}; lhs={lsb=4; width=2; kind=register; class=G;}; rhs={lsb=6; width=2; kind=register; class=G;};}; }
+op CONST { encoding=C; latency=0; semantics="(set $dst $imm)";
+  encoding_operands={dst={kind=definition; index=0;}; imm={kind=immediate; index=0;};};
+  tooling={instruction_selection={selection_tree="const():i64"; cost=1;}; binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}
+op ADD { encoding=A; latency=1; semantics="(set $dst (add $lhs $rhs))";
+  encoding_operands={dst={kind=definition; index=0;}; lhs={kind=use; index=0;}; rhs={kind=use; index=1;};};
+  tooling={instruction_selection={selection_tree="add(?a:i64,?b:i64):i64"; cost=1;}; binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}

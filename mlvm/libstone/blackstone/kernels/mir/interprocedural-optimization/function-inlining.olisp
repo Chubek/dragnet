@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.function-inlining"
+  :name "Function Inlining"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural cost-model-guided)
+  (objective "Replace a call to a function with the function body when inlining is beneficial.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis)
+    (capability instruction-cost-model))
+  (preconditions
+    (function-body-is-available)
+    (inlining-is-beneficial))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (inline (call f args) (function-body f)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a call with the function body.")
+  (limitations "Applies only when the function body is available and inlining is beneficial.")
+  (documentation
+    (purpose "Replace calls with function bodies.")
+    (motivation "Inlining removes call overhead and enables downstream optimizations.")
+    (applicability "Applies to calls where the function body is available and inlining is beneficial.")
+    (semantic-assumptions "The function body is available and inlining is beneficial under the cost model.")
+    (known-limitations "May increase code size; profitability depends on the cost model.")
+    (testing-strategy "Small, large, recursive, and leaf function cases are exercised.")))

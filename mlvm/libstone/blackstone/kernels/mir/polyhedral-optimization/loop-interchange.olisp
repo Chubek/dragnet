@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.mir.polyhedral.loop-interchange"
+  :name "Polyhedral Loop Interchange"
+  :stage mir
+  (category polyhedral-optimization)
+  (paradigms polyhedral dependence-analysis cost-model-guided)
+  (objective "Exchange the nesting order of affine loops using polyhedral dependence analysis.")
+  (requires
+    (capability ssa-form)
+    (capability polyhedral-representation)
+    (analysis polyhedral-analysis)
+    (analysis dependence-analysis))
+  (preconditions
+    (loop-bounds-are-affine)
+    (dependence-constraints-permit-interchange)
+    (transformed-schedule-is-legal))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (interchange (outer-loop i) (inner-loop j)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Exchanges the nesting order of affine loops.")
+  (limitations "Applies only to affine loop nests with a legal transformed schedule.")
+  (documentation
+    (purpose "Exchange the nesting order of affine loops using polyhedral analysis.")
+    (motivation "Polyhedral loop interchange improves cache locality.")
+    (applicability "Applies to affine loop nests with a legal transformed schedule.")
+    (semantic-assumptions "Loop bounds are affine, dependence constraints permit interchange, and the transformed schedule is legal.")
+    (known-limitations "Does not interchange non-affine loops or loops with prohibited dependences.")
+    (testing-strategy "Affine, non-affine, and prohibited dependence cases are exercised.")))

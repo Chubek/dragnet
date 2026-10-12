@@ -1,0 +1,51 @@
+namespace limestone::syntax::unisel;
+parser unisel;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Machine | Program | Include;
+node Machine { Name name; MachineItem* items; }
+sum MachineItem = RegisterClass | RegisterAlias | Operator | Instruction | Pattern | Attribute;
+node RegisterClass { Name name; Physical* members; }
+node RegisterAlias { Physical first @0; Physical second @1; }
+node Operator { Ident name; Unsigned arity; }
+node Instruction { Name name; Attribute* attributes; }
+node Pattern { Unsigned? number; Name name @0; TreePattern tree; Name instruction @1; PatternOption* options; }
+sum PatternOption = Cost | SideEffects | Where | Origin | MemoryContract;
+node MemoryContract { Object access; }
+node Cost { Integer amount; }
+node SideEffects { Boolean enabled; }
+node Where { Object constraints; }
+node Origin { String name; }
+sum TreePattern = BindingPattern | OperatorPattern | Integer;
+node BindingPattern { Variable binding; TypeConstraint? type; ImmediateConstraint? immediate; RegisterConstraint? register_class; }
+node OperatorPattern { Ident opcode; TreePattern* children; TypeConstraint? type; ImmediateConstraint? immediate; RegisterConstraint? register_class; BindingConstraint? binding; }
+node BindingConstraint { Ident name; }
+node RegisterConstraint { Name name; }
+node TypeConstraint { Ident name; }
+node ImmediateConstraint { Integer lower @0; Integer upper @1; }
+node Program { Name name; GraphItem* items; }
+sum GraphItem = Block | NodeDeclaration | Output | Dependency | Attribute;
+node NodeDeclaration { Ref result; Ident opcode; Argument* inputs; TypeConstraint? type; NodeOption* options; }
+node Block { Name name; GraphItem* items; }
+sum Argument = Ref | Integer | String;
+sum NodeOption = Required | SideEffects | ProducesValue | NodeProperties;
+node NodeProperties { Object properties; }
+node Required { Boolean enabled; }
+node ProducesValue { Boolean enabled; }
+node Output { Ref* values; }
+node Dependency { Attribute* attributes; }
+node Include { String path; }
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Real | Boolean | Ident | Ref | Physical | Array | Object;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+sum Name = Ident | String;
+token Variable;
+token Ref;
+token Physical;
+token Unsigned;
+token Integer;
+token Real;
+token Boolean;
+token String;
+token Ident;

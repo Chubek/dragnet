@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.control-flow.critical-edge-splitting"
+  :name "Critical Edge Splitting"
+  :stage mir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph)
+  (objective "Split a critical edge by inserting an empty block between a multi-successor predecessor and a multi-predecessor successor.")
+  (requires
+    (capability explicit-control-flow))
+  (preconditions
+    (edge-is-critical))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (split (edge from to) (edge from new-block) (edge new-block to)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-valid-control-flow-edges))
+  (expected-effects "Inserts an empty block to split a critical edge.")
+  (limitations "Applies only to critical edges.")
+  (documentation
+    (purpose "Split critical edges to enable safe code motion.")
+    (motivation "Critical edge splitting enables hoisting and sinking transformations.")
+    (applicability "Applies to edges from a multi-successor block to a multi-predecessor block.")
+    (semantic-assumptions "The edge is critical.")
+    (known-limitations "Increases block count.")
+    (testing-strategy "Critical and non-critical edge cases are exercised.")))

@@ -1,0 +1,32 @@
+(define-kernel
+  :id "blackstone.mir.vectorization.loop-vectorization"
+  :name "Loop Vectorization"
+  :stage mir
+  (category vectorization)
+  (paradigms vectorization dependence-analysis)
+  (objective "Transform a loop to use vector operations when dependence and target constraints permit.")
+  (requires
+    (capability ssa-form)
+    (capability vector-operations)
+    (capability loop-information)
+    (analysis dependence-analysis)
+    (analysis vectorization-analysis))
+  (preconditions
+    (dependence-constraints-permit-vectorization)
+    (target-supports-vector-operations)
+    (vector-width-is-valid))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (vectorize (loop l) (vector-width w)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Transforms a loop to use vector operations.")
+  (limitations "Applies only when dependence and target constraints permit vectorization.")
+  (documentation
+    (purpose "Transform loops to use vector operations.")
+    (motivation "Vectorization exploits data-level parallelism.")
+    (applicability "Applies to loops where dependence and target constraints permit vectorization.")
+    (semantic-assumptions "Dependence constraints permit vectorization and the target supports vector operations.")
+    (known-limitations "Does not vectorize loops with prohibited dependences or unsupported targets.")
+    (testing-strategy "Permitted, prohibited, and unsupported target cases are exercised.")))

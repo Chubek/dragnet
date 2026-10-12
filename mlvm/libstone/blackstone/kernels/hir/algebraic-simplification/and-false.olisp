@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.and-false"
+  :name "Boolean And False Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a Boolean and with false with false.")
+  (requires
+    (capability typed-expressions)
+    (capability boolean-semantics))
+  (preconditions
+    (operand-has-compatible-boolean-type)
+    (and-false-is-false))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (boolean-and x false) false))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x && false with false.")
+  (limitations "Applies only when Boolean and with false yields false.")
+  (documentation
+    (purpose "Simplify Boolean and with false to false.")
+    (motivation "Removing Boolean and with false reduces instruction count.")
+    (applicability "Applies to Boolean and nodes where one operand is the Boolean constant false.")
+    (semantic-assumptions "The Boolean and operation satisfies x && false = false.")
+    (known-limitations "Does not apply to bitwise and.")
+    (testing-strategy "Both truth values for the other operand are exercised.")))

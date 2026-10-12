@@ -1,0 +1,3303 @@
+arch s390x { word_size = 64; addr_size = 64; endian = big; align = 2; }
+
+
+profile {
+  family = "IBM_Z";
+  model = "z_Architecture";
+  version = "zArch";
+  word_size = 64;
+  address_size = 64;
+  endianness = "big";
+  instruction_encoding = "16_32_48";
+  execution_model = "superscalar_ooo_target_dependent";
+  register_model = "register";
+  extensions = ["base_zarch"];
+  register_classes = ["GPR"];
+  fixed_registers = [];
+  zero_register = "none";
+  operation_classes = ["arithmetic", "branch", "compare", "load", "misc", "store"];
+  instruction_count = 70;
+  encoding_widths = ["16", "32", "48"];
+  coverage = "source_inventory";
+  encoding_layout = { lengths = "16,32,48"; endian = "big"; };
+}
+compiler {
+  instruction_selection {
+    strategy = "target_pattern_matching";
+    opcode_classes = ["arithmetic", "branch", "compare", "load", "misc", "store"];
+    register_classes = ["GPR"];
+    immediate_folding = true;
+    addressing_mode_folding = true;
+    branch_form_selection = true;
+    pseudo_expansion = "target_dependent";
+    cost_model = "target_microarchitecture";
+  }
+  instruction_scheduling {
+    strategy = "dependency_aware_target_scheduler";
+    dependency_ordering = true;
+    memory_dependence_analysis = true;
+    control_dependence_analysis = true;
+    latency_model = "target_microarchitecture";
+    resource_model = "target_microarchitecture";
+    packetization = false;
+  }
+  register_allocation {
+    strategy = "target_register_allocation";
+    register_classes = ["GPR"];
+    fixed_registers = [];
+    zero_register = "none";
+    caller_saved = "abi_dependent";
+    callee_saved = "abi_dependent";
+    spill_policy = "target_dependent";
+  }
+  optimization {
+    legality_model = "isa_and_memory_model";
+    transforms = ["constant_folding", "copy_propagation", "dead_code_elimination", "common_subexpression_elimination", "peephole_rewrite", "branch_simplification", "load_store_motion_target_dependent", "strength_reduction_target_dependent", "addressing_mode_folding", "branch_relaxation_target_dependent"];
+    instruction_combining = true;
+    peephole_optimization = true;
+    constant_folding = true;
+    dead_code_elimination = true;
+    common_subexpression_elimination = true;
+    loop_optimization = "target_dependent";
+    vectorization = "target_dependent";
+    if_conversion = "target_dependent";
+    interprocedural_optimization = "abi_and_linkage_dependent";
+  }
+}
+regclass GPR {
+    r0(64)=0,
+    r1(64)=1,
+    r2(64)=2,
+    r3(64)=3,
+    r4(64)=4,
+    r5(64)=5,
+    r6(64)=6,
+    r7(64)=7,
+    r8(64)=8,
+    r9(64)=9,
+    r10(64)=10,
+    r11(64)=11,
+    r12(64)=12,
+    r13(64)=13,
+    r14(64)=14,
+    r15(64)=15,
+}
+
+encoding LPR { width = 16;
+  base = 0x1000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lpr { class = misc; encoding = LPR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lpr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lpr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lpr"; syntax = "lpr %{rd}, %{rs1}"; encoding = "LPR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LNR { width = 16;
+  base = 0x1100;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lnr { class = misc; encoding = LNR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lnr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lnr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lnr"; syntax = "lnr %{rd}, %{rs1}"; encoding = "LNR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LR { width = 16;
+  base = 0x1800;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lr { class = misc; encoding = LR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lr"; syntax = "lr %{rd}, %{rs1}"; encoding = "LR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LCR { width = 16;
+  base = 0x1300;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lcr { class = misc; encoding = LCR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lcr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lcr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lcr"; syntax = "lcr %{rd}, %{rs1}"; encoding = "LCR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding NR { width = 16;
+  base = 0x1400;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op nr { class = arithmetic; encoding = NR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "nr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"nr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "nr"; syntax = "nr %{rd}, %{rs1}"; encoding = "NR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CLR { width = 16;
+  base = 0x1500;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op clr { class = compare; encoding = CLR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "clr %{rd}, %{rs1}";
+  semantics = "(set rd (compare rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "clr"; syntax = "clr %{rd}, %{rs1}"; encoding = "CLR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding OR { width = 16;
+  base = 0x1600;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op or { class = arithmetic; encoding = OR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "or %{rd}, %{rs1}";
+  semantics = "(set rd (or rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "or"; opcode_class = "arithmetic"; commutative = true; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "or"; syntax = "or %{rd}, %{rs1}"; encoding = "OR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "or"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding XR { width = 16;
+  base = 0x1700;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op xr { class = arithmetic; encoding = XR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "xr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"xr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "xr"; syntax = "xr %{rd}, %{rs1}"; encoding = "XR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CR { width = 16;
+  base = 0x1900;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op cr { class = compare; encoding = CR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "cr %{rd}, %{rs1}";
+  semantics = "(set rd (compare rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "cr"; syntax = "cr %{rd}, %{rs1}"; encoding = "CR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding AR { width = 16;
+  base = 0x1a00;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op ar { class = arithmetic; encoding = AR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "ar %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"ar\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "ar"; syntax = "ar %{rd}, %{rs1}"; encoding = "AR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SR { width = 16;
+  base = 0x1b00;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op sr { class = arithmetic; encoding = SR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "sr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"sr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sr"; syntax = "sr %{rd}, %{rs1}"; encoding = "SR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding ALR { width = 16;
+  base = 0x1e00;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op alr { class = arithmetic; encoding = ALR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "alr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"alr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "alr"; syntax = "alr %{rd}, %{rs1}"; encoding = "ALR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SLR { width = 16;
+  base = 0x1f00;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op slr { class = arithmetic; encoding = SLR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "slr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"slr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "slr"; syntax = "slr %{rd}, %{rs1}"; encoding = "SLR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LGR { width = 32;
+  base = 0xb9040000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lgr { class = misc; encoding = LGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lgr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lgr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lgr"; syntax = "lgr %{rd}, %{rs1}"; encoding = "LGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LCGR { width = 32;
+  base = 0xb9030000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lcgr { class = misc; encoding = LCGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lcgr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lcgr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lcgr"; syntax = "lcgr %{rd}, %{rs1}"; encoding = "LCGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LGHR { width = 32;
+  base = 0xb9070000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lghr { class = misc; encoding = LGHR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lghr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lghr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lghr"; syntax = "lghr %{rd}, %{rs1}"; encoding = "LGHR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LGFR { width = 32;
+  base = 0xb9140000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lgfr { class = misc; encoding = LGFR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lgfr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lgfr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lgfr"; syntax = "lgfr %{rd}, %{rs1}"; encoding = "LGFR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LHR { width = 32;
+  base = 0xb9270000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lhr { class = misc; encoding = LHR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lhr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lhr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lhr"; syntax = "lhr %{rd}, %{rs1}"; encoding = "LHR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding NGR { width = 32;
+  base = 0xb9800000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op ngr { class = arithmetic; encoding = NGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "ngr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"ngr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "ngr"; syntax = "ngr %{rd}, %{rs1}"; encoding = "NGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding OGR { width = 32;
+  base = 0xb9810000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op ogr { class = arithmetic; encoding = OGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "ogr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"ogr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "ogr"; syntax = "ogr %{rd}, %{rs1}"; encoding = "OGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding XGR { width = 32;
+  base = 0xb9820000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op xgr { class = arithmetic; encoding = XGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "xgr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"xgr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "xgr"; syntax = "xgr %{rd}, %{rs1}"; encoding = "XGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CGR { width = 32;
+  base = 0xb9200000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op cgr { class = compare; encoding = CGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "cgr %{rd}, %{rs1}";
+  semantics = "(set rd (compare rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "cgr"; syntax = "cgr %{rd}, %{rs1}"; encoding = "CGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CLGR { width = 32;
+  base = 0xb9210000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op clgr { class = compare; encoding = CLGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "clgr %{rd}, %{rs1}";
+  semantics = "(set rd (compare rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "clgr"; syntax = "clgr %{rd}, %{rs1}"; encoding = "CLGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding AGR { width = 32;
+  base = 0xb9080000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op agr { class = arithmetic; encoding = AGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "agr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"agr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "agr"; syntax = "agr %{rd}, %{rs1}"; encoding = "AGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SGR { width = 32;
+  base = 0xb9090000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op sgr { class = arithmetic; encoding = SGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "sgr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"sgr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sgr"; syntax = "sgr %{rd}, %{rs1}"; encoding = "SGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding ALGR { width = 32;
+  base = 0xb90a0000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op algr { class = arithmetic; encoding = ALGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "algr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"algr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "algr"; syntax = "algr %{rd}, %{rs1}"; encoding = "ALGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SLGR { width = 32;
+  base = 0xb90b0000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op slgr { class = arithmetic; encoding = SLGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "slgr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"slgr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "slgr"; syntax = "slgr %{rd}, %{rs1}"; encoding = "SLGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding MSGR { width = 32;
+  base = 0xb90c0000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op msgr { class = arithmetic; encoding = MSGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "msgr %{rd}, %{rs1}";
+  semantics = "(set rd (intrinsic \"msgr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = ["rd"]; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "msgr"; syntax = "msgr %{rd}, %{rs1}"; encoding = "MSGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LNGR { width = 32;
+  base = 0xb9010000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lngr { class = misc; encoding = LNGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lngr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lngr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lngr"; syntax = "lngr %{rd}, %{rs1}"; encoding = "LNGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LPGR { width = 32;
+  base = 0xb9000000;
+  rd = 4:4;
+  rs1 = 0:4;
+}
+
+op lpgr { class = misc; encoding = LPGR;
+  operands = rd: GPR, rs1: GPR;
+  syntax = "lpgr %{rd}, %{rs1}";
+  semantics = "(effect (intrinsic \"lpgr\" rd rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1"]; defs = []; explicit_operands = ["rd", "rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lpgr"; syntax = "lpgr %{rd}, %{rs1}"; encoding = "LPGR"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LG { width = 48;
+  base = 0xe30000000004;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op lg { class = load; encoding = LG;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "lg %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"lg\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lg"; syntax = "lg %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LLGC { width = 48;
+  base = 0xe30000000090;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op llgc { class = load; encoding = LLGC;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "llgc %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"llgc\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "llgc"; syntax = "llgc %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LLGC"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LLGH { width = 48;
+  base = 0xe30000000091;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op llgh { class = load; encoding = LLGH;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "llgh %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"llgh\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "llgh"; syntax = "llgh %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LLGH"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LLGF { width = 48;
+  base = 0xe30000000016;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op llgf { class = load; encoding = LLGF;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "llgf %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"llgf\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "llgf"; syntax = "llgf %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LLGF"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding STG { width = 48;
+  base = 0xe30000000024;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op stg { class = store; encoding = STG;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "stg %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(store (memory-address rt rb offset) rs2)";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "write"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "store"; opcode_class = "store"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "write"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "stg"; syntax = "stg %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "STG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "store"; semantic_pattern = "store"; control_flow = "fallthrough"; memory_read = false; memory_write = true; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "write";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding AG { width = 48;
+  base = 0xe30000000008;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op ag { class = arithmetic; encoding = AG;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "ag %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (intrinsic \"ag\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "ag"; syntax = "ag %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "AG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CG { width = 48;
+  base = 0xe30000000020;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op cg { class = compare; encoding = CG;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "cg %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (flags (compare rt rs2 rb offset)))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = true; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "cg"; syntax = "cg %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "CG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LAY { width = 48;
+  base = 0xe30000000071;
+  rt = 36:4;
+  rs2 = 32:4;
+  rb = 28:4;
+  offset[11:8] = 24:4;
+  offset[3:0] = 16:4;
+  offset[7:4] = 20:4;
+  signed = 1;
+}
+
+op lay { class = load; encoding = LAY;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "lay %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"lay\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lay"; syntax = "lay %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LAY"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding L { width = 32;
+  base = 0x58000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op l { class = load; encoding = L;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "l %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"l\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "l"; syntax = "l %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "L"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LH { width = 32;
+  base = 0x48000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op lh { class = load; encoding = LH;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "lh %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (load \"lh\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lh"; syntax = "lh %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "LH"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding STH { width = 32;
+  base = 0x40000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op sth { class = store; encoding = STH;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "sth %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(store (memory-address rt rb offset) rs2)";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "write"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "store"; opcode_class = "store"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "write"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sth"; syntax = "sth %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "STH"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "store"; semantic_pattern = "store"; control_flow = "fallthrough"; memory_read = false; memory_write = true; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "write";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding STC { width = 32;
+  base = 0x42000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op stc { class = store; encoding = STC;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "stc %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(store (memory-address rt rb offset) rs2)";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "write"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "store"; opcode_class = "store"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "write"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "stc"; syntax = "stc %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "STC"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "store"; semantic_pattern = "store"; control_flow = "fallthrough"; memory_read = false; memory_write = true; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "write";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding ST { width = 32;
+  base = 0x50000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op st { class = store; encoding = ST;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "st %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(store (memory-address rt rb offset) rs2)";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "write"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "store"; opcode_class = "store"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "write"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "st"; syntax = "st %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "ST"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "store"; semantic_pattern = "store"; control_flow = "fallthrough"; memory_read = false; memory_write = true; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "write";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding A { width = 32;
+  base = 0x5a000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op a { class = arithmetic; encoding = A;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "a %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (intrinsic \"a\" rt rs2 rb offset))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "a"; syntax = "a %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "A"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding C { width = 32;
+  base = 0x59000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op c { class = compare; encoding = C;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "c %{rt}, {offset}(%{rs2}, %{rb})";
+  semantics = "(effect (flags (compare rt rs2 rb offset)))";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = true; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "c"; syntax = "c %{rt}, {offset}(%{rs2}, %{rb})"; encoding = "C"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding STM { width = 32;
+  base = 0x90000000;
+  rt = 20:4;
+  rs2 = 16:4;
+  rb = 12:4;
+  offset[11:8] = 8:4;
+  offset[7:0] = 0:8;
+  signed = 1;
+}
+
+op stm { class = store; encoding = STM;
+  operands = rt: GPR, rs2: GPR, rb: GPR, offset: imm;
+  syntax = "stm %{rt}, %{rs2}, {offset}(%{rb})";
+  semantics = "(store (memory-address rt rb offset) rs2)";
+
+  tooling = {
+    dataflow = { uses = ["rt", "rs2", "rb", "offset"]; defs = []; explicit_operands = ["rt", "rs2", "rb", "offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "write"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rt:GPR", "rs2:GPR", "rb:GPR", "offset:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "store"; opcode_class = "store"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "write"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "stm"; syntax = "stm %{rt}, %{rs2}, {offset}(%{rb})"; encoding = "STM"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rt", "rs2", "rb", "offset"]; };
+    reverse_engineering = { category = "store"; semantic_pattern = "store"; control_flow = "fallthrough"; memory_read = false; memory_write = true; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "write";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding RISBG { width = 48;
+  base = 0xec0000000005;
+  rd = 36:4;
+  rs1 = 32:4;
+  startlen = 16:16;
+  mask = 4:4;
+}
+
+op risbg { class = misc; encoding = RISBG;
+  operands = rd: GPR, rs1: GPR, startlen: imm, mask: imm;
+  syntax = "risbg %{rd}, %{rs1}, {startlen}, {mask}";
+  semantics = "(effect (intrinsic \"risbg\" rd rs1 startlen mask))";
+
+  tooling = {
+    dataflow = { uses = ["rd", "rs1", "startlen", "mask"]; defs = []; explicit_operands = ["rd", "rs1", "startlen", "mask"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR", "startlen:imm", "mask:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "risbg"; syntax = "risbg %{rd}, %{rs1}, {startlen}, {mask}"; encoding = "RISBG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "rs1", "startlen", "mask"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SLL { width = 32;
+  base = 0x89000000;
+  rd = 20:4;
+  amount = 0:14;
+  signed = 1;
+}
+
+op sll { class = arithmetic; encoding = SLL;
+  operands = rd: GPR, amount: imm;
+  syntax = "sll %{rd}, {amount}";
+  semantics = "(set rd (shl rd amount))";
+
+  tooling = {
+    dataflow = { uses = ["amount"]; defs = ["rd"]; explicit_operands = ["rd", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "shl"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sll"; syntax = "sll %{rd}, {amount}"; encoding = "SLL"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "shl"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SRL { width = 32;
+  base = 0x88000000;
+  rd = 20:4;
+  amount = 0:14;
+  signed = 1;
+}
+
+op srl { class = arithmetic; encoding = SRL;
+  operands = rd: GPR, amount: imm;
+  syntax = "srl %{rd}, {amount}";
+  semantics = "(set rd (shr rd amount))";
+
+  tooling = {
+    dataflow = { uses = ["amount"]; defs = ["rd"]; explicit_operands = ["rd", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "shr"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "srl"; syntax = "srl %{rd}, {amount}"; encoding = "SRL"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "shr"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SRA { width = 32;
+  base = 0x8a000000;
+  rd = 20:4;
+  amount = 0:14;
+  signed = 1;
+}
+
+op sra { class = arithmetic; encoding = SRA;
+  operands = rd: GPR, amount: imm;
+  syntax = "sra %{rd}, {amount}";
+  semantics = "(set rd (ashr rd amount))";
+
+  tooling = {
+    dataflow = { uses = ["amount"]; defs = ["rd"]; explicit_operands = ["rd", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "ashr"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sra"; syntax = "sra %{rd}, {amount}"; encoding = "SRA"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "ashr"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SLLG { width = 48;
+  base = 0xeb000000000d;
+  rd = 36:4;
+  rs1 = 32:4;
+  amount = 16:8;
+  signed = 1;
+}
+
+op sllg { class = arithmetic; encoding = SLLG;
+  operands = rd: GPR, rs1: GPR, amount: imm;
+  syntax = "sllg %{rd}, %{rs1}, {amount}";
+  semantics = "(set rd (shl rs1 amount))";
+
+  tooling = {
+    dataflow = { uses = ["rs1", "amount"]; defs = ["rd"]; explicit_operands = ["rd", "rs1", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "shl"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "sllg"; syntax = "sllg %{rd}, %{rs1}, {amount}"; encoding = "SLLG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "rs1", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "shl"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SRLG { width = 48;
+  base = 0xeb000000000c;
+  rd = 36:4;
+  rs1 = 32:4;
+  amount = 16:8;
+  signed = 1;
+}
+
+op srlg { class = arithmetic; encoding = SRLG;
+  operands = rd: GPR, rs1: GPR, amount: imm;
+  syntax = "srlg %{rd}, %{rs1}, {amount}";
+  semantics = "(set rd (shr rs1 amount))";
+
+  tooling = {
+    dataflow = { uses = ["rs1", "amount"]; defs = ["rd"]; explicit_operands = ["rd", "rs1", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "shr"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "srlg"; syntax = "srlg %{rd}, %{rs1}, {amount}"; encoding = "SRLG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "rs1", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "shr"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding SRAG { width = 48;
+  base = 0xeb000000000a;
+  rd = 36:4;
+  rs1 = 32:4;
+  amount = 16:8;
+  signed = 1;
+}
+
+op srag { class = arithmetic; encoding = SRAG;
+  operands = rd: GPR, rs1: GPR, amount: imm;
+  syntax = "srag %{rd}, %{rs1}, {amount}";
+  semantics = "(set rd (ashr rs1 amount))";
+
+  tooling = {
+    dataflow = { uses = ["rs1", "amount"]; defs = ["rd"]; explicit_operands = ["rd", "rs1", "amount"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "rs1:GPR", "amount:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "ashr"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "srag"; syntax = "srag %{rd}, %{rs1}, {amount}"; encoding = "SRAG"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "rs1", "amount"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "ashr"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LHI { width = 32;
+  base = 0xa7080000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op lhi { class = load; encoding = LHI;
+  operands = rd: GPR, imm: imm;
+  syntax = "lhi %{rd}, {imm}";
+  semantics = "(set rd (load target (addr imm)))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "load"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lhi"; syntax = "lhi %{rd}, {imm}"; encoding = "LHI"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "load"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LGHI { width = 32;
+  base = 0xa7090000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op lghi { class = load; encoding = LGHI;
+  operands = rd: GPR, imm: imm;
+  syntax = "lghi %{rd}, {imm}";
+  semantics = "(set rd (load target (addr imm)))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "load"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "lghi"; syntax = "lghi %{rd}, {imm}"; encoding = "LGHI"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "load"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding AGHI { width = 32;
+  base = 0xa70b0000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op aghi { class = arithmetic; encoding = AGHI;
+  operands = rd: GPR, imm: imm;
+  syntax = "aghi %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"aghi\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "aghi"; syntax = "aghi %{rd}, {imm}"; encoding = "AGHI"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CHI { width = 32;
+  base = 0xa70e0000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op chi { class = compare; encoding = CHI;
+  operands = rd: GPR, imm: imm;
+  syntax = "chi %{rd}, {imm}";
+  semantics = "(set rd (compare imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "chi"; syntax = "chi %{rd}, {imm}"; encoding = "CHI"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CGHI { width = 32;
+  base = 0xa70f0000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op cghi { class = compare; encoding = CGHI;
+  operands = rd: GPR, imm: imm;
+  syntax = "cghi %{rd}, {imm}";
+  semantics = "(set rd (compare imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "cghi"; syntax = "cghi %{rd}, {imm}"; encoding = "CGHI"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding NILL { width = 32;
+  base = 0xa5070000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op nill { class = arithmetic; encoding = NILL;
+  operands = rd: GPR, imm: imm;
+  syntax = "nill %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"nill\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "nill"; syntax = "nill %{rd}, {imm}"; encoding = "NILL"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding OILL { width = 32;
+  base = 0xa50b0000;
+  rd = 20:4;
+  imm = 0:16;
+  signed = 1;
+}
+
+op oill { class = arithmetic; encoding = OILL;
+  operands = rd: GPR, imm: imm;
+  syntax = "oill %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"oill\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "oill"; syntax = "oill %{rd}, {imm}"; encoding = "OILL"; encoding_width = "32"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CLFI { width = 48;
+  base = 0xc20f00000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op clfi { class = compare; encoding = CLFI;
+  operands = rd: GPR, imm: imm;
+  syntax = "clfi %{rd}, {imm}";
+  semantics = "(set rd (compare imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "clfi"; syntax = "clfi %{rd}, {imm}"; encoding = "CLFI"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding CLGFI { width = 48;
+  base = 0xc20e00000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op clgfi { class = compare; encoding = CLGFI;
+  operands = rd: GPR, imm: imm;
+  syntax = "clgfi %{rd}, {imm}";
+  semantics = "(set rd (compare imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "compare"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "compare"; opcode_class = "compare"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "clgfi"; syntax = "clgfi %{rd}, {imm}"; encoding = "CLGFI"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "compare"; semantic_pattern = "compare"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding AGFI { width = 48;
+  base = 0xc20800000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op agfi { class = arithmetic; encoding = AGFI;
+  operands = rd: GPR, imm: imm;
+  syntax = "agfi %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"agfi\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "agfi"; syntax = "agfi %{rd}, {imm}"; encoding = "AGFI"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding XILF { width = 48;
+  base = 0xc00700000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op xilf { class = arithmetic; encoding = XILF;
+  operands = rd: GPR, imm: imm;
+  syntax = "xilf %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"xilf\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "xilf"; syntax = "xilf %{rd}, {imm}"; encoding = "XILF"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding OILF { width = 48;
+  base = 0xc00d00000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op oilf { class = arithmetic; encoding = OILF;
+  operands = rd: GPR, imm: imm;
+  syntax = "oilf %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"oilf\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "oilf"; syntax = "oilf %{rd}, {imm}"; encoding = "OILF"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding IILF { width = 48;
+  base = 0xc00900000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op iilf { class = arithmetic; encoding = IILF;
+  operands = rd: GPR, imm: imm;
+  syntax = "iilf %{rd}, {imm}";
+  semantics = "(set rd (intrinsic \"iilf\" imm))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "integer"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "intrinsic"; opcode_class = "arithmetic"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "iilf"; syntax = "iilf %{rd}, {imm}"; encoding = "IILF"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "arithmetic"; semantic_pattern = "intrinsic"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding LLIHF { width = 48;
+  base = 0xc00e00000000;
+  rd = 36:4;
+  imm = 0:32;
+  signed = 1;
+}
+
+op llihf { class = load; encoding = LLIHF;
+  operands = rd: GPR, imm: imm;
+  syntax = "llihf %{rd}, {imm}";
+  semantics = "(set rd (load target (addr imm)))";
+
+  tooling = {
+    dataflow = { uses = ["imm"]; defs = ["rd"]; explicit_operands = ["rd", "imm"]; precision = "derived"; flags_read = false; flags_written = false; memory = "read"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "memory"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rd:GPR", "imm:imm"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "load"; opcode_class = "load"; commutative = false; immediate_folding = true; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "read"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "llihf"; syntax = "llihf %{rd}, {imm}"; encoding = "LLIHF"; encoding_width = "48"; opcode = "unknown"; operand_order = ["rd", "imm"]; };
+    reverse_engineering = { category = "load"; semantic_pattern = "load"; control_flow = "fallthrough"; memory_read = true; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "read";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding B { width = 32;
+  base = 0x47f00000;
+  offset = 0:16;
+  signed = 1;
+}
+
+op b { class = branch; encoding = B;
+  operands = offset: rel;
+  syntax = "b {offset}";
+  semantics = "(branch offset)";
+
+  tooling = {
+    dataflow = { uses = ["offset"]; defs = []; explicit_operands = ["offset"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "branch"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "control"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["offset:rel"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = false; };
+    instruction_selection = { pattern = "branch"; opcode_class = "branch"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = true; control_flow = "branch"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "b"; syntax = "b {offset}"; encoding = "B"; encoding_width = "32"; opcode = "unknown"; operand_order = ["offset"]; };
+    reverse_engineering = { category = "branch"; semantic_pattern = "branch"; control_flow = "branch"; memory_read = false; memory_write = false; branch_target = "relative_or_indirect"; xref_kind = "code"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "branch";
+      terminates_block = true;
+      branch_target = "relative_or_indirect";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding BR { width = 16;
+  base = 0x7f0;
+  rs1 = 0:4;
+}
+
+op br { class = branch; encoding = BR;
+  operands = rs1: GPR;
+  syntax = "br %{rs1}";
+  semantics = "(branch rs1)";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = []; explicit_operands = ["rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "branch"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "control"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = false; };
+    instruction_selection = { pattern = "branch"; opcode_class = "branch"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = true; control_flow = "branch"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "br"; syntax = "br %{rs1}"; encoding = "BR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rs1"]; };
+    reverse_engineering = { category = "branch"; semantic_pattern = "branch"; control_flow = "branch"; memory_read = false; memory_write = false; branch_target = "relative_or_indirect"; xref_kind = "code"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "branch";
+      terminates_block = true;
+      branch_target = "relative_or_indirect";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+encoding NOPR { width = 16;
+  base = 0x700;
+  rs1 = 0:4;
+}
+
+op nopr { class = misc; encoding = NOPR;
+  operands = rs1: GPR;
+  syntax = "nopr %{rs1}";
+  semantics = "(effect (intrinsic \"nopr\" rs1))";
+
+  tooling = {
+    dataflow = { uses = ["rs1"]; defs = []; explicit_operands = ["rs1"]; precision = "derived"; flags_read = false; flags_written = false; memory = "none"; control = "fallthrough"; };
+    scheduling = { latency = "unknown"; reciprocal_throughput = "unknown"; resource_class = "misc"; resources = ["target_dependent"]; dependency_latency = "target_dependent"; issue_width = "target_dependent"; serializing = false; };
+    register_allocation = { operand_constraints = ["rs1:GPR"]; tied_operands = []; fixed_registers = []; clobbers = []; early_clobber = []; spillable = true; };
+    instruction_selection = { pattern = "effect"; opcode_class = "misc"; commutative = false; immediate_folding = false; addressing_mode = "none_or_implicit"; pseudo = false; };
+    vmm = { terminator = false; control_flow = "fallthrough"; memory_effect = "none"; may_trap = false; atomic = false; serializing = false; privilege = "unknown"; helper_required = false; };
+    disassembly = { mnemonic = "nopr"; syntax = "nopr %{rs1}"; encoding = "NOPR"; encoding_width = "16"; opcode = "unknown"; operand_order = ["rs1"]; };
+    reverse_engineering = { category = "misc"; semantic_pattern = "effect"; control_flow = "fallthrough"; memory_read = false; memory_write = false; branch_target = "none"; xref_kind = "data_or_none"; semantic_confidence = "derived_from_existing_spec"; };
+  
+    binary_translation = {
+      schema_version = 1;
+      semantic_source = "semantics";
+      encoding_source = "encoding";
+      operand_source = "operands";
+      dataflow_source = "dataflow";
+      control_flow = "fallthrough";
+      terminates_block = false;
+      branch_target = "none";
+      memory_effect = "none";
+      may_trap = false;
+      atomic = false;
+      serializing = false;
+      privilege = "unknown";
+      pc_effect = "derive_from_semantics_and_control_flow";
+      implicit_register_effects = "derive_from_semantics";
+      flag_effects = "derive_from_dataflow_and_semantics";
+      target_lowering = "instruction_selection.pattern";
+      equivalence_basis = "semantics";
+    };
+}
+}
+
+# Tooling augmentation: declarative metadata for schedulers, register allocators,
+# instruction selectors, VMM/code generators, disassemblers, and reverse-engineering tools.
+# Values marked target_dependent/unknown are intentionally not guessed from an ISA-only source.
+tooling {
+  schema_version = 1;
+  architecture = "s390x";
+  scheduling = {
+    execution_model = "superscalar_ooo_target_dependent";
+    issue_model = "target_dependent";
+    dispatch_width = "unknown";
+    issue_width = "unknown";
+    retire_width = "unknown";
+    reorder_buffer = "unknown";
+    reservation_stations = "unknown";
+    resource_model = "per_microarchitecture";
+    pipeline_model = "per_microarchitecture";
+    latency_model = "per_instruction_or_uarch";
+    throughput_model = "per_instruction_or_uarch";
+    bypass_model = "unknown";
+    hazard_model = "data_and_memory_dependencies";
+    packetization = false;
+    scheduling_domains = ["register_dependencies", "memory_dependencies", "control_dependencies", "resource_conflicts"];
+  };
+  register_allocation = {
+    register_model = "register";
+    register_classes = ["GPR"];
+    fixed_registers = [];
+    zero_register = "none";
+    aliasing = "derive_from_register_file";
+    subregisters = "architecture_specific";
+    register_banks = "architecture_specific";
+    caller_saved = "abi_dependent";
+    callee_saved = "abi_dependent";
+    spill_slots = "stack_or_target_specific";
+    rematerialization = "instruction_semantics_dependent";
+    constraints = ["fixed_registers", "register_classes", "tied_operands", "implicit_operands", "early_clobber"];
+  };
+  instruction_selection = {
+    opcode_classes = ["arithmetic", "branch", "compare", "load", "misc", "store"];
+    selection_model = "semantic_pattern_plus_operand_constraints";
+    patterns = "derive_from_op.semantics";
+    immediate_constraints = "encoding_dependent";
+    addressing_modes = "encoding_and_operand_dependent";
+    commutativity = "semantic_pattern_dependent";
+    canonical_forms = "target_dependent";
+    pseudo_instructions = "encoding_or_semantics_dependent";
+    legalization = ["immediate_range", "register_class", "addressing_mode", "alignment", "calling_convention"];
+    cost_model = "target_microarchitecture";
+  };
+  vmm = {
+    code_model = "instruction_semantics_plus_control_flow";
+    block_formation = "terminator_and_fallthrough";
+    memory_model = "isa_and_target_dependent";
+    exception_model = "derive_from_semantics_and_profile";
+    privilege_model = "unknown";
+    atomic_model = "derive_from_instruction_class_and_semantics";
+    barriers = "semantic_pattern_dependent";
+    calling_convention = "abi_dependent";
+    stack_model = "register_and_abi_dependent";
+    helper_calls = "target_dependent";
+    relocation_model = "encoding_and_object_format_dependent";
+  };
+  disassembler = {
+    encoding_model = "16_32_48";
+    widths = ["16", "32", "48"];
+    operand_decoding = "encoding_fields_plus_op.operands";
+    syntax_model = "op.syntax";
+    aliases = "target_specific";
+    pseudo_rendering = "target_specific";
+    branch_target_recovery = "encoding_and_pc_semantics";
+    immediate_sign_extension = "encoding_dependent";
+    endianness = "big";
+  };
+  reverse_engineering = {
+    instruction_identity = ["encoding", "mnemonic", "operand_signature"];
+    control_flow = "op.tooling.vmm.control_flow";
+    data_flow = "op.tooling.dataflow";
+    memory_access = "op.tooling.dataflow.memory";
+    xrefs = ["code", "data", "branch_targets", "call_targets"];
+    function_boundary_hints = ["call", "return", "branch", "stack_pointer_effect"];
+    lifting = "op.semantics";
+    equivalence = "semantic_s_expression";
+    opaque_operations = "preserve_as_intrinsic";
+    confidence = "derived_from_existing_spec";
+  };
+
+  bin2bin = {
+    schema_version = 1;
+    execution_domain = "native_machine_code";
+    semantic_format = "s-expression";
+    instruction_encoding = "16_32_48";
+    encoding_widths = ["16", "32", "48"];
+    endianness = "big";
+    word_size = 64;
+    address_size = 64;
+    instruction_boundary = "encoding_defined";
+    instruction_identity = ["encoding", "mnemonic", "operand_signature"];
+    operand_source = "op.operands";
+    semantic_source = "op.semantics";
+    dataflow_source = "op.tooling.dataflow";
+    control_flow_source = "op.tooling.vmm";
+    branch_target_source = "op.tooling.reverse_engineering";
+    memory_effect_source = "op.tooling.dataflow_and_vmm";
+    implicit_state_source = "op.semantics_and_architecture_state";
+    relocation_model = "object_format_dependent";
+    indirect_target_policy = "runtime_or_static_analysis_dependent";
+    unknown_semantics_policy = "preserve_opaque_or_reject";
+    unsupported_instruction_policy = "fail_closed";
+    block_translation_unit = "basic_block_or_trace";
+    equivalence_basis = "semantic_s_expression";
+    cache_safe_when = ["source_identity", "source_architecture", "target_architecture", "translation_rules", "infobank_version", "translator_configuration"];
+  };
+}

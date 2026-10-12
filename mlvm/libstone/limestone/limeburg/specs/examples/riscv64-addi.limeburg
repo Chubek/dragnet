@@ -1,0 +1,8 @@
+include "../riscv64.lburg";
+
+tree add_seven {
+  node %1 = INPUT() register_class GPR required false;
+  node %2 = CONST() immediate 7;
+  node %3 = ISA_addi(%1, %2) register_class GPR;
+  root %3:value;
+}

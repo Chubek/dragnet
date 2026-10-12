@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-shift-right"
+  :name "Integer Shift Right Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate a right shift whose operands are both known constants.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics)
+    (shift-amount-is-non-negative)
+    (shift-amount-is-representable))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (fold (shift-right (integer a) (integer b)) (integer-result (shift-right a b))))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-shift-semantics))
+  (expected-effects "Replaces a constant right shift with its compile-time value.")
+  (limitations "Requires known constant operands and a valid shift amount.")
+  (documentation
+    (purpose "Fold a constant right shift into its compile-time result.")
+    (motivation "Removing constant shifts reduces run-time work.")
+    (applicability "Applies to right shift nodes with two known integer constant operands.")
+    (semantic-assumptions "The IR's shift semantics, including signedness, are preserved.")
+    (known-limitations "Does not fold when the shift amount is out of range.")
+    (testing-strategy "Signed, unsigned, and boundary shift amounts are exercised.")))

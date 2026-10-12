@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.data-flow.tail-call-elimination"
+  :name "Tail Call Elimination"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Replace a tail call with a jump to avoid call overhead.")
+  (requires
+    (capability ssa-form)
+    (capability tail-call-information))
+  (preconditions
+    (call-is-in-tail-position))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (tail-call f args) (jump f args)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a tail call with a jump.")
+  (limitations "Applies only to calls in tail position.")
+  (documentation
+    (purpose "Replace tail calls with jumps.")
+    (motivation "Tail call elimination avoids call overhead.")
+    (applicability "Applies to calls in tail position.")
+    (semantic-assumptions "The call is in tail position.")
+    (known-limitations "Does not eliminate calls not in tail position.")
+    (testing-strategy "Tail, non-tail, and unknown position cases are exercised.")))

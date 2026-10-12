@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:isa-description-bundle:bin2bin:1",
+  "title": "Bin2Bin Translation Metadata",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "semantic_format",
+    "instruction_encoding",
+    "encoding_widths",
+    "instruction_boundary",
+    "semantic_source",
+    "dataflow_source",
+    "control_flow_source",
+    "branch_target_source",
+    "unknown_semantics_policy",
+    "unsupported_instruction_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "execution_domain": {
+      "type": "string"
+    },
+    "semantic_format": {
+      "const": "s-expression"
+    },
+    "instruction_encoding": {
+      "type": "string"
+    },
+    "codec_adapter": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Owning host codec identity required for native adapter encodings."
+    },
+    "encoding_widths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "endianness": {
+      "type": "string"
+    },
+    "word_size": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "address_size": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "instruction_boundary": {
+      "type": "string"
+    },
+    "instruction_identity": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "operand_source": {
+      "type": "string"
+    },
+    "semantic_source": {
+      "type": "string"
+    },
+    "dataflow_source": {
+      "type": "string"
+    },
+    "control_flow_source": {
+      "type": "string"
+    },
+    "branch_target_source": {
+      "type": "string"
+    },
+    "memory_effect_source": {
+      "type": "string"
+    },
+    "implicit_state_source": {
+      "type": "string"
+    },
+    "relocation_model": {
+      "type": "string"
+    },
+    "indirect_target_policy": {
+      "type": "string"
+    },
+    "unknown_semantics_policy": {
+      "type": "string"
+    },
+    "unsupported_instruction_policy": {
+      "type": "string"
+    },
+    "block_translation_unit": {
+      "type": "string"
+    },
+    "equivalence_basis": {
+      "type": "string"
+    },
+    "cache_safe_when": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

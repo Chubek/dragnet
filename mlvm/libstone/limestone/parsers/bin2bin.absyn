@@ -1,0 +1,33 @@
+namespace limestone::syntax::bin2bin;
+parser bin2bin;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Architecture | Translation | Unit | Isa;
+node Architecture { Name name; ArchitectureItem* items; }
+sum ArchitectureItem = Isa | Opcode | Attribute;
+node Isa { String path; }
+node Opcode { Integer encoding; Name mnemonic; Status? translation_status; SExpr? semantics; }
+node Translation { Name source_arch @0; Name target_arch @1; TranslationItem* items; }
+sum TranslationItem = Mapping | Rule | Attribute;
+node Mapping { Name source_instruction @0; Name target_instruction @1; Bytes? bytes; }
+node Rule { Name name; SExpr pattern @0; SExpr replacement @1; RuleOption* options; }
+sum RuleOption = Where | Cost;
+node Where { SExpr condition; }
+node Cost { Integer amount; }
+node Unit { Name name; UnitItem* items; }
+sum UnitItem = Instruction | Attribute;
+node Instruction { Integer address; Name mnemonic; Bytes? bytes; SExpr? semantics; Status? translation_status; }
+node Bytes { Integer* values; }
+token Status;
+node SExpr { SExprItem* items; }
+sum SExprItem = String | Integer | Variable | Ident | SExpr;
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Boolean | Ident | Array | Object | SExpr;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+sum Name = Ident | String;
+token Variable;
+token Integer;
+token Boolean;
+token String;
+token Ident;

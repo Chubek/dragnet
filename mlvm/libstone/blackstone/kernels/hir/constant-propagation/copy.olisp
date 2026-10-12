@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.copy-propagation"
+  :name "HIR Copy Propagation"
+  :stage hir
+  (category copy-propagation)
+  (paradigms data-flow-analysis rule-based)
+  (objective "Replace a use of a copied value with its source when the copy remains valid.")
+  (requires
+    (capability typed-expressions)
+    (analysis reaching-definitions-analysis))
+  (preconditions
+    (copy-is-valid)
+    (no-intervening-redefinition))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (rewrite (copy x y) (use y)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces uses of a copied value with the source value.")
+  (limitations "Applies only when the copy remains valid and definitions are not invalidated.")
+  (documentation
+    (purpose "Propagate copied values to their uses.")
+    (motivation "Copy propagation removes redundant assignments.")
+    (applicability "Applies to copy operations whose source reaches the use without redefinition.")
+    (semantic-assumptions "The reaching definition facts prove the copy is valid.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Valid, redefined, and aliased cases are exercised.")))

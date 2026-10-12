@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.global-dead-code-elimination"
+  :name "Global Dead Code Elimination"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural data-flow-analysis)
+  (objective "Remove instructions whose results cannot affect observable behavior across the whole program.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis)
+    (analysis liveness-analysis))
+  (preconditions
+    (result-is-globally-unused)
+    (instruction-has-no-observable-effects))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (instruction :id dead-instruction)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes instructions whose results cannot affect observable behavior.")
+  (limitations "Applies only when the result is globally unused and the instruction has no observable effects.")
+  (documentation
+    (purpose "Remove globally dead instructions.")
+    (motivation "Global dead code elimination reduces code size across the whole program.")
+    (applicability "Applies to instructions whose results cannot affect observable behavior.")
+    (semantic-assumptions "The result is globally unused and the instruction has no observable effects.")
+    (known-limitations "Does not remove instructions with side effects.")
+    (testing-strategy "Used, unused, local, and global cases are exercised.")))

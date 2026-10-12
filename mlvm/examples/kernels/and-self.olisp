@@ -1,0 +1,21 @@
+(define-kernel
+  :id "blackstone.hir.custom.and-self"
+  :name "Custom bitwise identity"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting)
+  (objective "Forward the operand of a repeated-operand integer AND.")
+  (requires (capability typed-expressions) (capability integer-overflow-semantics))
+  (preconditions (operand-has-compatible-integer-type))
+  (forbids (operation-has-observable-side-effects))
+  (transform (rewrite (bitwise-and x x) x))
+  (correctness (preserve-observable-behavior))
+  (expected-effects "Remove the redundant AND while retaining its operand's definition.")
+  (limitations "Requires two uses of the same integer SSA definition; no memory or floating-point rewrites.")
+  (documentation
+    (purpose "Demonstrate authoring an executable custom Optilisp kernel.")
+    (motivation "An integer bit pattern ANDed with itself is unchanged.")
+    (applicability "Identical SSA operands on a pure same-width integer AND.")
+    (semantic-assumptions "MLVM i1 through i64 bitwise semantics; operand computations remain allocated.")
+    (known-limitations "The generic executor checks the identity per candidate; other IRs require host proofs.")
+    (testing-strategy "The CLI integration test checks forwarding and preservation of the resulting SSA IR.")))

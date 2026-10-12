@@ -1,0 +1,26 @@
+(define-kernel
+  :id "blackstone.mir.redundancy-elimination.value-numbering"
+  :name "Value Numbering"
+  :stage mir
+  (category redundancy-elimination)
+  (paradigms ssa-based)
+  (objective "Assign value numbers to expressions and eliminate duplicates that share a value number.")
+  (requires
+    (capability ssa-form))
+  (preconditions
+    (expressions-are-comparable))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (deduplicate (expression e) (value-number n)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Eliminates duplicate expressions that share a value number.")
+  (limitations "Applies only to expressions with comparable semantics.")
+  (documentation
+    (purpose "Eliminate duplicate expressions via value numbering.")
+    (motivation "Value numbering identifies and removes redundant computations.")
+    (applicability "Applies to expressions with the same value number.")
+    (semantic-assumptions "Expressions with the same value number are semantically equivalent.")
+    (known-limitations "Does not handle memory expressions without dependence reasoning.")
+    (testing-strategy "Duplicate, distinct, and memory-involving cases are exercised.")))

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.memory.redundant-store"
+  :name "Redundant Store Elimination"
+  :stage mir
+  (category memory-optimization)
+  (paradigms memory-optimization data-flow-analysis)
+  (objective "Remove a store that is immediately followed by another store to the same address.")
+  (requires
+    (capability ssa-form)
+    (analysis memory-dependence-analysis))
+  (preconditions
+    (store-is-redundant)
+    (no-intervening-load))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (eliminate (store :id redundant-store)))
+  (correctness
+    (preserve-observable-memory-behavior))
+  (expected-effects "Removes a store that is immediately overwritten by another store.")
+  (limitations "Applies only when the store is immediately overwritten and no intervening load reads the value.")
+  (documentation
+    (purpose "Eliminate redundant stores.")
+    (motivation "Redundant store elimination reduces memory traffic.")
+    (applicability "Applies to stores immediately followed by another store to the same address.")
+    (semantic-assumptions "The store is immediately overwritten and no intervening load reads the value.")
+    (known-limitations "Does not remove stores with unknown aliasing.")
+    (testing-strategy "Redundant, intervening-load, and unknown-alias cases are exercised.")))

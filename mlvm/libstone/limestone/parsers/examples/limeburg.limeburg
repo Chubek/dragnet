@@ -1,0 +1,15 @@
+include "common.limeburg";
+ruleset scalar {
+  nonterminal reg = 0;
+  nonterminal imm;
+  terminal ADD(2);
+  terminal CONST(0);
+  rule 1 reg: CONST():i32 -> "MOVI" cost 1 priority 0 type i32 immediate [-128..127];
+  rule 2 reg: ADD(reg, CONST[-128..127]) -> ADDI cost 1;
+}
+tree add_constant {
+  node %1 = CONST():i32 immediate 7;
+  node %2 = CONST():i32 immediate 9;
+  node %3 = ADD(%1, %2):i32;
+  root %3:reg;
+}

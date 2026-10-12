@@ -1,0 +1,33 @@
+/* Scheduling syntax preserves machine metadata and semantic/scheduler-only edges. */
+${declare longest_match Document}
+Document: Declaration*;
+Declaration: Region | Instruction | MachineModel | Bundle;
+Region: RegionKind Name '{' RegionItem* '}';
+RegionKind: 'region' | 'schedule_region';
+RegionItem: Instruction | Dependency | Bundle | Attribute;
+Instruction: 'instruction' Name '{' InstructionItem* '}';
+InstructionItem: RegisterOperand | Attribute;
+RegisterOperand: OperandRole Ref ';'?;
+OperandRole: 'def' | 'use' | 'implicit_def' | 'implicit_use' | 'address';
+Dependency: 'dependency' '{' Attribute* '}';
+Bundle: 'bundle' Name '{' RegionItem* '}';
+MachineModel: 'machine_model' Name '{' Attribute* '}';
+Attribute: FieldName '=' Value ';'? | FieldName Object ';'?;
+FieldName: Ident | String;
+Value: String | Integer | Real | Boolean | Ident | Ref | Array | Object | Range | SExpr;
+Range: Integer '..' Integer;
+Array: '[' (Value (',' Value)*)? ']';
+Object: '{' Entry* '}';
+Entry: Attribute | Flag | Binding;
+Flag: Ident ';'?;
+Binding: Ref '=' Value ';'?;
+SExpr: '(' SExprItem* ')';
+SExprItem: String | Integer | Ident | Ref | SExpr;
+Name: Ident | String | Ref;
+Ref: "%[A-Za-z0-9_][A-Za-z0-9_.-]*";
+Integer: "-?[0-9]+" | "0x[0-9A-Fa-f]+";
+Real: "-?[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?" | "-?[0-9]+[eE][+-]?[0-9]+";
+Boolean: 'true' | 'false';
+String: "\"([^\"\\]|\\[^])*\"";
+Ident: "[A-Za-z_][A-Za-z0-9_.-]*" $term -1;
+whitespace: "([ \t\r\n]|#[^\n]*|[/][/][^\n]*|[/][*]([^*]|[*]+[^*/])*[*]+[/])*";

@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.code-size.identical-code-folding"
+  :name "Identical Code Folding"
+  :stage lir
+  (category code-size-optimization)
+  (paradigms code-size-optimization)
+  (objective "Merge identical basic blocks to reduce code size.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (blocks-are-identical))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (merge (block a) (block b)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Merges identical basic blocks to reduce code size.")
+  (limitations "Applies only to identical basic blocks.")
+  (documentation
+    (purpose "Merge identical basic blocks to reduce code size.")
+    (motivation "Identical code folding reduces code size.")
+    (applicability "Applies to identical basic blocks.")
+    (semantic-assumptions "The blocks are identical.")
+    (known-limitations "Does not merge non-identical blocks.")
+    (testing-strategy "Identical, non-identical, and boundary cases are exercised.")))

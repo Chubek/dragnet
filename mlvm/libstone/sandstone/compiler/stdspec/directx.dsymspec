@@ -1,0 +1,282 @@
+-- directx.dsymspec — DirectX DXIL shader IR (SM 6.x), signature ABI.
+-- DXIL is LLVM bitcode; registers are typed virtual values (i1/i16/i32/
+-- i64/f16/f32/f64 + resources cbv/srv/uav/sampler + ids). Register/feature
+-- facts are accurate; encodings are representative bitcode words.
+-- Cross-checked via arch_oracle + ccbe_oracle (GPU/SIMT, vector ISA) +
+-- grammar_shaper-adjacent DXIL opcodes.
+-- Strata: base(sm6.0) | 16-bit | wave-ops | raytracing | mesh |
+--   work-graphs | priv(validator).
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "directx", subarch = "dxil",
+    addr_size = 64, op_size = 32, addr_def = 64, align = 4,
+    byte_order = "little", obj_format = "dxil", abi = "DXIL",
+    calling_conv = "dxil-signature",
+    features = { "base", "sm6.0", "wave-ops" },
+}
+
+symas.feature{ name = "base", desc = "DXIL base arithmetic + memory" }
+symas.feature{ name = "sm6.0", desc = "Shader Model 6.0" }
+symas.feature{ name = "sm6.8", desc = "Shader Model 6.8" }
+symas.feature{ name = "wave-ops", desc = "wave intrinsics" }
+symas.feature{ name = "raytracing", desc = "ray tracing (DXR)" }
+symas.feature{ name = "mesh", desc = "mesh shaders" }
+symas.feature{ name = "16-bit", desc = "16-bit types" }
+symas.feature{ name = "work-graphs", desc = "work graphs" }
+symas.feature{ name = "dot", desc = "dot-product/DP2/DP4" }
+symas.feature{ name = "sample", desc = "texture sample/gather" }
+symas.feature{ name = "barrier", desc = "sync/barrier" }
+symas.feature{ name = "priv", desc = "validator-privileged ops" }
+
+for _, t in ipairs({ "i1", "i16", "i32", "i64", "f16", "f32", "f64" }) do
+    symas.register{ name = t, class = "gpr", width = 32, enc = 0 }
+end
+for _, r in ipairs({ "cbv", "srv", "uav", "sampler" }) do
+    symas.register{ name = r, class = "special", width = 32, enc = 0 }
+end
+for _, r in ipairs({ "thread_id", "group_id", "lane_id", "wave_mask" }) do
+    symas.register{ name = r, class = "special", width = 32, enc = 0 }
+end
+symas.register{ name = "payload", class = "special", width = 32, enc = 0 }
+symas.register{ name = "mesh_vertices", class = "special", width = 32, enc = 0 }
+symas.register{ name = "mesh_primitives", class = "special", width = 32, enc = 0 }
+
+symas.encoder{ name = "nop",   source = "emit32le(0x00000000);", max_bytes = 4 }
+symas.encoder{ name = "mov",   source = "emit32le(0x01000000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "add",   source = "emit32le(0x01020000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "sub",   source = "emit32le(0x01040000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "mul",   source = "emit32le(0x01060000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "fadd",  source = "emit32le(0x02020000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "fmul",  source = "emit32le(0x02060000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "fma",   source = "emit32le(0x02080000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "dot4",  source = "emit32le(0x02100000 + dst*256 + a*65536 + b*131072);", max_bytes = 4 }
+symas.encoder{ name = "ld",    source = "emit32le(0x03000000 + dst*256 + addr*65536);", max_bytes = 4 }
+symas.encoder{ name = "st",    source = "emit32le(0x03020000 + addr*65536 + val*256);", max_bytes = 4 }
+symas.encoder{ name = "cbuf",  source = "emit32le(0x03040000 + dst*256 + addr*65536);", max_bytes = 4 }
+symas.encoder{ name = "sample", source = "emit32le(0x03100000 + dst*256 + srv*65536 + sampler*256);", max_bytes = 4 }
+symas.encoder{ name = "gather", source = "emit32le(0x03120000 + dst*256 + srv*65536 + sampler*256);", max_bytes = 4 }
+symas.encoder{ name = "br",    source = "emit32le(0x04000000); emit_relocation(sym, R_DXIL_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "brcond", source = "emit32le(0x04020000); emit_relocation(sym, R_DXIL_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "ret",   source = "emit32le(0x04040000);", max_bytes = 4 }
+symas.encoder{ name = "call",  source = "emit32le(0x04060000); emit_relocation(sym, R_DXIL_FN);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "waveop", source = "emit32le(0x05000000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "wavelane", source = "emit32le(0x05020000 + dst*256);", max_bytes = 4 }
+symas.encoder{ name = "trace", source = "emit32le(0x06000000 + srv*65536);", max_bytes = 4 }
+symas.encoder{ name = "meshv", source = "emit32le(0x07000000 + dst*256 + src*65536);", max_bytes = 4 }
+symas.encoder{ name = "barrier", source = "emit32le(0x08000000);", max_bytes = 4 }
+symas.encoder{ name = "bitcast", source = "emit32le(0x09000000 + dst*256 + src*65536);", max_bytes = 4 }
+
+local function r() return { kind = "reg", class = "gpr", width = 32 } end
+local function wr() return { kind = "reg", class = "gpr", width = 32, access = "write" } end
+
+for _, m in ipairs({ "nop", "mov", "add", "sub", "mul", "fadd", "fmul",
+    "fma", "dot4", "ld", "st", "cbuf", "sample", "gather", "br",
+    "br.cond", "ret", "call", "wave.op", "wave.lane", "trace", "mesh.v",
+    "barrier", "bitcast" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "nop", encoder = "nop" }
+symas.form{ mnemonic = "mov", encoder = "mov", operands = { wr(), r() } }
+symas.form{ mnemonic = "add", encoder = "add", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "sub", encoder = "sub", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "mul", encoder = "mul", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "fadd", encoder = "fadd", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "fmul", encoder = "fmul", operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "fma", encoder = "fma", operands = { wr(), r(), r(), r() } }
+symas.form{ mnemonic = "dot4", encoder = "dot4", required = { "dot" }, operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "ld", encoder = "ld", flags = { "reads_mem" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "st", encoder = "st", flags = { "writes_mem" }, operands = { r(), r() } }
+symas.form{ mnemonic = "cbuf", encoder = "cbuf", flags = { "reads_mem" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "sample", encoder = "sample", required = { "sample" }, flags = { "reads_mem" },
+    operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "gather", encoder = "gather", required = { "sample" }, flags = { "reads_mem" },
+    operands = { wr(), r(), r() } }
+symas.form{ mnemonic = "br", encoder = "br", flags = { "branch", "terminator", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "br.cond", encoder = "brcond", flags = { "cond_branch", "reloc" },
+    operands = { r(), { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "ret", encoder = "ret", flags = { "return", "terminator" } }
+symas.form{ mnemonic = "call", encoder = "call", flags = { "branch", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "wave.op", encoder = "waveop", required = { "wave-ops" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "wave.lane", encoder = "wavelane", required = { "wave-ops" }, operands = { wr() } }
+symas.form{ mnemonic = "trace", encoder = "trace", required = { "raytracing" }, operands = { r() } }
+symas.form{ mnemonic = "mesh.v", encoder = "meshv", required = { "mesh" }, operands = { wr(), r() } }
+symas.form{ mnemonic = "barrier", encoder = "barrier", required = { "barrier" } }
+symas.form{ mnemonic = "bitcast", encoder = "bitcast", required = { "16-bit" }, operands = { wr(), r() } }
+
+symas.syntax{ name = "dxil", comment = ";", separator = ", " }
+symas.syntax{ name = "dxbc", comment = ";", separator = ", " }
+
+symas.section{ name = ".text", flags = { "exec", "alloc", "code" }, align = 4, content = "code" }
+symas.section{ name = ".rodata", flags = { "alloc", "readonly", "data" }, align = 4, content = "data" }
+symas.section{ name = ".dxil.signature", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+symas.section{ name = ".dxil.validator", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+
+symas.linkage{ name = "entry_export", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "func_local", binding = "local", visibility = "default", symtype = "func" }
+
+symas.reloc{ name = "R_DXIL_NONE", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_DXIL_REL32", width = 32, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_DXIL_FN", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_DXIL_HANDLE", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_DXIL_RESOURCE", width = 32, expr = "S + A" }
+
+symas.debug{ msg = "dxil shader IR: base+wave+ray/mesh+sample+barrier", kind = "target", ref = "" }
+symas.debug{ msg = "wave forms require wave-ops", kind = "form", ref = "wave.op" }
+symas.debug{ msg = "resource forms require sample", kind = "form", ref = "sample" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources: isa_reference DirectX/DXIL quick spec (LLVM bitcode, typed virtual
+-- registers, cbv/srv/uav/sampler resources, i1 predicates, wave intrinsics for
+-- SM 6.0 wave ops, raytracing/mesh pipelines for SM 6.5+), plus the DXIL
+-- shader-model rules that decide which wave/mesh instructions are legal and
+-- which patterns are promoted.
+-- DXIL is a bitcode dialect: the "models" below are shader models, and the
+-- sched records are the cost model a DXIL->DXIL/SM compiler applies when it
+-- schedules a wave.
+
+symas.model{
+    name = "sm6.0", vendor = "microsoft", issue_width = 4, rob = 0,
+    load_latency = 100, mispredict = 20,
+    flags = { "out_of_order", "has_stalls", "complete", "default" },
+    features = { "base", "sm6.0", "wave-ops" },
+    desc = "shader model 6.0: wave intrinsics, quad operations, 64 threads per wave",
+}
+symas.model{
+    name = "sm6.8", vendor = "microsoft", issue_width = 6, rob = 0,
+    load_latency = 80, mispredict = 20,
+    flags = { "out_of_order", "has_stalls", "forwarding", "complete" },
+    features = { "base", "sm6.8", "wave-ops", "barrier", "sample", "dot" },
+    desc = "shader model 6.8: WaveMatch, WavePrefix, 64+ wide wave ops, denorms",
+}
+symas.model{
+    name = "sm6.5", vendor = "microsoft", issue_width = 4, rob = 0,
+    load_latency = 120, mispredict = 20,
+    flags = { "out_of_order", "has_stalls" },
+    features = { "base", "mesh", "raytracing" },
+    desc = "shader model 6.5: mesh and raytracing pipelines",
+}
+symas.unit{ name = "dx-alu", model = "sm6.0", kind = "int", count = 4, latency = 1, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "dx-fp",  model = "sm6.0", kind = "fp", count = 4, latency = 4, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "dx-tex", model = "sm6.0", kind = "load", count = 4, latency = 100, throughput = 1 }
+symas.unit{ name = "dx-wave",model = "sm6.0", kind = "other", count = 1, latency = 4, throughput = 1, flags = { "noncoincident" } }
+symas.unit{ name = "dx6.8-wave", model = "sm6.8", kind = "other", count = 1, latency = 4, throughput = 1 }
+symas.unit{ name = "dx6.8-alu", model = "sm6.8", kind = "int", count = 6, latency = 1, throughput = 1 }
+symas.unit{ name = "dx6.8-tex", model = "sm6.8", kind = "load", count = 4, latency = 80, throughput = 1 }
+symas.unit{ name = "dx6.8-dot", model = "sm6.8", kind = "complex", count = 1, latency = 8, throughput = 1, flags = { "noncoincident" } }
+symas.unit{ name = "dx6.5-mesh", model = "sm6.5", kind = "complex", count = 1, latency = 200, throughput = 1 }
+
+symas.sched{ form = "nop", name = "Nop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+symas.sched{ form = "mov", name = "WriteMov", latency = 1, uops = 1, writes = { "dx-alu" }, reads = { "dx-alu" } }
+symas.sched{ form = { "add", "sub" }, name = "WriteALU", latency = 1, uops = 1,
+             writes = { "dx-alu" }, reads = { "dx-alu" } }
+symas.sched{ form = "mul", name = "WriteMul", latency = 4, uops = 1, writes = { "dx-fp" }, reads = { "dx-fp" } }
+symas.sched{ form = "fadd", name = "WriteFAdd", latency = 4, uops = 1, writes = { "dx-fp" }, reads = { "dx-fp" } }
+symas.sched{ form = "fmul", name = "WriteFMul", latency = 4, uops = 1, writes = { "dx-fp" }, reads = { "dx-fp" } }
+symas.sched{ form = "fma", name = "WriteFMA", latency = 4, uops = 1, writes = { "dx-fp" }, reads = { "dx-fp" } }
+symas.sched{ form = "dot4", name = "WriteDot4", latency = 8, uops = 1, flags = { "multicycle" },
+             writes = { "dx-alu" }, reads = { "dx-alu" } }
+symas.sched{ form = "ld", name = "WriteLD", latency = 100, uops = 1, flags = { "may_fault" }, writes = { "dx-tex" } }
+symas.sched{ form = "st", name = "WriteST", latency = 100, uops = 1, flags = { "may_fault" }, writes = { "dx-tex" } }
+symas.sched{ form = "sample", name = "WriteSample", latency = 100, uops = 1, flags = { "may_fault" }, writes = { "dx-tex" } }
+symas.sched{ form = "gather", name = "WriteGather", latency = 200, uops = 4, flags = { "multicycle", "may_fault" },
+             writes = { "dx-tex" } }
+symas.sched{ form = "cbuf", name = "WriteCBuf", latency = 100, uops = 1, flags = { "may_fault" }, writes = { "dx-tex" } }
+symas.sched{ form = "barrier", name = "WriteBarrier", latency = 30, uops = 1, flags = { "serializing", "barrier" },
+             writes = { "dx-wave" } }
+symas.sched{ form = "wave.op", name = "WriteWave", latency = 4, uops = 1, flags = { "side_effects" },
+             writes = { "dx-wave" }, reads = { "dx-alu" } }
+symas.sched{ form = "wave.lane", name = "WriteWaveLane", latency = 4, uops = 1, writes = { "dx-wave" } }
+symas.sched{ form = "mesh.v", name = "WriteMesh", latency = 200, uops = 1, flags = { "side_effects" },
+             writes = { "dx6.5-mesh" } }
+symas.sched{ form = "trace", name = "WriteTrace", latency = 200, uops = 1, flags = { "side_effects" },
+             writes = { "dx6.5-mesh" } }
+symas.sched{ form = "bitcast", name = "WriteBitcast", latency = 1, uops = 1, writes = { "dx-alu" } }
+symas.sched{ form = "br", name = "WriteBr", latency = 1, uops = 1, flags = { "fused" }, writes = { "dx-alu" } }
+symas.sched{ form = "br.cond", name = "WriteBrCond", latency = 1, uops = 1, flags = { "fused" },
+             writes = { "dx-alu" }, reads = { "dx-alu" } }
+symas.sched{ form = "ret", name = "WriteRet", latency = 1, uops = 1, flags = { "serializing" }, writes = { "dx-alu" } }
+symas.sched{ form = "call", name = "WriteCall", latency = 20, uops = 1, flags = { "serializing" }, writes = { "dx-alu" } }
+
+symas.tune{ model = "sm6.0", kind = "avoid", form = "wave.op", value = 2,
+            desc = "SM 6.0 wave ops occupy the SFU; use them only for ballot-style work" }
+symas.tune{ model = "sm6.8", kind = "prefer", form = "wave.op", value = 4,
+            desc = "SM 6.8 has WaveMatch/WavePrefix, which subsume manual ballot loops" }
+symas.tune{ model = "sm6.8", kind = "prefer", form = "dot4", value = 3,
+            desc = "dot4 is a single dot-product instruction on 6.8 hardware" }
+symas.tune{ model = "sm6.0", kind = "latency", form = "dot4", value = 8, flags = { "override" } }
+symas.tune{ model = "sm6.8", kind = "latency", form = "ld", value = 80, flags = { "override" } }
+symas.tune{ model = "sm6.8", kind = "latency", form = "sample", value = 80, flags = { "override" } }
+symas.tune{ model = "sm6.5", kind = "latency", form = "ld", value = 120, flags = { "override" } }
+symas.tune{ model = "sm6.8", kind = "avoid", form = "gather", value = 3,
+            desc = "gather costs four wave invocations; prefer four scalar loads" }
+symas.tune{ model = "sm6.8", kind = "threshold", name = "wave-size", value = 64,
+            desc = "a wave is 64 lanes; divergence serialises the whole wave" }
+symas.tune{ model = "sm6.0", kind = "threshold", name = "wave-size", value = 64 }
+symas.tune{ model = "sm6.8", kind = "strategy", name = "wave-uniform-load", value = 1,
+            desc = "a load whose address is wave-uniform is not split into per-lane accesses" }
+symas.tune{ model = "sm6.8", kind = "strategy", name = "denorm-flush", value = 1,
+            desc = "denormal outputs may be flushed to zero on 6.8" }
+symas.tune{ model = "sm6.5", kind = "strategy", name = "amplifier-amplification", value = 1,
+            desc = "mesh and amplification shaders are limited to the mesh pipeline" }
+
+symas.isel{ node = "add", form = "add", kind = "node", cost = 1, complexity = 1, flags = { "commutes" },
+            pattern = "(add i32, %v, %w)" }
+symas.isel{ node = "sub", form = "sub", kind = "node", cost = 1, complexity = 1, pattern = "(sub i32, %v, %w)" }
+symas.isel{ node = "mul", form = "mul", kind = "node", cost = 4, complexity = 1, pattern = "(mul float, %v, %w)" }
+symas.isel{ node = "fadd", form = "fadd", kind = "node", cost = 4, complexity = 1, pattern = "(fadd float, %v, %w)" }
+symas.isel{ node = "fmul", form = "fmul", kind = "node", cost = 4, complexity = 1, pattern = "(fmul float, %v, %w)" }
+symas.isel{ node = "fma", form = "fma", kind = "node", cost = 4, complexity = 2,
+            pattern = "(fma float, %v, %w, %x)" }
+symas.isel{ node = "dot", form = "dot4", kind = "node", cost = 8, complexity = 3, required = { "dot" },
+            pattern = "4-component dot product" }
+symas.isel{ node = "load", form = "ld", kind = "node", cost = 100, complexity = 1, pattern = "(load float, %ptr)" }
+symas.isel{ node = "store", form = "st", kind = "node", cost = 100, complexity = 1, pattern = "(store float, %ptr, %val)" }
+symas.isel{ node = "load", form = "cbuf", kind = "node", cost = 100, complexity = 2,
+            pattern = "constant-buffer read with an immediate index" }
+symas.isel{ node = "load", form = "gather", kind = "node", cost = 200, complexity = 3,
+            pattern = "vector load from divergent addresses" }
+symas.isel{ node = "image", form = "sample", kind = "node", cost = 100, complexity = 2, required = { "sample" } }
+symas.isel{ node = "image", form = "gather", kind = "node", cost = 200, complexity = 3,
+            pattern = "texture gather" }
+symas.isel{ node = "select", form = "br.cond", kind = "select", cost = 1, complexity = 2,
+            pattern = "a select on divergent values becomes a real branch" }
+symas.isel{ node = "select", form = "wave.op", kind = "select", cost = 4, complexity = 4, required = { "wave-ops" },
+            pattern = "wave-select/anyTrue/allTrue" }
+symas.isel{ node = "select", form = "mov", kind = "select", cost = 1, complexity = 1,
+            pattern = "a select with a wave-uniform condition is a predicated move" }
+symas.isel{ node = "ballot", form = "wave.op", kind = "node", cost = 4, complexity = 3, required = { "wave-ops" },
+            pattern = "WaveActiveAnyTrue / WaveActiveBallot" }
+symas.isel{ node = "br", form = "br", kind = "node", cost = 1, complexity = 1, pattern = "(br label)" }
+symas.isel{ node = "br", form = "br.cond", kind = "node", cost = 1, complexity = 1, pattern = "(brcond %c)" }
+symas.isel{ node = "br", form = "ret", kind = "node", cost = 1, complexity = 1, pattern = "ret" }
+symas.isel{ node = "br", form = "call", kind = "node", cost = 20, complexity = 1, pattern = "(call ...)" }
+symas.isel{ node = "COPY", form = "mov", kind = "copy", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "barrier", form = "barrier", kind = "node", cost = 30, complexity = 1,
+            flags = { "side_effects", "prefer" } }
+symas.isel{ node = "bitcast", form = "bitcast", kind = "node", cost = 1, complexity = 1,
+            pattern = "reinterpret the bits of a value" }
+symas.isel{ node = "mesh", form = "mesh.v", kind = "node", cost = 200, complexity = 2, required = { "mesh" } }
+symas.isel{ node = "trace", form = "trace", kind = "node", cost = 200, complexity = 2, required = { "raytracing" } }
+symas.isel{ node = "extractvalue", form = "mov", kind = "node", cost = 1, complexity = 1,
+            pattern = "extracting a component of a vector is a register move" }
+symas.isel{ node = "insertelement", form = "mov", kind = "node", cost = 1, complexity = 2,
+            pattern = "inserting into a vector costs one move" }
+
+symas.fuse{ name = "mul-fadd", a = "mul", b = "fadd", kind = "mul_add", latency = 4,
+            flags = { "profitable", "adjacent" }, pattern = "fma contraction" }
+symas.fuse{ name = "add-ld", a = "add", b = "ld", kind = "mem_arith", latency = 100,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "cbuf-fadd", a = "cbuf", b = "fadd", kind = "mem_arith", latency = 100,
+            flags = { "profitable", "adjacent" }, pattern = "constant-buffer read feeding arithmetic" }
+symas.fuse{ name = "sample-fmul", a = "sample", b = "fmul", kind = "mem_arith", latency = 100,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "ld-dot4", a = "ld", b = "dot4", kind = "mem_arith", latency = 100,
+            flags = { "profitable", "adjacent" } }
+symas.fuse{ name = "cmp-br.cond", a = "sub", b = "br.cond", kind = "cmp_branch", latency = 1,
+            flags = { "profitable", "requires_flags", "adjacent" } }
+symas.fuse{ name = "wave.op-barrier", a = "wave.op", b = "barrier", kind = "branch_pair", latency = 30,
+            flags = { "profitable", "adjacent" } }
+print(symas.emit())

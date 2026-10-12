@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.mir.memory.invariant-load-hoisting"
+  :name "Invariant Load Hoisting"
+  :stage mir
+  (category memory-optimization)
+  (paradigms loop-optimization memory-optimization)
+  (objective "Hoist a loop-invariant load out of the loop.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis memory-dependence-analysis)
+    (analysis loop-invariant-analysis))
+  (preconditions
+    (load-is-loop-invariant)
+    (no-intervening-store-in-loop))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (hoist (load addr) (loop l) (preheader p)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Hoists a loop-invariant load to the loop preheader.")
+  (limitations "Applies only when the load is loop-invariant and no intervening store invalidates it.")
+  (documentation
+    (purpose "Hoist loop-invariant loads out of loops.")
+    (motivation "Hoisting invariant loads reduces memory traffic in loops.")
+    (applicability "Applies to loads whose address is loop-invariant and not stored to in the loop.")
+    (semantic-assumptions "The load is loop-invariant and no intervening store invalidates it.")
+    (known-limitations "May increase register pressure.")
+    (testing-strategy "Invariant, variant, and intervening-store cases are exercised.")))

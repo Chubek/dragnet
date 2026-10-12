@@ -1,0 +1,6 @@
+; EkippX directives are expanded before parsing this normalized format.
+(operator iadd 2)
+(operator imul 2)
+(rule add-zero (iadd ?x 0) ?x)
+(rule guarded (imul ?x 2) (iadd ?x ?x)
+  :where (and (pure ?x) (no-overflow ?x 2)) :cost -1)

@@ -1,0 +1,19 @@
+import "machine.isa"
+machine portable { address_spaces = [0] semantics = (nop) }
+module demo {
+  global @count:i64 = 0
+  function main(%arg:i64):i64 {
+    register %arg:GPR width 64
+    register $r0:GPR width 64
+    block entry {
+      attribute frequency = 0.5
+      %1, %2 = split %arg:pair<i32,i32> { implicit_defs = [$r0] }
+      $r0 = load [%arg] attributes { address_space = 0 volatile = false }:i64
+      store [%arg, #8], $r0 { effects = ["writes_memory"] }
+      successor @exit
+    }
+    block exit {
+      ret $r0
+    }
+  }
+}

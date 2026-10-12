@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.register-pressure.live-range-splitting"
+  :name "Live Range Splitting"
+  :stage lir
+  (category register-pressure-optimization)
+  (paradigms register-pressure-optimization)
+  (objective "Split a live range into multiple segments to reduce register pressure.")
+  (requires
+    (capability machine-operations)
+    (capability register-constraints)
+    (capability live-range-information))
+  (preconditions
+    (live-range-is-splittable))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (split (live-range lr) (segments seg1 seg2)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Splits a live range into multiple segments.")
+  (limitations "Applies only when the live range is splittable.")
+  (documentation
+    (purpose "Split live ranges to reduce register pressure.")
+    (motivation "Live range splitting reduces register pressure.")
+    (applicability "Applies to live ranges that are splittable.")
+    (semantic-assumptions "The live range is splittable.")
+    (known-limitations "May increase copy instructions.")
+    (testing-strategy "Splittable, non-splittable, and boundary cases are exercised.")))

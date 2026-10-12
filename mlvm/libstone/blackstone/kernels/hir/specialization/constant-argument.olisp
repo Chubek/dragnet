@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.specialization.constant-argument"
+  :name "HIR Constant Argument Specialization"
+  :stage hir
+  (category specialization)
+  (paradigms rule-based)
+  (objective "Specialize a function by binding a constant argument.")
+  (requires
+    (capability typed-expressions)
+    (analysis constant-value-analysis))
+  (preconditions
+    (argument-is-constant)
+    (function-is-specializeable))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (specialize (function-call f (integer c)) (specialized-function f-with-c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Creates a specialized function with a constant argument bound.")
+  (limitations "Applies only when the argument is a known constant and the function is specializeable.")
+  (documentation
+    (purpose "Specialize functions on constant arguments.")
+    (motivation "Specialization enables downstream constant folding and dead code elimination.")
+    (applicability "Applies to function calls with a known constant argument.")
+    (semantic-assumptions "The argument is a known constant and the function body is available.")
+    (known-limitations "Does not specialize when the function body is unavailable.")
+    (testing-strategy "Constant and non-constant argument cases are exercised.")))

@@ -1,0 +1,21 @@
+regtl fixture {
+  regclass G = [$0, $1, $2, $3];
+  live %7:G [0,10] { spillable = false; provenance = "argument"; }
+  live %8:G [1,10] { spillable = false; }
+  spill_slot temp { size = 8; alignment = 8; }
+  function test {
+    block entry {
+      move %7 <- #42;
+      move slot(temp) <- %7;
+      move %8 <- [#4096];
+      parallel { move $0 <- $1; move $1 <- $0; }
+      instruction consume { use %8; fixed = $2; }
+      successor exit;
+    }
+    block exit {
+      instruction ret { use %7; }
+      live_out = [%7];
+    }
+  }
+  notes { retained = [1, "two", true]; }
+}

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.compare-self"
+  :name "Comparison of Self Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer comparison of a value with itself with the constant result.")
+  (requires
+    (capability typed-expressions)
+    (capability comparison-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (comparison-of-self-is-constant))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (compare eq x x) true))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x == x with true.")
+  (limitations "Applies only to equality comparison of a value with itself.")
+  (documentation
+    (purpose "Simplify comparison of a value with itself to a constant.")
+    (motivation "Removing self-comparison reduces instruction count.")
+    (applicability "Applies to integer equality comparison nodes where both operands are the same value.")
+    (semantic-assumptions "The comparison operation satisfies x == x = true under the declared semantics.")
+    (known-limitations "Does not apply to ordered comparisons or floating-point without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

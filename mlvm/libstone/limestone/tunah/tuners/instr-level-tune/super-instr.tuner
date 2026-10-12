@@ -1,0 +1,69 @@
+; =============================================================================
+; Tunah tuner -- super instruction formation
+; =============================================================================
+; Purpose       : Recognise a pair of adjacent operations that a target can
+;                issue as one fused operation, and record that fact as a single
+;                super instruction node. The node is an internal marker: it is
+;                not an opcode, and instruction selection is what turns it into
+;                the real fused form or splits it again.
+; Stage         : Instruction level machine IL, after the arithmetic and memory
+;                rules of this directory have run, because a super instruction
+;                is only worth forming out of a term that is already small.
+; Vocabulary    : The shared integer operators plus the super- family declared
+;                below and ieq for the comparison that selects an arm.
+; Super instruction contract, one per node:
+;   super-sll-add x y     denotes (iadd (ishl x 1) y)
+;   super-load-add p acc  denotes (iadd (load32 p) acc)
+;   super-store-add p i v denotes (store32 (iadd p i) v)
+;   super-eq-select a b x y denotes (ite (ieq a b) x y)
+;   Every one of them is a definition, not a new instruction: the denotation is
+;   exactly the term on the right, so a reconstruction into IL always recovers
+;   the original meaning, and a target without a fused form loses nothing but
+;   the fusion.
+; Preconditions : Fusion is sound only where the two operations are adjacent
+;                in the same block with no intervening memory effect, which is
+;                what the patterns below match. A store is fused with its
+;                address arithmetic, never with a load, because the store has
+;                to stay ordered after the data it stores. No rule fuses two
+;                operations that may trap independently, so a trapping form of
+;                these patterns must be rejected by the adapter before
+;                ingestion rather than rewritten here.
+; Cost model    : Each super node is one application with more operands than
+;                the pair it replaces, and the size cost model charges
+;                1 + arity for an application, so every rule here strictly
+;                lowers the cost of the matched subterm and always wins
+;                extraction. That is intended: the cost model is what makes the
+;                saturated e-graph prefer the fused term.
+; Termination   : No rule takes a super node apart, and no rule creates a
+;                super node from another super node, so the fused forms are
+;                the leaves of this rewrite set. Each rule strictly reduces the
+;                cost of its match, so the set is monotone and terminates
+;                without a resource limit.
+;
+; Operator signatures required by this file:
+; signatures: super-sll-add 2, super-load-add 2, super-store-add 3,
+;             super-eq-select 4, iadd 2, ishl 2, load32 1, store32 2, ite 3,
+;             ieq 2
+; =============================================================================
+
+; A left shift by one feeding an add is the fused scale and add operation.
+(rule si-sll-add-left (iadd (ishl ?x 1) ?y) (super-sll-add ?x ?y))
+; Same, when the scaled operand is the second one. The two orders are listed
+; explicitly because this directory states no commutativity rule, which keeps
+; the e-graph from growing without bound.
+(rule si-sll-add-right (iadd ?y (ishl ?x 1)) (super-sll-add ?x ?y))
+; An indexed load feeding an accumulator is one fused load and add.
+(rule si-load-add-left (iadd (load32 ?p) ?acc) (super-load-add ?p ?acc))
+; Same, with the accumulator first.
+(rule si-load-add-right (iadd ?acc (load32 ?p)) (super-load-add ?p ?acc))
+; An indexed store is a base plus index plus store in one operation. The store
+; keeps its own position in the block, so the ordering of the memory effect is
+; unchanged.
+(rule si-store-add (store32 (iadd ?p ?i) ?v) (super-store-add ?p ?i ?v))
+; A compare that directly selects an arm is a fused compare and select, which
+; removes the branch the select would have needed.
+(rule si-eq-select (ite (ieq ?a ?b) ?x ?y) (super-eq-select ?a ?b ?x ?y))
+; Same, for the comparison written with its operands exchanged. Equality is
+; symmetric, so the fused form is the same one, and no general commutativity
+; rule is needed.
+(rule si-eq-select-swapped (ite (ieq ?b ?a) ?x ?y) (super-eq-select ?a ?b ?x ?y))

@@ -1,0 +1,12 @@
+(define-monoid
+  :id "blackstone.monoid.boolean-and"
+  :name "Boolean Conjunction"
+  :carrier boolean
+  :operation boolean-and
+  :identity true
+  (laws
+    (associative boolean-and)
+    (left-identity boolean-and true)
+    (right-identity boolean-and true))
+  (description
+    "Boolean conjunction with identity true, suitable for combining conditions."))

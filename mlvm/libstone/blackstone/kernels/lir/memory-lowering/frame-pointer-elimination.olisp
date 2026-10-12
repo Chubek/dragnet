@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.memory.frame-pointer-elimination"
+  :name "Frame Pointer Elimination"
+  :stage lir
+  (category memory-lowering)
+  (paradigms register-pressure-optimization)
+  (objective "Eliminate the frame pointer when it is not needed.")
+  (requires
+    (capability machine-operations)
+    (capability frame-pointer-information))
+  (preconditions
+    (frame-pointer-is-not-needed))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (frame-pointer-register fp)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Eliminates the frame pointer when it is not needed.")
+  (limitations "Applies only when the frame pointer is not needed.")
+  (documentation
+    (purpose "Eliminate the frame pointer when it is not needed.")
+    (motivation "Frame pointer elimination frees a register.")
+    (applicability "Applies when the frame pointer is not needed.")
+    (semantic-assumptions "The frame pointer is not needed.")
+    (known-limitations "Does not eliminate when the frame pointer is needed.")
+    (testing-strategy "Needed, not-needed, and boundary cases are exercised.")))

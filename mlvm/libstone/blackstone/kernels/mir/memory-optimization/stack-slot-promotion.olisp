@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.memory.stack-slot-promotion"
+  :name "Stack Slot Promotion"
+  :stage mir
+  (category memory-optimization)
+  (paradigms memory-optimization)
+  (objective "Promote stack-allocated variables to registers when their address is not taken.")
+  (requires
+    (capability ssa-form)
+    (analysis alias-analysis))
+  (preconditions
+    (address-is-not-taken)
+    (variable-is-scalar))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (promote (stack-slot :id slot) (register r)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Promotes a stack-allocated variable to a register.")
+  (limitations "Applies only when the variable's address is not taken and the variable is scalar.")
+  (documentation
+    (purpose "Promote stack-allocated variables to registers.")
+    (motivation "Stack slot promotion reduces memory traffic.")
+    (applicability "Applies to stack-allocated variables whose address is not taken.")
+    (semantic-assumptions "The variable's address is not taken and the variable is scalar.")
+    (known-limitations "Does not promote variables whose address is taken.")
+    (testing-strategy "Address-taken, address-not-taken, and aggregate cases are exercised.")))

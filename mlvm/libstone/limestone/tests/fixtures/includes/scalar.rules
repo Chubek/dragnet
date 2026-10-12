@@ -1,0 +1,4 @@
+include "scalar.terminals";
+rule 1 reg: CONST():i64 -> MOVI cost 2;
+rule 2 reg: ADD(reg:i64, reg:i64):i64 -> ADD cost 2;
+rule 3 reg: ADD(reg:i64, CONST():i64[-8..7]):i64 -> ADDI cost 1;

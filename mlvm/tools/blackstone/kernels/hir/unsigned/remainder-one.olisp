@@ -1,0 +1,36 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.hir.unsigned.remainder-one"
+  :name "Remainder one"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (urem x one) with zero when the declared proof obligations hold.")
+  (requires
+    (capability typed-expressions)
+    (capability division-semantics))
+  (preconditions divisor-is-one-at-operand-width operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires )
+    (invalidates constant-value-analysis range-analysis)
+    (preserves))
+  (transform (rewrite (urem x one) zero))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Only unsigned remainder is covered; x remains evaluated and defined.")
+  (documentation
+    (purpose "Replace (urem x one) with zero when the declared proof obligations hold.")
+    (motivation "Expose the remainder one opportunity for planners with explicit legality facts.")
+    (stage "NodeHIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (urem x one); require a proven true divisor-is-one-at-operand-width fact.")
+    (preconditions "Required true facts: divisor-is-one-at-operand-width, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: typed-expressions, division-semantics; analyses: none. Results must be current.")
+    (transformation "Replace (urem x one) with zero when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Only unsigned remainder is covered; x remains evaluated and defined.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Only unsigned remainder is covered; x remains evaluated and defined.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.hir.unsigned.remainder-one. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

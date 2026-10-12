@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.memory.stack-slot-allocation"
+  :name "Stack Slot Allocation"
+  :stage lir
+  (category memory-lowering)
+  (paradigms target-specific)
+  (objective "Allocate stack slots for spilled values.")
+  (requires
+    (capability machine-operations)
+    (capability stack-frame-information))
+  (preconditions
+    (stack-frame-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (spilled-value v) (stack-slot s)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Allocates stack slots for spilled values.")
+  (limitations "Applies only when the stack frame is available.")
+  (documentation
+    (purpose "Allocate stack slots for spilled values.")
+    (motivation "Stack slot allocation maps spilled values to memory.")
+    (applicability "Applies to spilled values when the stack frame is available.")
+    (semantic-assumptions "The stack frame is available.")
+    (known-limitations "Does not allocate when the stack frame is unavailable.")
+    (testing-strategy "Spilled, non-spilled, and boundary cases are exercised.")))

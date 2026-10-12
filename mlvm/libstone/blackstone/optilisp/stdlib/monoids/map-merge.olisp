@@ -1,0 +1,13 @@
+(define-monoid
+  :id "blackstone.monoid.map-merge"
+  :name "Map Merge"
+  :carrier map
+  :operation map-merge
+  :identity empty-map
+  (laws
+    (associative map-merge)
+    (left-identity map-merge empty-map)
+    (right-identity map-merge empty-map))
+  (description
+    "Map merge with the empty map as identity. Merge must resolve key conflicts"
+    " deterministically for the operation to be associative."))

@@ -1,0 +1,37 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.lir.target.funnel-shift-recognition"
+  :name "Funnel shift recognition"
+  :stage lir
+  (category instruction-combination)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (funnel-shift-sequence left right count) with (target-funnel-shift left right count) when the declared proof obligations hold.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (analysis liveness-analysis))
+  (preconditions target-funnel-shift-count-semantics-match operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants target-flags-clobbers-and-register-constraints-preserved)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires liveness-analysis)
+    (invalidates liveness-analysis live-range-analysis)
+    (preserves))
+  (transform (rewrite (funnel-shift-sequence left right count) (target-funnel-shift left right count)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Check zero count, modulo behavior, operand ordering, width, flags, and poison semantics.")
+  (documentation
+    (purpose "Replace (funnel-shift-sequence left right count) with (target-funnel-shift left right count) when the declared proof obligations hold.")
+    (motivation "Expose the funnel shift recognition opportunity for planners with explicit legality facts.")
+    (stage "NodeLIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (funnel-shift-sequence left right count); require a proven true target-funnel-shift-count-semantics-match fact.")
+    (preconditions "Required true facts: target-funnel-shift-count-semantics-match, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants, target-flags-clobbers-and-register-constraints-preserved.")
+    (required-information "Capabilities: machine-operations, target-description; analyses: liveness-analysis. Results must be current.")
+    (transformation "Replace (funnel-shift-sequence left right count) with (target-funnel-shift left right count) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Check zero count, modulo behavior, operand ordering, width, flags, and poison semantics.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Check zero count, modulo behavior, operand ordering, width, flags, and poison semantics.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.lir.target.funnel-shift-recognition. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

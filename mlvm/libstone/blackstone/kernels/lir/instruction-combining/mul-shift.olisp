@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.mul-shift"
+  :name "Multiply-Shift Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Replace a multiply followed by a shift with a single combined operation when the target supports it.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (target-supports-combined-operation)
+    (semantics-match))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (sequence (machine-op :kind "MUL") (machine-op :kind "SHIFT"))
+             (target-pattern :name "combined-mul-shift-pattern")))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a multiply-shift sequence with a single combined operation.")
+  (limitations "Applies only when the target supports a combined operation.")
+  (documentation
+    (purpose "Combine multiply-shift sequences into single operations.")
+    (motivation "Instruction combining reduces instruction count.")
+    (applicability "Applies to multiply-shift sequences when the target supports a combined operation.")
+    (semantic-assumptions "The target supports a combined operation with matching semantics.")
+    (known-limitations "Does not combine when the target lacks a suitable instruction.")
+    (testing-strategy "Supported, unsupported, and semantics-mismatch cases are exercised.")))

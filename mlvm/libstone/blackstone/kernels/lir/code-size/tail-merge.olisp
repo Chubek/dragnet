@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.code-size.tail-merge"
+  :name "Tail Merge"
+  :stage lir
+  (category code-size-optimization)
+  (paradigms code-size-optimization)
+  (objective "Merge two basic blocks that are the targets of a common predecessor's conditional branch.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (blocks-are-mergeable))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (merge (block a) (block b)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Merges two basic blocks to reduce code size.")
+  (limitations "Applies only to mergeable basic blocks.")
+  (documentation
+    (purpose "Merge basic blocks to reduce code size.")
+    (motivation "Tail merging reduces code size.")
+    (applicability "Applies to basic blocks that are targets of a common predecessor's conditional branch.")
+    (semantic-assumptions "The blocks are mergeable.")
+    (known-limitations "Does not merge non-mergeable blocks.")
+    (testing-strategy "Mergeable, non-mergeable, and boundary cases are exercised.")))

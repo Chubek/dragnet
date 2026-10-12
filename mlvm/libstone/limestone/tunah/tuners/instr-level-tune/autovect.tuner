@@ -1,0 +1,109 @@
+; =============================================================================
+; Tunah tuner -- automatic vectorization
+; =============================================================================
+; Purpose       : Hold the vector form of a computation next to its scalar form
+;                in the same e-graph, and form a vector store out of two
+;                adjacent stores to consecutive addresses. The vector rules
+;                give the extractor the cheaper spelling of a vectorized loop
+;                body; the superword rule is the one place where this tuner
+;                creates a vector node from scalar input.
+; Stage         : Instruction level machine IL, after loop normalization and
+;                before the vector instruction forms are selected.
+; Vector vocabulary, all elementwise and all of the same length:
+;   av-add av-sub av-mul av-and av-or av-xor av-shl av-neg av-cmp av-select
+;   av-sext av-zext av-interleave av-reduce-add av-broadcast av-load av-store
+;   superword: av-store-pair p a b denotes two adjacent byte stores of a and
+;   b at p and at p plus 1, which is one vector store of two byte lanes.
+;   The rules below use a subset of this vocabulary. The rest is declared so
+;   that a vector term produced by the vectorizer can be ingested into a
+;   session that has this file loaded, without the adapter having to special
+;   case an operator that only appears in the input.
+; Preconditions :
+;   * Every av- operator is elementwise and the operands are vectors of equal
+;     length, an invariant the vectorizer establishes before ingestion. A
+;     mismatch is an adapter error and must be rejected, not rewritten.
+;   * An integer literal inside an av- pattern is a broadcast lane, so the
+;     literal zero is a vector of zeros. That is what makes the annihilator
+;     and neutral element rules below sound.
+;   * Lanes are integers, so addition is associative and commutative and a
+;     reduction distributes over an elementwise sum. The rules would not be
+;     sound for floating point lanes, where reassociation changes the result.
+;   * Distributing sign extension over arithmetic requires a host analysis
+;     proving that every narrow signed lane result fits without overflow.
+;     The vector-signed-*-fits predicates carry this proof obligation.
+;   * av-broadcast takes a scalar and av-reduce-add returns a scalar. Neither
+;     may be equated with a vector operand or an elementwise vector result.
+;   * The superword rule requires the two stores to be adjacent in the same
+;     block and to write consecutive byte locations, which is exactly what
+;     the pattern states. A store to an address that is not a constant offset
+;     from the other is not matched, so no aliasing argument is needed.
+; Cost model    : A vector application costs 1 + arity regardless of its lane
+;                count, so the vector spelling of a loop body is much cheaper
+;                than the scalar one and the extractor prefers it. The
+;                superword rule replaces two stores with one three-argument
+;                store, which is also strictly cheaper, and it is the one rule
+;                here that creates a node; it is the point of the tuner.
+; Termination   : No rule takes a vector node apart and no rule matches on a
+;                vector node in the left hand side of a forming rule, so the
+;                vector forms are the leaves of this set. The superword rule
+;                fires at most once per adjacent store pair and cannot reapply
+;                to its own output. The set is monotone.
+;
+; Operator signatures required by this file:
+; signatures: av-add 2, av-sub 2, av-mul 2, av-and 2, av-or 2, av-xor 2,
+;             av-shl 2, av-neg 1, av-cmp 3, av-select 3, av-sext 1, av-zext 1,
+;             av-interleave 2, av-reduce-add 1, av-broadcast 1, av-load 1,
+;             av-store 2, av-store-pair 3, iadd 2, store8 2, seq 2
+; =============================================================================
+
+; A zero broadcast is the neutral element of an elementwise sum, so the add is
+; the vector it started from.
+(rule av-add-zero (av-add ?a 0) ?a)
+; A one broadcast is the neutral element of an elementwise product.
+(rule av-add-mul-one (av-mul ?a 1) ?a)
+; A zero broadcast annihilates an elementwise product, and the result is the
+; zero vector, which is the zero broadcast.
+(rule av-mul-zero (av-mul ?a 0) 0)
+; Every bit is its own exclusive or, so a vector exclusive or with itself is
+; the zero vector.
+(rule av-xor-self (av-xor ?a ?a) 0)
+; A vector is its own and.
+(rule av-and-self (av-and ?a ?a) ?a)
+; A vector is its own or.
+(rule av-or-self (av-or ?a ?a) ?a)
+; A vector and the negation of itself sum to the zero vector.
+(rule av-add-negation (av-add ?a (av-neg ?a)) 0)
+; A shift by a zero count broadcast is the identity.
+(rule av-shl-zero (av-shl ?a 0) ?a)
+; A negation of the zero vector is the zero vector.
+(rule av-neg-zero (av-neg 0) 0)
+; Adding scalar zero before broadcasting does not change the broadcast lanes.
+(rule av-broadcast-drop-zero-add (av-broadcast (iadd ?a 0)) (av-broadcast ?a))
+; A lane-wise signed sum can be widened distributively only if no lane wraps.
+(rule av-sext-of-add (av-sext (av-add ?a ?b)) (av-add (av-sext ?a) (av-sext ?b))
+  :where (vector-signed-add-fits ?a ?b))
+; The same proof obligation for every exact signed lane difference.
+(rule av-sext-of-sub (av-sext (av-sub ?a ?b)) (av-sub (av-sext ?a) (av-sext ?b))
+  :where (vector-signed-sub-fits ?a ?b))
+; The same proof obligation for every exact signed lane product.
+(rule av-sext-of-mul (av-sext (av-mul ?a ?b)) (av-mul (av-sext ?a) (av-sext ?b))
+  :where (vector-signed-mul-fits ?a ?b))
+; There is deliberately no rule distributing av-zext. A zero extension of a sum
+; is not the sum of the zero extensions when the narrow sum overflows a lane,
+; because the carry out of the narrow add is dropped by the widening and kept by
+; the wide add, and no range or overflow analysis reaches this tuner. That is
+; also why av-zext appears in the vocabulary below but in no rule: it is the
+; spelling a vector term arrives in, not a distribution this file may assume.
+; Interleaving commutes with an elementwise operation, because interleaving is
+; a permutation of the lanes and a permutation of the inputs of a lane wise
+; function is the lane wise function of the permuted inputs.
+(rule av-interleave-of-add (av-interleave (av-add ?a ?b) (av-add ?c ?d))
+  (av-add (av-interleave ?a ?c) (av-interleave ?b ?d)))
+; A reduction distributes over an elementwise sum, because the lanes are
+; integers and their total is the sum of the totals.
+(rule av-reduce-of-add (av-reduce-add (av-add ?a ?b))
+  (iadd (av-reduce-add ?a) (av-reduce-add ?b)))
+; Two adjacent stores to consecutive byte locations are one vector store of two
+; lanes. This is the superword level parallelism case, and the only rule in this
+; directory that builds a vector node out of scalar nodes.
+(rule av-store-pair (seq (store8 ?p ?a) (store8 (iadd ?p 1) ?b)) (av-store-pair ?p ?a ?b))

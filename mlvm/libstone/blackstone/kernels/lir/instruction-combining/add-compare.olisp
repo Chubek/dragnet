@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.add-compare"
+  :name "Add-Compare Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Replace an add followed by a compare with a single combined operation when the target supports it.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability instruction-cost-model))
+  (preconditions
+    (target-supports-combined-operation)
+    (semantics-match))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (sequence (machine-op :kind "ADD") (machine-op :kind "COMPARE"))
+             (target-pattern :name "combined-arithmetic-condition-pattern")))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces an add-compare sequence with a single combined operation.")
+  (limitations "Applies only when the target supports a combined operation with matching semantics.")
+  (documentation
+    (purpose "Combine add-compare sequences into single operations.")
+    (motivation "Instruction combining reduces instruction count.")
+    (applicability "Applies to add-compare sequences when the target supports a combined operation.")
+    (semantic-assumptions "The target supports a combined operation with matching semantics.")
+    (known-limitations "Does not combine when the target lacks a suitable instruction.")
+    (testing-strategy "Supported, unsupported, and semantics-mismatch cases are exercised.")))

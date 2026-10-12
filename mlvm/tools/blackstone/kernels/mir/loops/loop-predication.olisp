@@ -1,0 +1,42 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.mir.loops.loop-predication"
+  :name "Loop predication"
+  :stage mir
+  (category loop-optimization)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (loop-with-check body check) with (guarded-loop body check) when the declared proof obligations hold.")
+  (requires
+    (capability ssa-form)
+    (capability explicit-control-flow)
+    (capability loop-information)
+    (analysis dominator-analysis)
+    (analysis loop-nest-analysis)
+    (analysis induction-variable-analysis)
+    (analysis side-effect-analysis)
+    (analysis exception-analysis))
+  (preconditions entry-guard-equivalent-to-all-iteration-checks operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires dominator-analysis loop-nest-analysis induction-variable-analysis side-effect-analysis exception-analysis)
+    (invalidates constant-value-analysis dominator-analysis exception-analysis induction-variable-analysis liveness-analysis loop-nest-analysis side-effect-analysis)
+    (preserves))
+  (transform (rewrite (loop-with-check body check) (guarded-loop body check)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Hoisted checks must not trap on a zero-trip path; retain deoptimization state and overflow semantics.")
+  (documentation
+    (purpose "Replace (loop-with-check body check) with (guarded-loop body check) when the declared proof obligations hold.")
+    (motivation "Expose the loop predication opportunity for planners with explicit legality facts.")
+    (stage "NodeMIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (loop-with-check body check); require a proven true entry-guard-equivalent-to-all-iteration-checks fact.")
+    (preconditions "Required true facts: entry-guard-equivalent-to-all-iteration-checks, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: ssa-form, explicit-control-flow, loop-information; analyses: dominator-analysis, loop-nest-analysis, induction-variable-analysis, side-effect-analysis, exception-analysis. Results must be current.")
+    (transformation "Replace (loop-with-check body check) with (guarded-loop body check) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Hoisted checks must not trap on a zero-trip path; retain deoptimization state and overflow semantics.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Hoisted checks must not trap on a zero-trip path; retain deoptimization state and overflow semantics.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.mir.loops.loop-predication. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

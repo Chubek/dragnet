@@ -1,0 +1,47 @@
+arch backend_machine {
+  word_size=64; addr_size=64; endian=little;
+  default_register_class=G; scheduling={issue_width=2;};
+  spills={G={load=RELOAD; store=SPILL; address_space="private-frame"; size=8; alignment=8; scratch=[1,2,3];};};
+}
+profile { family="fixture"; model="register-machine"; version="1"; execution_model="four-register-i64-private-frame"; }
+tooling { bin2bin={schema_version=1; instruction_encoding="masked"; execution_domain="bytecode"; word_size=64; address_size=64; endianness="little";};
+  object_file={format=elf64;version=1;machine=65534;endianness=little;flags=0;osabi=0;abi_version=0;text_alignment=1;relocations=[];};
+}
+regclass G { r0(64)=0, r1(64)=1, r2(64)=2, r3(64)=3, }
+encoding C { width=16; base=1; mask=63; fields={dst={lsb=6; width=2; kind=register; class=G;}; imm={lsb=8; width=8; kind=signed;};}; }
+encoding A { width=8; base=2; mask=3; fields={dst={lsb=2; width=2; kind=register; class=G;}; lhs={lsb=4; width=2; kind=register; class=G;}; rhs={lsb=6; width=2; kind=register; class=G;};}; }
+encoding B { width=16; base=3; mask=63; fields={cond={lsb=6; width=2; kind=register; class=G;}; target={lsb=8; width=8; kind=pc_relative;};}; }
+encoding J { width=16; base=4; mask=255; fields={target={lsb=8; width=8; kind=pc_relative;};}; }
+encoding R { width=8; base=5; mask=63; fields={src={lsb=6; width=2; kind=register; class=G;};}; }
+encoding L { width=24; base=8; mask=63; fields={dst={lsb=6; width=2; kind=register; class=G;}; slot={lsb=8; width=16; kind=unsigned;};}; }
+encoding S { width=24; base=9; mask=63; fields={src={lsb=6; width=2; kind=register; class=G;}; slot={lsb=8; width=16; kind=unsigned;};}; }
+op CONST { encoding=C; latency=0; semantics="(set $dst $imm)";
+  encoding_operands={dst={kind=definition; index=0;}; imm={kind=immediate; index=0;};};
+  tooling={instruction_selection={selection_tree="const():i64"; cost=1;}; binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}
+op ADD { encoding=A; latency=1; semantics="(set $dst (add $lhs $rhs))";
+  encoding_operands={dst={kind=definition; index=0;}; lhs={kind=use; index=0;}; rhs={kind=use; index=1;};};
+  tooling={instruction_selection={selection_tree="add(?a:i64,?b:i64):i64"; cost=1;}; binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}
+op BRANCH { encoding=B; latency=0; control_flow=conditional_branch; semantics="(branch_nonzero $cond $target)";
+  encoding_operands={cond={kind=use; index=0;}; target={kind=block; index=0;};};
+  tooling={instruction_selection={selection_tree="branch(?condition:i64)"; cost=1; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=conditional_branch; target_operand=target;};};
+}
+op JUMP { encoding=J; latency=0; control_flow=branch; semantics="(branch $target)";
+  encoding_operands={target={kind=block; index=0;};};
+  tooling={instruction_selection={selection_tree="jump()"; cost=1; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=branch; target_operand=target;};};
+}
+op RETURN { encoding=R; latency=0; control_flow=return; semantics="(return $src)";
+  encoding_operands={src={kind=use; index=0;};};
+  tooling={instruction_selection={selection_tree="return(?value:i64)"; cost=1; side_effects=true;}; binary_translation={schema_version=1; equivalence_basis="semantics"; control_flow=return;};};
+}
+op RELOAD { encoding=L; latency=2; semantics="(set $dst (frame_load $slot))";
+  encoding_operands={dst={kind=definition; index=0;}; slot={kind=immediate; index=0;};};
+  access={read=true; address_space="private-frame"; size=8; alignment=8;};
+  tooling={binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}
+op SPILL { encoding=S; latency=1; semantics="(frame_store $slot $src)";
+  encoding_operands={src={kind=use; index=0;}; slot={kind=immediate; index=0;};};
+  access={write=true; address_space="private-frame"; size=8; alignment=8;};
+  tooling={binary_translation={schema_version=1; equivalence_basis="semantics";};};
+}

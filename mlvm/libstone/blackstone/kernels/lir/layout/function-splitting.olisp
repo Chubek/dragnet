@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.layout.function-splitting"
+  :name "Function Splitting"
+  :stage lir
+  (category code-layout)
+  (paradigms code-layout cost-model-guided)
+  (objective "Split a function into hot and cold parts to improve code locality.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability function-splitting-information))
+  (preconditions
+    (function-splitting-information-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (split (function f) (hot-function hot) (cold-function cold)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Splits a function into hot and cold parts.")
+  (limitations "Applies only when function splitting information is available.")
+  (documentation
+    (purpose "Split functions into hot and cold parts.")
+    (motivation "Function splitting improves code locality.")
+    (applicability "Applies when function splitting information is available.")
+    (semantic-assumptions "Function splitting information is available.")
+    (known-limitations "Does not split when function splitting information is unavailable.")
+    (testing-strategy "Hot, cold, and mixed function cases are exercised.")))

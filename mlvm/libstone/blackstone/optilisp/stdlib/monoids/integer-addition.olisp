@@ -1,0 +1,17 @@
+;;; Integer addition monoid.
+;;; The operation is modular, trapping, or wrapping according to the declared
+;;; integer semantics; the laws hold under the specified equivalence.
+
+(define-monoid
+  :id "blackstone.monoid.integer-addition"
+  :name "Integer Addition"
+  :carrier integer
+  :operation integer-add
+  :identity 0
+  (laws
+    (associative integer-add)
+    (left-identity integer-add 0)
+    (right-identity integer-add 0))
+  (description
+    "Integer addition with identity 0. The operation must be declared modular,"
+    " trapping, or wrapping; the laws hold under the declared semantics."))

@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-neg"
+  :name "Integer Negation Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate an integer negation whose operand is a known constant.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics)
+    (result-representable-under-integer-semantics))
+  (forbids
+    (operation-has-observable-side-effects)
+    (signed-overflow-traps))
+  (transform
+    (fold (neg (integer a)) (integer-result (integer-neg a))))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-integer-overflow-semantics))
+  (expected-effects "Replaces a constant integer negation with its compile-time value.")
+  (limitations "Requires a known constant operand and a representable result.")
+  (documentation
+    (purpose "Fold a constant integer negation into its compile-time result.")
+    (motivation "Removing constant arithmetic reduces run-time work.")
+    (applicability "Applies to integer negation nodes with a known integer constant operand.")
+    (semantic-assumptions "The IR's integer semantics, including overflow behavior, are preserved.")
+    (known-limitations "Does not fold non-constant operands.")
+    (testing-strategy "Positive, negative, and minimum-value cases are exercised.")))

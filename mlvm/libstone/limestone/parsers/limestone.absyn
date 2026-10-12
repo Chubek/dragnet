@@ -1,0 +1,42 @@
+namespace limestone::syntax::limestone;
+parser limestone;
+root Document;
+node Document { Declaration* declarations; }
+sum Declaration = Module | Pipeline | Target | Import;
+node Module { Name name; ModuleItem* items; }
+sum ModuleItem = Function | Global | Attribute;
+node Function { Name name; Parameters? parameters; TypeAnnotation? result_type; FunctionItem* items; }
+node Parameters { Parameter* parameters; }
+node Parameter { Ref reference; Type type; }
+sum FunctionItem = Block | Attribute;
+node Block { Name name; Parameters? parameters; Statement* statements; }
+sum Statement = Operation | Successor | BlockAttribute;
+node BlockAttribute { Attribute attribute; }
+node Operation { Results? results; Ident opcode; Operands? operands; TypeAnnotation? type; Object? attributes; }
+node Results { Ref* registers; }
+node Operands { Operand* operands; }
+sum Operand = Ref | Immediate | String | Memory | SymbolRef;
+node Immediate { Integer literal; }
+node Memory { Operand* operands; }
+node SymbolRef { Ident name; }
+node Successor { SymbolRef target; }
+node Global { SymbolRef name; TypeAnnotation? type; Value initializer; }
+node TypeAnnotation { Type type; }
+node Type { Ident name; Type* arguments; }
+node Pipeline { Name name; PipelineItem* items; }
+sum PipelineItem = Stage | Attribute;
+node Stage { StageKind stage_kind; Name? implementation; Object? attributes; }
+token StageKind;
+node Target { Name name; Attribute* attributes; }
+node Import { String path; }
+node Attribute { Name name; Value? value_data; Object? section; }
+sum Value = String | Integer | Real | Boolean | Ident | Ref | SymbolRef | Array | Object;
+node Array { Value* items; }
+node Object { Attribute* attributes; }
+sum Name = Ident | String;
+token Ref;
+token Integer;
+token Real;
+token Boolean;
+token String;
+token Ident;

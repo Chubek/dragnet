@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.constant-propagation.ssa"
+  :name "SSA Constant Propagation"
+  :stage mir
+  (category constant-propagation)
+  (paradigms ssa-based data-flow-analysis)
+  (objective "Replace uses of an SSA value with a known constant when the data-flow facts prove the substitution valid.")
+  (requires
+    (capability ssa-form)
+    (analysis constant-value-analysis))
+  (preconditions
+    (definition-reaches-use)
+    (no-intervening-redefinition))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (propagate (definition x (integer c)) (use x) (integer c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces uses of a known constant SSA value with the constant.")
+  (limitations "Applies only when the constant definition reaches the use without redefinition.")
+  (documentation
+    (purpose "Propagate known constant SSA values to their uses.")
+    (motivation "Constant propagation enables downstream constant folding and dead code elimination.")
+    (applicability "Applies to SSA definitions with known constant values that reach uses.")
+    (semantic-assumptions "The data-flow facts prove the constant reaches the use.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Reaching, redefined, and unknown cases are exercised.")))

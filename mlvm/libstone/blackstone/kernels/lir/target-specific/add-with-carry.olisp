@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.add-with-carry"
+  :name "Add-with-Carry Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select add-with-carry instructions for multi-word arithmetic when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability add-with-carry-information))
+  (preconditions
+    (target-supports-add-with-carry))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (multi-word-add a b) (add-with-carry-sequence seq)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects add-with-carry instructions for multi-word arithmetic.")
+  (limitations "Applies only when the target supports add-with-carry.")
+  (documentation
+    (purpose "Select add-with-carry instructions for multi-word arithmetic.")
+    (motivation "Add-with-carry instructions reduce multi-word arithmetic instruction count.")
+    (applicability "Applies to multi-word additions when the target supports add-with-carry.")
+    (semantic-assumptions "The target supports add-with-carry.")
+    (known-limitations "Does not select when the target lacks add-with-carry.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

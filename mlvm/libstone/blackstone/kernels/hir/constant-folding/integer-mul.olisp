@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-mul"
+  :name "Integer Multiplication Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate an integer multiplication whose operands are both known constants.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics)
+    (result-representable-under-integer-semantics))
+  (forbids
+    (operation-has-observable-side-effects)
+    (signed-overflow-traps))
+  (transform
+    (fold (mul (integer a) (integer b)) (integer-result (integer-mul a b))))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-integer-overflow-semantics))
+  (expected-effects "Replaces a constant integer multiplication with its compile-time value.")
+  (limitations "Requires both operands to be known constants and a representable result.")
+  (documentation
+    (purpose "Fold a constant integer multiplication into its compile-time result.")
+    (motivation "Removing constant arithmetic reduces run-time work.")
+    (applicability "Applies to integer multiplication nodes with two known integer constant operands.")
+    (semantic-assumptions "The IR's integer semantics, including overflow behavior, are preserved.")
+    (known-limitations "Does not propagate constants or fold non-constant operands.")
+    (testing-strategy "Positive, negative, zero, and overflow boundary cases are exercised.")))

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.instruction-selection.pattern-selection"
+  :name "Pattern-Based Instruction Selection"
+  :stage lir
+  (category instruction-selection)
+  (paradigms target-specific)
+  (objective "Select target instructions for IR operations using pattern matching.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability instruction-selection-information))
+  (preconditions
+    (target-description-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (ir-op op) (target-instructions instrs)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects target instructions for IR operations.")
+  (limitations "Applies only when the target description is available.")
+  (documentation
+    (purpose "Select target instructions for IR operations.")
+    (motivation "Instruction selection maps IR to target instructions.")
+    (applicability "Applies to IR operations when the target description is available.")
+    (semantic-assumptions "The target description is available.")
+    (known-limitations "Does not select when the target description is unavailable.")
+    (testing-strategy "Covered, uncovered, and boundary IR operation cases are exercised.")))

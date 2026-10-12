@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blackstone.dev/schemas/kernel.schema.json",
+  "title": "Blackstone Kernel",
+  "description": "Structural schema for a parsed Blackstone optimization kernel definition.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "stage",
+    "categories",
+    "objective",
+    "requires",
+    "preconditions",
+    "transform",
+    "correctness",
+    "expectedEffects",
+    "limitations",
+    "documentation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^blackstone\\.[a-z0-9-]+\\.[a-z0-9-]+\\.[a-z0-9.-]+$",
+      "description": "Stable unique kernel identifier."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "enum": ["hir", "mir", "lir"]
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "paradigms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requires": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["kind", "name"],
+        "properties": {
+          "kind": { "enum": ["capability", "analysis"] },
+          "name": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "forbids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "forbiddenPriorTransformations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "analysisContract": {
+      "type": ["object", "null"],
+      "properties": {
+        "requires": { "type": "array", "items": { "type": "string" } },
+        "invalidates": { "type": "array", "items": { "type": "string" } },
+        "preserves": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "transform": {
+      "type": ["object", "null"],
+      "required": ["verb"],
+      "properties": {
+        "verb": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "correctness": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "expectedEffects": {
+      "type": "string",
+      "minLength": 1
+    },
+    "limitations": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documentation": {
+      "type": ["object", "null"],
+      "properties": {
+        "prose": { "type": "array", "items": { "type": "string" } },
+        "structured": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

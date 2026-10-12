@@ -1,0 +1,33 @@
+/* Translation descriptions reference ISA metadata; syntax performs no decoding. */
+${declare longest_match Document}
+Document: Declaration*;
+Declaration: Architecture | Translation | Unit | Isa;
+Architecture: 'architecture' Name '{' ArchitectureItem* '}';
+ArchitectureItem: Isa | Opcode | Attribute;
+Isa: 'isa' String ';';
+Opcode: 'opcode' Integer Name ('status' Status)? ('semantics' SExpr)? ';';
+Translation: 'translate' Name '->' Name '{' TranslationItem* '}';
+TranslationItem: Mapping | Rule | Attribute;
+Mapping: 'map' Name '->' Name ('bytes' Bytes)? ';';
+Rule: 'rule' Name ':' SExpr '->' SExpr RuleOption* ';';
+RuleOption: Where | Cost;
+Where: 'where' SExpr;
+Cost: 'cost' Integer;
+Unit: 'unit' Name '{' UnitItem* '}';
+UnitItem: Instruction | Attribute;
+Instruction: 'instruction' Integer ':' Name Bytes? ('semantics' SExpr)? ('status' Status)? ';';
+Bytes: '[' (Integer (',' Integer)*)? ']';
+Status: 'supported' | 'unsupported' | 'fallback' | 'architecture-specific' | 'privileged' | 'environment-dependent' | 'ambiguous';
+SExpr: '(' SExprItem* ')';
+SExprItem: String | Integer | Variable | Ident | SExpr;
+Attribute: Name '=' Value ';' | Name Object ';'?;
+Value: String | Integer | Boolean | Ident | Array | Object | SExpr;
+Array: '[' (Value (',' Value)*)? ']';
+Object: '{' Attribute* '}';
+Name: Ident | String;
+Variable: "\?[A-Za-z_][A-Za-z0-9_.-]*";
+Integer: "-?[0-9]+" | "0x[0-9A-Fa-f]+";
+Boolean: 'true' | 'false';
+String: "\"([^\"\\]|\\[^])*\"";
+Ident: "[A-Za-z_+*/=<>!-][A-Za-z0-9_+*/=<>!?.-]*" $term -1;
+whitespace: "([ \t\r\n]|#[^\n]*|[/][/][^\n]*|[/][*]([^*]|[*]+[^*/])*[*]+[/])*";

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.memory.spill-insertion"
+  :name "Spill Insertion"
+  :stage lir
+  (category memory-lowering)
+  (paradigms register-pressure-optimization)
+  (objective "Insert spill code for values that do not fit in registers.")
+  (requires
+    (capability machine-operations)
+    (capability register-constraints)
+    (capability spill-slot-information))
+  (preconditions
+    (value-does-not-fit-in-registers))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (register-value v) (spill-code load store)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Inserts spill code for values that do not fit in registers.")
+  (limitations "Applies only when the value does not fit in registers.")
+  (documentation
+    (purpose "Insert spill code for values that do not fit in registers.")
+    (motivation "Spill insertion handles register overflow.")
+    (applicability "Applies to values that do not fit in registers.")
+    (semantic-assumptions "The value does not fit in registers.")
+    (known-limitations "Does not spill values that fit in registers.")
+    (testing-strategy "Fitting, non-fitting, and boundary cases are exercised.")))

@@ -1,0 +1,37 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.lir.registers.redundant-register-move"
+  :name "Redundant register move"
+  :stage lir
+  (category instruction-combination)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (move register register) with (removed-move) when the declared proof obligations hold.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (analysis liveness-analysis))
+  (preconditions move-has-no-lane-extension-flags-or-clobber-effects operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants target-flags-clobbers-and-register-constraints-preserved)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires liveness-analysis)
+    (invalidates liveness-analysis live-range-analysis)
+    (preserves))
+  (transform (rewrite (move register register) (removed-move)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Same register names do not imply a no-op: reject moves that zero upper lanes, alter flags, or carry effects.")
+  (documentation
+    (purpose "Replace (move register register) with (removed-move) when the declared proof obligations hold.")
+    (motivation "Expose the redundant register move opportunity for planners with explicit legality facts.")
+    (stage "NodeLIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (move register register); require a proven true move-has-no-lane-extension-flags-or-clobber-effects fact.")
+    (preconditions "Required true facts: move-has-no-lane-extension-flags-or-clobber-effects, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants, target-flags-clobbers-and-register-constraints-preserved.")
+    (required-information "Capabilities: machine-operations, target-description; analyses: liveness-analysis. Results must be current.")
+    (transformation "Replace (move register register) with (removed-move) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Same register names do not imply a no-op: reject moves that zero upper lanes, alter flags, or carry effects.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Same register names do not imply a no-op: reject moves that zero upper lanes, alter flags, or carry effects.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.lir.registers.redundant-register-move. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.loop.interchange"
+  :name "Loop Interchange"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization dependence-analysis)
+  (objective "Exchange the nesting order of compatible loops when dependence constraints permit.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis dependence-analysis))
+  (preconditions
+    (dependence-constraints-permit-interchange)
+    (iteration-semantics-are-preserved))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (interchange (outer-loop i) (inner-loop j)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Exchanges the nesting order of two loops.")
+  (limitations "Applies only when dependence constraints permit interchange.")
+  (documentation
+    (purpose "Exchange the nesting order of compatible loops.")
+    (motivation "Loop interchange improves cache locality and enables vectorization.")
+    (applicability "Applies to loop nests where dependence constraints permit interchange.")
+    (semantic-assumptions "Dependence constraints permit interchange and iteration semantics are preserved.")
+    (known-limitations "Does not interchange loops with dependences that prohibit it.")
+    (testing-strategy "Permitted, prohibited, and unknown dependence cases are exercised.")))

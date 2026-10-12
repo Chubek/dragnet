@@ -1,0 +1,6 @@
+program main {
+  node %10 = const(20):i64;
+  node %20 = const(22):i64;
+  node %1 = add(%10, %20):i64;
+  output %1;
+}

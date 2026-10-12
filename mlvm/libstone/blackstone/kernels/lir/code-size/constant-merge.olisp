@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.lir.code-size.constant-merge"
+  :name "Constant Merge"
+  :stage lir
+  (category code-size-optimization)
+  (paradigms code-size-optimization)
+  (objective "Merge identical constants to reduce code size.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (constants-are-identical))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (deduplicate (constant c1) (constant c2)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Merges identical constants to reduce code size.")
+  (limitations "Applies only to identical constants.")
+  (documentation
+    (purpose "Merge identical constants to reduce code size.")
+    (motivation "Constant merging reduces code size.")
+    (applicability "Applies to identical constants.")
+    (semantic-assumptions "The constants are identical.")
+    (known-limitations "Does not merge non-identical constants.")
+    (testing-strategy "Identical, non-identical, and boundary cases are exercised.")))

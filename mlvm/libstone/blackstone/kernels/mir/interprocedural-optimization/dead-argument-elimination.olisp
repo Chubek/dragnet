@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.dead-argument-elimination"
+  :name "Dead Argument Elimination"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural)
+  (objective "Remove a function argument that is never used in the function body.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis))
+  (preconditions
+    (argument-is-unused)
+    (all-call-sites-are-updated))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (argument :id dead-argument)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes an unused function argument and updates all call sites.")
+  (limitations "Applies only when the argument is unused and all call sites are updated.")
+  (documentation
+    (purpose "Remove unused function arguments.")
+    (motivation "Dead argument elimination reduces calling convention overhead.")
+    (applicability "Applies to function arguments that are never used in the body.")
+    (semantic-assumptions "The argument is unused and all call sites are updated.")
+    (known-limitations "Does not remove arguments that are used.")
+    (testing-strategy "Used, unused, and partially-used argument cases are exercised.")))

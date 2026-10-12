@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.analysis-driven.null-check-elimination"
+  :name "Null Check Elimination"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Remove null checks that are provably unnecessary.")
+  (requires
+    (capability ssa-form)
+    (analysis null-state-analysis))
+  (preconditions
+    (pointer-is-provably-non-null))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (null-check :id safe-check)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes provably unnecessary null checks.")
+  (limitations "Applies only when the pointer is provably non-null.")
+  (documentation
+    (purpose "Remove provably unnecessary null checks.")
+    (motivation "Null check elimination reduces overhead.")
+    (applicability "Applies to null checks on provably non-null pointers.")
+    (semantic-assumptions "The pointer is provably non-null.")
+    (known-limitations "Does not remove null checks on pointers that may be null.")
+    (testing-strategy "Non-null, nullable, and unknown cases are exercised.")))

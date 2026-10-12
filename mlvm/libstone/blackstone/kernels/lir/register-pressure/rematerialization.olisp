@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.register-pressure.rematerialization"
+  :name "Rematerialization"
+  :stage lir
+  (category register-pressure-optimization)
+  (paradigms register-pressure-optimization cost-model-guided)
+  (objective "Replace a spilled load with a recomputation of the value.")
+  (requires
+    (capability machine-operations)
+    (capability register-constraints)
+    (capability rematerialization-information))
+  (preconditions
+    (value-is-rematerializable)
+    (recomputation-is-cheaper-than-spill))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rematerialize (spilled-value v) (recomputation expr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a spilled load with a recomputation.")
+  (limitations "Applies only when the value is rematerializable and recomputation is cheaper than spilling.")
+  (documentation
+    (purpose "Replace spilled loads with recomputation.")
+    (motivation "Rematerialization reduces register pressure.")
+    (applicability "Applies to spilled values that are rematerializable.")
+    (semantic-assumptions "The value is rematerializable and recomputation is cheaper than spilling.")
+    (known-limitations "May increase instruction count.")
+    (testing-strategy "Rematerializable, non-rematerializable, and boundary cases are exercised.")))

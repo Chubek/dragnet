@@ -1,0 +1,25 @@
+# Explicit experimental native slice: a closed signed-32-bit value returned as
+# i64 in RAX under the System V x86-64 C ABI. Timing is a fixture model.
+arch native_constant {
+  word_size=64;addr_size=64;endian=little;
+  default_register_class=G;scheduling={issue_width=1;};
+}
+profile {family="fixture";model="x86-64-closed-integer-function";version="1";execution_model="sysv-x86-64-no-arguments-i64-result";}
+regclass G { rax(64)=0, r10(64)=10, }
+tooling {
+  bin2bin={schema_version=1;instruction_encoding=masked;execution_domain=native;word_size=64;address_size=64;endianness=little;};
+  object_file={format=elf64;version=1;machine=62;endianness=little;flags=0;osabi=0;abi_version=0;text_alignment=16;relocations=[];};
+  abi={identity="sysv-x86-64";arguments=[];result_type=i64;result_register=rax;};
+}
+encoding MOV {width=56;base=0xc0c748;mask=0xffffff;fields={imm={lsb=24;width=32;kind=signed;};};}
+encoding RET {width=8;base=0xc3;mask=0xff;fields={};}
+op CONST {
+  encoding=MOV;latency=0;semantics="(set rax (sign_extend32 $imm))";
+  encoding_operands={result={kind=fixed_definition;index=0;register=rax;};imm={kind=immediate;index=0;};};
+  tooling={instruction_selection={selection_tree="const():i64 binding imm";cost=1;where={constraints=[{kind=signed_bits;operand=imm;value=32;}];};};binary_translation={schema_version=1;equivalence_basis=semantics;};};
+}
+op RETURN {
+  encoding=RET;latency=0;semantics="(return rax)";control_flow=return;terminator=true;barrier=true;
+  encoding_operands={result={kind=fixed_use;index=0;register=rax;};};
+  tooling={instruction_selection={selection_tree="ret(?value:i64)";cost=1;side_effects=true;};binary_translation={schema_version=1;equivalence_basis=semantics;control_flow=return;};};
+}

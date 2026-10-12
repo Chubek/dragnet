@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.dead-code-elimination.unreachable-blocks"
+  :name "MIR Unreachable Block Elimination"
+  :stage mir
+  (category dead-code-elimination)
+  (paradigms control-flow-graph)
+  (objective "Remove basic blocks that cannot be reached under the current control-flow graph.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis dominator-analysis))
+  (preconditions
+    (block-is-unreachable)
+    (no-external-observability))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (block :id unreachable-block)))
+  (correctness
+    (preserve-observable-behavior)
+    (maintain-valid-control-flow-edges))
+  (expected-effects "Removes unreachable basic blocks and their incoming edges.")
+  (limitations "Applies only when reachability is proven and the block is not externally observable.")
+  (documentation
+    (purpose "Remove unreachable basic blocks.")
+    (motivation "Eliminating unreachable blocks reduces code size.")
+    (applicability "Applies to basic blocks with no path from the entry block.")
+    (semantic-assumptions "The block is provably unreachable and not externally observable.")
+    (known-limitations "Does not remove blocks that are targets of external references.")
+    (testing-strategy "Unreachable, reachable, and externally-referenced cases are exercised.")))

@@ -1,0 +1,12 @@
+(define-monoid
+  :id "blackstone.monoid.integer-multiplication"
+  :name "Integer Multiplication"
+  :carrier integer
+  :operation integer-mul
+  :identity 1
+  (laws
+    (associative integer-mul)
+    (left-identity integer-mul 1)
+    (right-identity integer-mul 1))
+  (description
+    "Integer multiplication with identity 1, under the declared integer semantics."))

@@ -1,0 +1,13 @@
+(define-monoid
+  :id "blackstone.monoid.sequence-composition"
+  :name "Sequence Concatenation"
+  :carrier node-sequence
+  :operation sequence-concatenate
+  :identity empty-sequence
+  (laws
+    (associative sequence-concatenate)
+    (left-identity sequence-concatenate empty-sequence)
+    (right-identity sequence-concatenate empty-sequence))
+  (description
+    "Sequence concatenation with the empty sequence as identity. Concatenation"
+    " is associative, but execution order may still be semantically significant."))

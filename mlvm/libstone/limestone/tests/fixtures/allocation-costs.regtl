@@ -1,0 +1,6 @@
+regtl costed {
+  regclass G = [$0];
+  live %1:G [0, 3] {}
+  live %2:G [0, 3] {}
+  pbqp = { values = [{value=%1;spill_cost=10;}, {value=%2;spill_cost=2;}]; };
+}

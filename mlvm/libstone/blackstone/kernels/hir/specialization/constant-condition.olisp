@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.hir.specialization.constant-condition"
+  :name "HIR Constant Condition Specialization"
+  :stage hir
+  (category specialization)
+  (paradigms rule-based)
+  (objective "Specialize a conditional on a constant condition by eliminating the untaken branch.")
+  (requires
+    (capability explicit-control-flow)
+    (analysis constant-value-analysis))
+  (preconditions
+    (branch-condition-is-constant))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (specialize (branch (boolean c) true-block false-block) (selected-block c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Eliminates the untaken branch of a constant conditional.")
+  (limitations "Applies only when the branch condition is a known constant.")
+  (documentation
+    (purpose "Specialize conditionals on constant conditions.")
+    (motivation "Eliminating untaken branches reduces code size and enables downstream optimizations.")
+    (applicability "Applies to conditional branches with a known constant condition.")
+    (semantic-assumptions "The branch condition is a known constant.")
+    (known-limitations "Does not specialize branches with non-constant conditions.")
+    (testing-strategy "True and false constant conditions are exercised.")))

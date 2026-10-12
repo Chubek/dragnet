@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.mir.polyhedral.loop-tiling"
+  :name "Polyhedral Loop Tiling"
+  :stage mir
+  (category polyhedral-optimization)
+  (paradigms polyhedral dependence-analysis cost-model-guided)
+  (objective "Tile an affine loop nest to improve cache locality.")
+  (requires
+    (capability ssa-form)
+    (capability polyhedral-representation)
+    (analysis polyhedral-analysis)
+    (analysis dependence-analysis))
+  (preconditions
+    (loop-bounds-are-affine)
+    (tile-sizes-are-valid)
+    (transformed-schedule-is-legal))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (tile (loop-nest ln) (tile-sizes ts)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Tiles an affine loop nest to improve cache locality.")
+  (limitations "Applies only to affine loop nests with valid tile sizes and a legal transformed schedule.")
+  (documentation
+    (purpose "Tile affine loop nests to improve cache locality.")
+    (motivation "Loop tiling improves data reuse in cache.")
+    (applicability "Applies to affine loop nests with valid tile sizes and a legal transformed schedule.")
+    (semantic-assumptions "Loop bounds are affine, tile sizes are valid, and the transformed schedule is legal.")
+    (known-limitations "Does not tile non-affine loops.")
+    (testing-strategy "Valid, invalid, and boundary tile size cases are exercised.")))

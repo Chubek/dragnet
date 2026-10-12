@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.mir.polyhedral.loop-skewing"
+  :name "Polyhedral Loop Skewing"
+  :stage mir
+  (category polyhedral-optimization)
+  (paradigms polyhedral dependence-analysis)
+  (objective "Skew an affine loop nest to enable parallelization or vectorization.")
+  (requires
+    (capability ssa-form)
+    (capability polyhedral-representation)
+    (analysis polyhedral-analysis)
+    (analysis dependence-analysis))
+  (preconditions
+    (loop-bounds-are-affine)
+    (skewing-vector-is-valid)
+    (transformed-schedule-is-legal))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (skew (loop-nest ln) (skewing-vector v)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Skews an affine loop nest to enable parallelization or vectorization.")
+  (limitations "Applies only to affine loop nests with a valid skewing vector and a legal transformed schedule.")
+  (documentation
+    (purpose "Skew affine loop nests to enable parallelization or vectorization.")
+    (motivation "Loop skewing transforms dependences to expose parallelism.")
+    (applicability "Applies to affine loop nests with a valid skewing vector and a legal transformed schedule.")
+    (semantic-assumptions "Loop bounds are affine, the skewing vector is valid, and the transformed schedule is legal.")
+    (known-limitations "Does not skew non-affine loops.")
+    (testing-strategy "Valid, invalid, and boundary skewing vector cases are exercised.")))

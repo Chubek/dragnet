@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.layout.hot-cold-splitting"
+  :name "Hot-Cold Splitting"
+  :stage lir
+  (category code-layout)
+  (paradigms code-layout cost-model-guided)
+  (objective "Split hot and cold code regions to improve instruction cache locality.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability hot-cold-information))
+  (preconditions
+    (hot-cold-information-is-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (split (code-region r) (hot-region hot) (cold-region cold)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Splits hot and cold code regions to improve cache locality.")
+  (limitations "Applies only when hot-cold information is available.")
+  (documentation
+    (purpose "Split hot and cold code regions to improve cache locality.")
+    (motivation "Hot-cold splitting improves instruction cache locality.")
+    (applicability "Applies when hot-cold information is available.")
+    (semantic-assumptions "Hot-cold information is available.")
+    (known-limitations "Does not split when hot-cold information is unavailable.")
+    (testing-strategy "Hot, cold, and mixed cases are exercised.")))

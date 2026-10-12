@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.mul-one"
+  :name "Multiplicative Identity Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer multiplication by one with its nonconstant operand.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (multiplication-has-identity-one))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (mul x (integer 1)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x * 1 with x.")
+  (limitations "Applies only when multiplication has the multiplicative identity semantics.")
+  (documentation
+    (purpose "Simplify integer multiplication by one to the original value.")
+    (motivation "Removing identity operations reduces instruction count.")
+    (applicability "Applies to integer multiplication nodes where one operand is the integer constant one.")
+    (semantic-assumptions "The multiplication operation has the multiplicative identity property.")
+    (known-limitations "Does not apply to floating-point multiplication without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

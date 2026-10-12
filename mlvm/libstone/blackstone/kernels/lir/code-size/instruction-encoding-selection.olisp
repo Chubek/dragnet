@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.code-size.instruction-encoding-selection"
+  :name "Instruction Encoding Selection"
+  :stage lir
+  (category code-size-optimization)
+  (paradigms code-size-optimization cost-model-guided)
+  (objective "Select the smallest valid instruction encoding for each instruction.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability instruction-encodings))
+  (preconditions
+    (multiple-encodings-are-available))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (instruction i) (smallest-encoding enc)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects the smallest valid instruction encoding.")
+  (limitations "Applies only when multiple encodings are available.")
+  (documentation
+    (purpose "Select the smallest valid instruction encoding.")
+    (motivation "Instruction encoding selection reduces code size.")
+    (applicability "Applies to instructions with multiple valid encodings.")
+    (semantic-assumptions "Multiple encodings are available.")
+    (known-limitations "Does not select when only one encoding is available.")
+    (testing-strategy "Single, multiple, and boundary encoding cases are exercised.")))

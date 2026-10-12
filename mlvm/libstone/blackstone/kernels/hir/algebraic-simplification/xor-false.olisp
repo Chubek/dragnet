@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.xor-false"
+  :name "Bitwise Xor False Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a bitwise xor with false with its other operand.")
+  (requires
+    (capability typed-expressions)
+    (capability bitwise-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (xor-false-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (bitwise-xor x (integer 0)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x ^ 0 with x.")
+  (limitations "Applies only when bitwise xor with zero is the identity.")
+  (documentation
+    (purpose "Simplify bitwise xor with zero to the other operand.")
+    (motivation "Removing identity operations reduces instruction count.")
+    (applicability "Applies to bitwise xor nodes where one operand is the integer constant zero.")
+    (semantic-assumptions "The bitwise xor operation satisfies x ^ 0 = x.")
+    (known-limitations "Does not apply to Boolean xor.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

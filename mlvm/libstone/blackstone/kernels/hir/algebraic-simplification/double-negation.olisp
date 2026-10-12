@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.double-negation"
+  :name "Double Negation Elimination"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a double integer negation with the original value.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (double-negation-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (neg (neg x)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces -(-x) with x.")
+  (limitations "Applies only when double negation is the identity.")
+  (documentation
+    (purpose "Eliminate double integer negation.")
+    (motivation "Removing double negation reduces instruction count.")
+    (applicability "Applies to integer negation nodes whose operand is itself a negation.")
+    (semantic-assumptions "The negation operation satisfies -(-x) = x under the declared semantics.")
+    (known-limitations "Does not apply to floating-point negation without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

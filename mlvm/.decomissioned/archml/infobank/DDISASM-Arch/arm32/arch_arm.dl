@@ -1,0 +1,583 @@
+//===- arch_arm.dl ------------------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2019 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/**
+Define a set predicates to abstract from ARM specific instruction set
+and characteristics
+*/
+
+
+.comp ARM : Arch {
+
+#include "float_operations.dl"
+#include "jump_operations.dl"
+#include "interrupt_operations.dl"
+#include "registers.dl"
+#include "memory_access.dl"
+
+arch("ARM").
+
+move_operation(Operation) :-
+    instruction_get_operation(_, Operation),
+    contains("MOV", Operation).
+
+load_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    (
+        contains("LDR", Operation)
+        ;
+        contains("LDM", Operation)
+    ).
+
+load_word_operation(Operation):-
+    load_operation(Operation),
+    (
+        Operation = "LDR"
+        ;
+        strlen(Operation) = 5,
+        Suffix = substr(Operation,3,2),
+        condition_code_map(Suffix,_)
+    ).
+
+data_access_size("LDRD",as(DestReg,register),8):-
+    op_regdirect(_,DestReg).
+data_access_size("LDR",as(DestReg,register),4):-
+    op_regdirect(_,DestReg).
+data_access_size("LDRSB",as(DestReg,register),1):-
+    op_regdirect(_,DestReg).
+data_access_size("LDRB",as(DestReg,register),1):-
+    op_regdirect(_,DestReg).
+data_access_size("LDRSH",as(DestReg,register),2):-
+    op_regdirect(_,DestReg).
+data_access_size("LDRH",as(DestReg,register),2):-
+    op_regdirect(_,DestReg).
+
+data_access_size(Operation,DestReg,Size):-
+    load_operation(Operation),
+    substr(Operation,0,4) = "VLDR",
+    arch.float_reg(DestReg,Size).
+
+data_access_size(Operation,DestReg,Size):-
+    load_operation(Operation),
+    Len = strlen(Operation),
+    Len >= 5,
+    Suffix = substr(Operation,Len-2,2),
+    condition_code_map(Suffix,_),
+    OperationWOSuffix = substr(Operation,0,Len-2),
+    data_access_size(OperationWOSuffix,DestReg,Size).
+
+store_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    (
+        contains("STR", Operation)
+        ;
+        contains("STM", Operation)
+    ).
+
+is_nop(EA):-
+    instruction_get_operation(EA,"NOP").
+
+// e.g.: mov r0, r0
+is_nop(EA):-
+    move_reg_reg(EA,Reg,Reg).
+
+// We have no return_operation, so we override.
+.override return
+return(EA):-
+    instruction_get_operation(EA,Operation),
+    substr(Operation,0,2) = "BX",
+    instruction_get_op(EA,_,Op),
+    op_regdirect_contains_reg(Op,"LR").
+
+return(EA):-
+    instruction_get_operation(EA,Operation),
+    (
+        substr(Operation,0,3) = "POP"
+        ;
+        substr(Operation,0,3) = "LDM"
+    ),
+    instruction_get_op(EA,_,Op),
+    op_regdirect_contains_reg(Op,Reg),
+    pc_reg(Reg).
+
+return(EA):-
+    arch.pc_reg(PC),
+    move_reg_reg(EA,PC,"LR").
+
+.decl long_operation(operation:symbol)
+
+long_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    strlen(Operation) > 2.
+
+// Conditional instructions implicitly use the CPSR, which capstone doesn't
+// seem to indicate reliably in cs_reg_access.
+register_access_override(EA,"CPSR","R",1):-
+    conditional(EA,_).
+
+// mov reg, #imm instructions incorrectly mark the written register as read.
+// See: https://github.com/capstone-engine/capstone/issues/1652
+op_access_override(EA,Index,"R",0):-
+    move_reg_imm(EA,Dst,_,_),
+    instruction_get_op(EA,Index,Op),
+    op_regdirect_contains_reg(Op,Dst).
+
+/**
+PC stores the address of the current instruction plus 8 (two ARM
+instructions) in ARM state, and the current instruction plus 4
+(two Thumb instructions) in Thumb state.
+This is used for computing PC-relative addresses.
+
+NOTE: More specifically, in Thumb state,
+for B, BL, CBNZ, and CBZ instructions, the value of the PC is the address of
+the current instruction plus 4 bytes.
+For all other instructions that use labels, the value of the PC is the address
+of the current instruction plus 4 bytes, with bit[1] of the result
+cleared to 0 to make it word-aligned.
+The word-alignment needs to be handled where this is used.
+*/
+.decl pc_relative_disp(EA:address,Disp:number) inline
+
+pc_relative_disp(EA,Disp):-
+    (EA band 1) = 0,  Disp = 8  // ARM mode
+    ;
+    (EA band 1) != 0, Disp = 4. // Thumb mode
+
+pc_relative_addr(EA,Reg,Val):-
+    instruction(EA,_,_,Operation,OffsetOp,DestOp,0,_,_,_),
+    substr(Operation,0,3) = "ADR",
+    op_immediate(OffsetOp, Offset,_),
+    op_regdirect_contains_reg(DestOp,Reg),
+    pc_relative_disp(EA,Disp),
+    Val = as(as(EA - (EA band 3),number) + Offset + Disp,address).
+
+pc_relative_addr(EA,Reg,Val):-
+    instruction(EA,_,_,Operation,PCOp,OffsetOp,DestOp,0,_,_),
+    (
+        substr(Operation,0,3) = "ADD", Sign = 1
+        ;
+        substr(Operation,0,3) = "SUB", Sign = -1
+    ),
+    op_immediate(OffsetOp, Offset,_),
+    op_regdirect_contains_reg(DestOp,Reg),
+    op_regdirect_contains_reg(PCOp,PC),
+    arch.pc_reg(PC),
+    pc_relative_disp(EA,Disp),
+    Val = as(as(EA - (EA band 3),number) + Sign * Offset + Disp,address).
+
+.override instruction_at
+
+instruction_at(EA,Instruction):-
+    instruction(Instruction,_,_,_,_,_,_,_,_,_),
+    EA = Instruction - (Instruction band 1).
+
+/**
+E.g.,
+0: movs r0, #0
+4: pop { r1, pc}
+The upper 2-bytes of the mov instruction happens to be a valid Thumb
+instruction: ITETE in this case.
+*/
+.decl dangling_thumb_instr(EA:address)
+
+dangling_thumb_instr(EA):-
+    instruction(EA,2,_,_,_,_,_,_,_,_),
+    EA2 = EA - 2,
+    instruction(EA2,4,_,_,_,_,_,_,_,_),
+    next(_,EA2),
+    !next(_,EA).
+
+/**
+IT: The IT (If-Then) instruction makes up to four following instructions
+(the IT block) conditional.
+
+ITxyz
+x,y,z: specifies the condition switch for the second, third, and fourth
+instruction in the IT block, respectively.
+
+The condition switch in the IT block can be either: T (Then) or E (Else).
+
+This predicate determines if EA is a IT block instruction.
+*/
+.decl it_conditional(EA:address,IT:address)
+
+it_conditional(EA,IT):-
+    !dangling_thumb_instr(IT),
+    instruction_get_operation(IT,Operation),
+    substr(Operation,0,2) = "IT",
+    next(IT,EA).
+
+it_conditional(EA,IT):-
+    !dangling_thumb_instr(IT),
+    instruction_get_operation(IT,Operation),
+    substr(Operation,0,2) = "IT",
+    strlen(Operation) >= 3,
+    next(IT,Prev1),
+    next(Prev1,EA).
+
+it_conditional(EA,IT):-
+    !dangling_thumb_instr(IT),
+    instruction_get_operation(IT,Operation),
+    substr(Operation,0,2) = "IT",
+    strlen(Operation) >= 4,
+    next(IT,Prev2),
+    next(Prev2,Prev1),
+    next(Prev1,EA).
+
+it_conditional(EA,IT):-
+    !dangling_thumb_instr(IT),
+    instruction_get_operation(IT,Operation),
+    substr(Operation,0,2) = "IT",
+    strlen(Operation) = 5,
+    next(IT,Prev3),
+    next(Prev3,Prev2),
+    next(Prev2,Prev1),
+    next(Prev1,EA).
+
+conditional(EA,CC):-
+    it_conditional(EA,IT),
+    instruction_get_op(IT,1,Op),
+    op_special(Op,"it",ArmCC),
+    condition_code_map(ArmCC,CC).
+
+conditional(EA,CC):-
+    instruction_cond_code(EA,CC0),
+    condition_code_map(CC0,CC).
+
+// Does not override - extends with `ldr pc, [...]
+jump(EA):-
+    load(EA,_,_,Reg,_,_,_,_),
+    pc_reg(Reg),
+    !arch.return(EA).
+
+// Does not override - extends with `mov pc, reg`
+jump(EA):-
+    move_reg_reg(EA,PC,_),
+    pc_reg(PC).
+
+jump(EA):-
+    reg_reg_arithmetic_operation(EA,PC,_,_,_,_),
+    pc_reg(PC).
+
+arithmetic_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    Op = substr(Operation,0,3),
+    (
+        Op = "ADD";
+        Op = "ADC";
+        Op = "DEC";
+        Op = "MUL";
+        Op = "MLA";
+        Op = "MVN";
+        Op = "RSB";
+        Op = "RSC";
+        Op = "SBC";
+        Op = "SHL";
+        Op = "SUB"
+    ).
+
+multiplication_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    Op = substr(Operation,0,3),
+    (
+        Op = "MUL";
+        Op = "MLA";
+        Op = "MLS";
+        Op = "LSL"
+    ).
+
+shift_rotate_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    Op = substr(Operation,0,3),
+    (
+        Op = "ASR";
+        Op = "LSL";
+        Op = "LSR";
+        Op = "ROR";
+        Op = "RRX"
+    ).
+
+logic_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    Op = substr(Operation,0,3),
+    (
+        Op = "BIC";
+        Op = "EOR";
+        Op = "AND";
+        Op = "ORR";
+        Op = "TST";
+        Op = "MVN"
+    ).
+
+pointer_size(4).
+
+call_operation("BL").
+call_operation("BLEQ").
+call_operation("BLNE").
+call_operation("BLCS").
+call_operation("BLCC").
+call_operation("BLMI").
+call_operation("BLPL").
+call_operation("BLVS").
+call_operation("BLVC").
+call_operation("BLHI").
+call_operation("BLLS").
+call_operation("BLGE").
+call_operation("BLLT").
+call_operation("BLGT").
+call_operation("BLLE").
+call_operation("BLAL").
+
+call_operation("BLX").
+call_operation("BLXEQ").
+call_operation("BLXNE").
+call_operation("BLXCS").
+call_operation("BLXCC").
+call_operation("BLXMI").
+call_operation("BLXPL").
+call_operation("BLXVS").
+call_operation("BLXVC").
+call_operation("BLXHI").
+call_operation("BLXLS").
+call_operation("BLXGE").
+call_operation("BLXLT").
+call_operation("BLXGT").
+call_operation("BLXLE").
+call_operation("BLXAL").
+
+syscall_operation("SWI").
+syscall_operation("SVC").
+
+halt_operation("HLT").
+halt_operation("UDF").
+
+// capstone decodes Thumb "udf 0xfe" (bytes: "fe de") as "TRAP".
+halt_operation("TRAP").
+
+// TODO:
+return_operation(""):-
+    false.
+
+cmp_operation(Operation):-
+    instruction_get_operation(_,Operation),
+    Op = substr(Operation,0,3),
+    (
+        Op = "CMP";
+        Op = "CMN";
+        Op = "TEQ";
+        Op = "TST"
+    ).
+
+reg_imm_bitwise_binary_op(EA,DstReg,SrcReg,Imm,Op):-
+    instruction(EA,_,_,Operation,SrcRegOp,DstRegOp,0,0,_,_),
+    (
+        substr(Operation,0,3) = "ASR", Op = "ASR";
+        substr(Operation,0,3) = "LSR", Op = "LSR";
+        substr(Operation,0,3) = "LSL", Op = "LSL"
+    ),
+    op_regdirect_contains_reg(DstRegOp,DstReg),
+    op_regdirect_contains_reg(SrcRegOp,SrcReg),
+    op_shifted(EA,_,Imm0,_),
+    Imm = as(Imm0,number).
+
+reg_imm_bitwise_binary_op(EA,DstReg,SrcReg,Imm,Op):-
+    instruction(EA,_,_,Operation,SrcRegOp,ImmOp,DstRegOp,0,_,_),
+    (
+        substr(Operation,0,3) = "ASR", Op = "ASR";
+        substr(Operation,0,3) = "LSR", Op = "LSR";
+        substr(Operation,0,3) = "LSL", Op = "LSL";
+        substr(Operation,0,3) = "AND", Op = "AND";
+        substr(Operation,0,3) = "ORR", Op = "OR";
+        substr(Operation,0,3) = "EOR", Op = "XOR"
+    ),
+    op_regdirect_contains_reg(DstRegOp,DstReg),
+    op_regdirect_contains_reg(SrcRegOp,SrcReg),
+    op_immediate(ImmOp,Imm,_).
+
+reg_reg_bitwise_binary_op(EA,DstReg,SrcReg1,SrcReg2,Op):-
+    instruction(EA,_,_,Operation,SrcRegOp,DstRegOp,0,0,_,_),
+    (
+        substr(Operation,0,3) = "ASR", Op = "ASR";
+        substr(Operation,0,3) = "LSR", Op = "LSR";
+        substr(Operation,0,3) = "LSL", Op = "LSL";
+        substr(Operation,0,3) = "AND", Op = "AND";
+        substr(Operation,0,3) = "ORR", Op = "OR";
+        substr(Operation,0,3) = "EOR", Op = "XOR"
+    ),
+    op_regdirect_contains_reg(DstRegOp,DstReg),
+    op_regdirect_contains_reg(DstRegOp,SrcReg1),
+    op_regdirect_contains_reg(SrcRegOp,SrcReg2),
+    !op_shifted(EA,_,_,_).
+
+reg_reg_bitwise_binary_op(EA,DstReg,SrcReg1,SrcReg2,Op):-
+    instruction(EA,_,_,Operation,SrcRegOp1,SrcRegOp2,DstRegOp,0,_,_),
+    (
+        substr(Operation,0,3) = "ASR", Op = "ASR";
+        substr(Operation,0,3) = "LSR", Op = "LSR";
+        substr(Operation,0,3) = "LSL", Op = "LSL";
+        substr(Operation,0,3) = "AND", Op = "AND";
+        substr(Operation,0,3) = "ORR", Op = "OR";
+        substr(Operation,0,3) = "EOR", Op = "XOR"
+    ),
+    op_regdirect_contains_reg(DstRegOp,DstReg),
+    op_regdirect_contains_reg(SrcRegOp1,SrcReg1),
+    op_regdirect_contains_reg(SrcRegOp2,SrcReg2).
+
+// ADD/SUB reg, #imm (two operands: Thumb)
+reg_arithmetic_operation(EA,Reg,Reg,1,Sign*Immediate):-
+    instruction(EA,_,_,Operation,Op1,Op2,0,0,_,_),
+    (
+        Operation = "ADD", Sign = 1;
+        Operation = "SUB", Sign = -1
+    ),
+    op_immediate(Op1,Immediate,_),
+    op_regdirect_contains_reg(Op2,Reg).
+
+// ADD/SUB reg, reg, #imm
+reg_arithmetic_operation(EA,Dst,Src,1,Sign*Immediate):-
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    (
+        Operation = "ADD", Sign = 1;
+        Operation = "SUB", Sign = -1
+    ),
+    op_regdirect_contains_reg(Op1,Src),
+    op_immediate(Op2,Immediate,_),
+    op_regdirect_contains_reg(Op3,Dst).
+
+// ADD Reg1, Reg2, N, M
+reg_arithmetic_operation(EA,DstReg,Reg,1,Val):-
+    instruction(EA,_,_,"ADD",Op1,Op2,Op3,DstOp,_,_),
+    op_regdirect_contains_reg(Op1,Reg),
+    op_immediate(Op2,N,_),
+    op_immediate(Op3,M,_),
+    op_regdirect_contains_reg(DstOp,DstReg),
+    N >= 0,
+    // N right-rotate M
+    Val = (N bshr M) bor (N bshl (32-M)).
+
+// ADD/SUB reg, reg (two operands: Thumb)
+reg_reg_arithmetic_operation(EA,Reg2,Reg2,Reg1,Sign,0):-
+    instruction(EA,_,_,Operation,Op1,Op2,0,0,_,_),
+    (
+        Operation = "ADD", Sign = 1;
+        Operation = "SUB", Sign = -1
+    ),
+    op_regdirect_contains_reg(Op2,Reg2),
+    op_regdirect_contains_reg(Op1,Reg1).
+
+// ADD/SUB reg, reg, reg
+reg_reg_arithmetic_operation(EA,Dst,Src1,Src2,Sign,0):-
+    !op_shifted(EA,_,_,_),
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    (
+        Operation = "ADD", Sign = 1;
+        Operation = "SUB", Sign = -1
+    ),
+    op_regdirect_contains_reg(Op1,Src1),
+    op_regdirect_contains_reg(Op2,Src2),
+    op_regdirect_contains_reg(Op3,Dst).
+
+// ADD reg, reg, reg, lsl #imm
+reg_reg_arithmetic_operation(EA,Dst,Src1,Src2,Mult,0):-
+    Operation = "ADD",
+    instruction(EA,_,_,Operation,Op1,Op2,Op3,0,_,_),
+    op_regdirect_contains_reg(Op1,Src1),
+    op_regdirect_contains_reg(Op2,Src2),
+    op_regdirect_contains_reg(Op3,Dst),
+    op_shifted(EA,2,Shift,"LSL"),
+    Mult = as(1 bshl Shift,number).
+
+/**
+The function `Func` receives a string argument at register `Reg`.
+*/
+.decl library_string_arg(Func:symbol,Reg:register)
+
+library_string_arg("strchr","R0").
+library_string_arg("strrchr","R0").
+library_string_arg("strlen","R0").
+
+library_string_arg("strcat","R1").
+library_string_arg("strncat","R1").
+library_string_arg("strcpy","R1").
+library_string_arg("strncpy","R1").
+library_string_arg("strtok","R1").
+library_string_arg("strxfrm","R1").
+
+library_string_arg("strcmp","R0").
+library_string_arg("strcmp","R1").
+library_string_arg("strncmp","R0").
+library_string_arg("strncmp","R1").
+library_string_arg("strcoll","R0").
+library_string_arg("strcoll","R1").
+library_string_arg("strcspn","R0").
+library_string_arg("strcspn","R1").
+library_string_arg("strpbrk","R0").
+library_string_arg("strpbrk","R1").
+library_string_arg("strspn","R0").
+library_string_arg("strspn","R1").
+library_string_arg("strstr","R0").
+library_string_arg("strstr","R1").
+// TODO: add more
+
+// LDR or LDRD, e.g.:
+// ldr Reg, [pc, off]   or   ldrd Reg1, Reg2, [pc, off]
+simple_data_load(EA,Data,Size):-
+    pc_reg(PC),
+    load(EA,_,_,Reg,PC,"NONE",_,Offset),
+    !memory_access("LOAD",EA,_,_,_,_,_,_,Offset-4),
+    instruction_memory_access_size(EA,_,Size),
+    pc_relative_disp(EA,Disp),
+    align_addr(EA_aligned,EA),
+    Data = EA_aligned + as(Disp+Offset,address),
+    !pc_reg(Reg).
+
+// ldr Reg1, [BaseReg, Offset]  or ldrd Reg1, Reg2, [BaseReg, Offset]
+reg_relative_load(EA,BaseRegNN,Offset,Size):-
+    load(EA,_,_,Reg1,BaseReg,"NONE",_,Offset),
+    reg_nonnull(BaseReg,BaseRegNN),
+    instruction_memory_access_size(EA,_,Size),
+    as(Offset,unsigned) >= 0,
+    !memory_access("LOAD",EA,_,_,_,_,_,_,Offset-4),
+    !pc_reg(Reg1),
+    !pc_reg(BaseReg).
+
+// ldm r1, {r2, r3}
+reg_relative_load(EA,RegNN,0,Size):-
+    load(EA,_,_,_,Reg,_,_,_),
+    reg_nonnull(Reg,RegNN),
+    instruction_get_operation(EA,Operation),
+    contains("LDM",Operation),
+    instruction_get_dest_op(EA,_,RegBitFieldOp),
+    op_register_bitfield(RegBitFieldOp,MaxIndex,_),
+    !op_register_bitfield(RegBitFieldOp,MaxIndex+1,_),
+    RegCnt = MaxIndex + 1,
+    pointer_size(Pt_size),
+    Size = RegCnt * Pt_size.
+
+// vldn.type {dn,...}, r1
+reg_relative_load(EA,RegNN,0,AccessSize):-
+    memory_access_aggregated("LOAD",EA,Reg,_,_,_,AccessSize),
+    reg_nonnull(Reg,RegNN),
+    instruction_get_operation(EA,Operation),
+    match("VLD[1-4].*",Operation).
+
+}

@@ -1,0 +1,8 @@
+namespace limestone::syntax::traceml;
+parser traceml;
+root Document;
+node Document { Expr* forms; }
+sum Expr = List | Integer | Symbol;
+node List { Expr* elements; }
+token Integer;
+token Symbol;

@@ -1,0 +1,186 @@
+//===- jump_operations.dl -----------------------------------*- datalog -*-===//
+//
+//  Copyright (C) 2020 GrammaTech, Inc.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//  This project is sponsored by the Office of Naval Research, One Liberty
+//  Center, 875 N. Randolph Street, Arlington, VA 22203 under contract #
+//  N68335-17-C-0700.  The content of the information does not necessarily
+//  reflect the position or policy of the Government and no official
+//  endorsement should be inferred.
+//
+//===----------------------------------------------------------------------===//
+/**
+The set of jump operations in MIPS32
+*/
+
+/**
+Assorted conditional branches
+*/
+.decl conditional_branch(Operation:symbol,CC:condition_code)
+
+// FPU conditional branch instructions
+conditional_branch("BC0F","?").
+conditional_branch("BC0FL","?").
+conditional_branch("BC0T","?").
+conditional_branch("BC0TL","?").
+conditional_branch("BC1F","?").
+conditional_branch("BC1FL","?").
+conditional_branch("BC1T","?").
+conditional_branch("BC1TL","?").
+conditional_branch("BC2F","?").
+conditional_branch("BC2FL","?").
+conditional_branch("BC2T","?").
+conditional_branch("BC2TL","?").
+conditional_branch("BC3F","?").
+conditional_branch("BC3FL","?").
+conditional_branch("BC3T","?").
+conditional_branch("BC3TL","?").
+// microMIPS
+conditional_branch("BPOSGE32","?").
+// mips32 release 6
+conditional_branch("BNVC","O").
+conditional_branch("BOVC","NO").
+
+jump_operation("J").
+jump_operation("JIC").
+jump_operation("B").
+jump_operation("B16").
+jump_operation("BC").
+
+jump_operation(Operation),
+conditional_operation(Operation,CC):-
+    conditional_branch(Operation,CC).
+
+jump_operation(Operation),
+cmp_operation(Operation),
+conditional_operation(Operation,CC):-
+    jump_comp_operation(Operation,CC);
+    jump_equal_operation(Operation),CC="E";
+    jump_unequal_operation(Operation),CC="NE".
+
+.decl jump_comp_operation(Operation:symbol,CC:condition_code)
+
+jump_comp_operation(Operation,CC):-
+    jump_comp_operation_2op(Operation,CC);
+    jump_comp_operation_3op(Operation,CC).
+
+.decl jump_comp_operation_3op(Operation:symbol,CC:condition_code)
+
+jump_comp_operation_3op("BGEC","GE").
+jump_comp_operation_3op("BGEUC","GE").
+jump_comp_operation_3op("BLTC","L").
+jump_comp_operation_3op("BLTUC","L").
+
+.decl jump_comp_operation_2op(Operation:symbol,CC:condition_code)
+
+jump_comp_operation_2op("BGEZ","GE").
+jump_comp_operation_2op("BGEZC","GE").
+jump_comp_operation_2op("BGEZL","GE").
+jump_comp_operation_2op("BGTZ","G").
+jump_comp_operation_2op("BGTZC","G").
+jump_comp_operation_2op("BGTZL","G").
+jump_comp_operation_2op("BLEZ","LE").
+jump_comp_operation_2op("BLEZC","LE").
+jump_comp_operation_2op("BLEZL","LE").
+jump_comp_operation_2op("BLTZ","L").
+jump_comp_operation_2op("BLTZC","L").
+jump_comp_operation_2op("BLTZL","L").
+
+// SIMD branch instructions
+jump_comp_operation_2op("BNZ","?").
+jump_comp_operation_2op("BNZ.B","?").
+jump_comp_operation_2op("BNZ.H","?").
+jump_comp_operation_2op("BNZ.W","?").
+jump_comp_operation_2op("BNZ.D","?").
+jump_comp_operation_2op("BNZ.V","?").
+jump_comp_operation_2op("BZ","?").
+jump_comp_operation_2op("BZ.B","?").
+jump_comp_operation_2op("BZ.H","?").
+jump_comp_operation_2op("BZ.W","?").
+jump_comp_operation_2op("BZ.D","?").
+jump_comp_operation_2op("BZ.V","?").
+
+.decl jump_equal_operation(Operation:symbol)
+
+jump_equal_operation("BTEQZ").
+
+jump_equal_operation(Operation):-
+    jump_equal_operation_2op(Operation);
+    jump_equal_operation_3op(Operation).
+
+.decl jump_equal_operation_3op(n:symbol)
+
+jump_equal_operation_3op("BEQ").
+jump_equal_operation_3op("BEQC").
+jump_equal_operation_3op("BEQL").
+
+.decl jump_equal_operation_2op(n:symbol)
+
+jump_equal_operation_2op("BEQZ").
+jump_equal_operation_2op("BEQZ16").
+jump_equal_operation_2op("BEQZC").
+jump_equal_operation_2op("BC1EQZ").
+jump_equal_operation_2op("BC2EQZ").
+
+.decl jump_unequal_operation(Operation:symbol)
+
+jump_unequal_operation("BTNEZ").
+
+jump_unequal_operation(Operation):-
+    jump_unequal_operation_2op(Operation);
+    jump_unequal_operation_3op(Operation).
+
+.decl jump_unequal_operation_3op(n:symbol)
+
+jump_unequal_operation_3op("BNE").
+jump_unequal_operation_3op("BNEC").
+jump_unequal_operation_3op("BNEL").
+
+.decl jump_unequal_operation_2op(n:symbol)
+
+jump_unequal_operation_2op("BNEZ").
+jump_unequal_operation_2op("BNEZ16").
+jump_unequal_operation_2op("BNEZC").
+jump_unequal_operation_2op("BC1NEZ").
+jump_unequal_operation_2op("BC2NEZ").
+
+// Compact branches don't have a delay slot.
+.decl compact_branch_operation(n:symbol)
+
+compact_branch_operation("BC").
+compact_branch_operation("BEQC").
+compact_branch_operation("BNEC").
+compact_branch_operation("BGEC").
+compact_branch_operation("BGEUC").
+compact_branch_operation("BGTC").
+compact_branch_operation("BLEC").
+compact_branch_operation("BLTC").
+compact_branch_operation("BLTUC").
+compact_branch_operation("BOVC").
+compact_branch_operation("BNVC").
+compact_branch_operation("JC").
+
+jump_operation_op_index(Operation,2):-
+    jump_unequal_operation_3op(Operation);
+    jump_equal_operation_3op(Operation);
+    jump_comp_operation_3op(Operation,_).
+
+jump_operation_op_index(Operation,1):-
+    jump_operation(Operation),
+    !jump_unequal_operation_3op(Operation),
+    !jump_equal_operation_3op(Operation),
+    !jump_comp_operation_3op(Operation,_).
+
+call_operation_op_index(Operation,1):-
+    call_operation(Operation).

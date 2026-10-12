@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.loop.induction-variable-canonicalization"
+  :name "Induction Variable Canonicalization"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization)
+  (objective "Canonicalize induction variables to a standard form with a single stride-one variable.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis induction-variable-analysis))
+  (preconditions
+    (loop-has-multiple-induction-variables))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (canonicalize (induction-variables ivs) (canonical-iv i)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Reduces multiple induction variables to a single canonical form.")
+  (limitations "Applies only when the loop has multiple induction variables.")
+  (documentation
+    (purpose "Canonicalize induction variables to a standard form.")
+    (motivation "Canonical induction variables enable downstream loop optimizations.")
+    (applicability "Applies to loops with multiple induction variables.")
+    (semantic-assumptions "The loop has multiple induction variables.")
+    (known-limitations "Does not canonicalize loops with a single induction variable.")
+    (testing-strategy "Single, multiple, and nested induction variable cases are exercised.")))

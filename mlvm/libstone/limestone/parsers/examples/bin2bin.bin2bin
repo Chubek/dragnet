@@ -1,0 +1,19 @@
+isa "toy.isa";
+architecture toy {
+  isa "toy.isa";
+  version = "1";
+  opcode 0x00 NOP status supported semantics (nop);
+  opcode 0x01 TRAP status privileged;
+  tooling { domain = "virtual-isa"; }
+}
+translate toy -> toy {
+  map NOP -> NOP bytes [0x00];
+  map TRAP -> TRAP;
+  rule identity: (add ?x 0) -> (mov ?x) where (pure ?x) cost 1;
+  optimization = true;
+}
+unit "example" {
+  instruction 0x1000: NOP [0x00] semantics (nop) status supported;
+  instruction 0x1001: TRAP status fallback;
+  origin = ["input", 1];
+}

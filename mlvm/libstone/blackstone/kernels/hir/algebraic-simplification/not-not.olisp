@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.not-not"
+  :name "Double Boolean Negation Elimination"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a double Boolean negation with the original value.")
+  (requires
+    (capability typed-expressions)
+    (capability boolean-semantics))
+  (preconditions
+    (operand-has-compatible-boolean-type)
+    (double-negation-is-identity))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (boolean-not (boolean-not x)) x))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces not(not(x)) with x.")
+  (limitations "Applies only when double Boolean negation is the identity.")
+  (documentation
+    (purpose "Eliminate double Boolean negation.")
+    (motivation "Removing double negation reduces instruction count.")
+    (applicability "Applies to Boolean not nodes whose operand is itself a Boolean not.")
+    (semantic-assumptions "The Boolean not operation satisfies not(not(x)) = x.")
+    (known-limitations "Does not apply to bitwise negation.")
+    (testing-strategy "Both truth values are exercised.")))

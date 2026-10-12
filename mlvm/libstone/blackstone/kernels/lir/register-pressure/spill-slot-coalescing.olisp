@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.register-pressure.spill-slot-coalescing"
+  :name "Spill Slot Coalescing"
+  :stage lir
+  (category register-pressure-optimization)
+  (paradigms register-pressure-optimization)
+  (objective "Coalesce spill slots for values that are not live simultaneously.")
+  (requires
+    (capability machine-operations)
+    (capability register-constraints)
+    (capability spill-slot-information))
+  (preconditions
+    (values-do-not-interfere))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (coalesce (spill-slot s1) (spill-slot s2) (spill-slot s)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Coalesces spill slots for non-interfering values.")
+  (limitations "Applies only when the values do not interfere.")
+  (documentation
+    (purpose "Coalesce spill slots for non-interfering values.")
+    (motivation "Spill slot coalescing reduces stack frame size.")
+    (applicability "Applies to spill slots for values that do not interfere.")
+    (semantic-assumptions "The values do not interfere.")
+    (known-limitations "Does not coalesce interfering values.")
+    (testing-strategy "Non-interfering, interfering, and boundary cases are exercised.")))

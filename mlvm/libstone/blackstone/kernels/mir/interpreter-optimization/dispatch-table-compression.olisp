@@ -1,0 +1,27 @@
+(define-kernel
+  :id "blackstone.mir.interpreter.dispatch-table-compression"
+  :name "Dispatch Table Compression"
+  :stage mir
+  (category interpreter-optimization)
+  (paradigms interpreter-optimization)
+  (objective "Compress the interpreter dispatch table to reduce memory footprint.")
+  (requires
+    (capability interpreter-bytecode)
+    (capability dispatch-table))
+  (preconditions
+    (dispatch-table-is-sparse))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (canonicalize (dispatch-table dt) (compressed-table ct)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Compresses the interpreter dispatch table.")
+  (limitations "Applies only when the dispatch table is sparse.")
+  (documentation
+    (purpose "Compress the interpreter dispatch table.")
+    (motivation "Dispatch table compression reduces memory footprint.")
+    (applicability "Applies to sparse dispatch tables.")
+    (semantic-assumptions "The dispatch table is sparse.")
+    (known-limitations "Does not compress dense dispatch tables.")
+    (testing-strategy "Sparse, dense, and empty table cases are exercised.")))

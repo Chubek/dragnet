@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.compare-negation"
+  :name "Comparison Negation Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a negated comparison with the complementary comparison.")
+  (requires
+    (capability typed-expressions)
+    (capability comparison-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (comparison-negation-is-complement))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (boolean-not (compare eq x y)) (compare ne x y)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces not(x == y) with x != y.")
+  (limitations "Applies only when comparison negation is the complement.")
+  (documentation
+    (purpose "Simplify negated comparisons to the complementary comparison.")
+    (motivation "Canonicalizing comparisons enables downstream rewrites.")
+    (applicability "Applies to Boolean not nodes whose operand is an equality comparison.")
+    (semantic-assumptions "The comparison and Boolean not operations satisfy not(x == y) = (x != y).")
+    (known-limitations "Does not apply to floating-point comparisons without explicit permission.")
+    (testing-strategy "Equal and unequal operand cases are exercised.")))

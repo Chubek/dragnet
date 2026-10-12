@@ -1,0 +1,8 @@
+{
+  "hir": [],
+  "mir": [],
+  "lir": [
+    "capability:instruction-cost-model",
+    "condition:replacement-profitable-under-target-cost-model"
+  ]
+}

@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.xor-self"
+  :name "Bitwise Xor Self Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a bitwise xor of a value with itself with zero.")
+  (requires
+    (capability typed-expressions)
+    (capability bitwise-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (xor-self-is-zero))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (bitwise-xor x x) (integer 0)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x ^ x with 0.")
+  (limitations "Applies only when bitwise xor of a value with itself yields zero.")
+  (documentation
+    (purpose "Simplify bitwise xor of a value with itself to zero.")
+    (motivation "Removing self-xor reduces instruction count.")
+    (applicability "Applies to bitwise xor nodes where both operands are the same value.")
+    (semantic-assumptions "The bitwise xor operation satisfies x ^ x = 0.")
+    (known-limitations "Does not apply to Boolean xor.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

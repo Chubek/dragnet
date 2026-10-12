@@ -1,0 +1,7 @@
+arch byte_target { word_size = 64; addr_size = 64; endian = little; }
+profile { family = "fixture"; model = "semantic-bytecode"; version = "1"; execution_model = "one-counter"; }
+tooling { bin2bin = { schema_version = 1; instruction_encoding = "fixed8"; execution_domain = "bytecode"; word_size = 64; address_size = 64; endianness = "little"; }; }
+encoding INCREMENT { width = 8; base = 0x09; }
+op increment { encoding = INCREMENT; operands = ; semantics = "(set counter (add counter 1))";
+  tooling = { binary_translation = { schema_version = 1; equivalence_basis = "semantics"; }; };
+}

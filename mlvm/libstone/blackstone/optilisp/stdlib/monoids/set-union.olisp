@@ -1,0 +1,12 @@
+(define-monoid
+  :id "blackstone.monoid.set-union"
+  :name "Set Union"
+  :carrier set
+  :operation set-union
+  :identity empty-set
+  (laws
+    (associative set-union)
+    (left-identity set-union empty-set)
+    (right-identity set-union empty-set))
+  (description
+    "Set union with the empty set as identity, suitable for combining fact sets."))

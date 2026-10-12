@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.interprocedural.constant-propagation"
+  :name "Interprocedural Constant Propagation"
+  :stage mir
+  (category interprocedural-optimization)
+  (paradigms interprocedural data-flow-analysis)
+  (objective "Propagate constants across function boundaries when interprocedural facts prove the substitution valid.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis)
+    (capability interprocedural-summaries))
+  (preconditions
+    (constant-argument-reaches-use)
+    (no-intervening-redefinition))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (propagate (call f (integer c)) (use x) (integer c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Propagates constants across function boundaries.")
+  (limitations "Applies only when interprocedural facts prove the substitution valid.")
+  (documentation
+    (purpose "Propagate constants across function boundaries.")
+    (motivation "Interprocedural constant propagation enables downstream optimizations.")
+    (applicability "Applies to calls with constant arguments that reach uses without redefinition.")
+    (semantic-assumptions "Interprocedural facts prove the constant reaches the use.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Reaching, redefined, and unknown cases are exercised.")))

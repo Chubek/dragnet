@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.analysis-driven.range-check-elimination"
+  :name "Range Check Elimination"
+  :stage mir
+  (category data-flow-optimization)
+  (paradigms data-flow-analysis)
+  (objective "Remove range checks that are provably unnecessary.")
+  (requires
+    (capability ssa-form)
+    (analysis range-analysis)
+    (capability bounds-information))
+  (preconditions
+    (range-check-is-provably-safe))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (eliminate (range-check :id safe-check)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Removes provably unnecessary range checks.")
+  (limitations "Applies only when the range check is provably safe.")
+  (documentation
+    (purpose "Remove provably unnecessary range checks.")
+    (motivation "Range check elimination reduces overhead.")
+    (applicability "Applies to range checks that are provably safe.")
+    (semantic-assumptions "The range check is provably safe.")
+    (known-limitations "Does not remove range checks that may fail.")
+    (testing-strategy "Safe, unsafe, and unknown cases are exercised.")))

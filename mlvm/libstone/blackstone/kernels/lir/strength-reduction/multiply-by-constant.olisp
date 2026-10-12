@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.strength-reduction.multiply-by-constant"
+  :name "Multiply by Constant Strength Reduction"
+  :stage lir
+  (category strength-reduction)
+  (paradigms target-specific cost-model-guided)
+  (objective "Replace a multiplication by a constant with a sequence of shifts and adds.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability instruction-cost-model))
+  (preconditions
+    (constant-is-power-of-two-or-sum)
+    (replacement-is-cheaper))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (strength-reduce (mul x (integer c)) (shift-add-sequence x c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a multiplication by a constant with shifts and adds.")
+  (limitations "Applies only when the replacement is cheaper under the target cost model.")
+  (documentation
+    (purpose "Replace multiplication by a constant with shifts and adds.")
+    (motivation "Strength reduction replaces expensive operations with cheaper ones.")
+    (applicability "Applies to multiplications by a constant when the replacement is cheaper.")
+    (semantic-assumptions "The replacement preserves the original arithmetic semantics.")
+    (known-limitations "Profitability depends on the target cost model.")
+    (testing-strategy "Power-of-two, sum-of-powers, and non-representable cases are exercised.")))

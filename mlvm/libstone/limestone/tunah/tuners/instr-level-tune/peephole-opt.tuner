@@ -1,0 +1,75 @@
+; =============================================================================
+; Tunah tuner -- peephole optimization
+; =============================================================================
+; Tunah note    : A peephole here is a rewrite over a window of two adjacent
+;                instructions in one basic block, matched with seq. Nothing in
+;                this file looks further than the next instruction, and no rule
+;                here reasons about a value that is already available, which is
+;                what separates it from reduntant-instr-elim.tuner.
+; Purpose       : Remove no-ops from a block, forward a store into the load
+;                that reads it back, and delete a store that is overwritten
+;                before anything can read it. No rule here changes a memory
+;                effect: the forwarding rules keep the store and truncate the
+;                forwarded value to the stored width, and only the
+;                dead store rules remove one, and then only when the next
+;                instruction rewrites the very same bytes.
+; Stage         : Instruction level machine IL, on a linearised block.
+; Vocabulary    : seq, nop, the stores and the loads of the shared directory
+;                vocabulary.
+; Preconditions :
+;   * The model of memory is a flat array of 8-bit bytes, (storeN p v) writes
+;     the low N bits of v little endian at the byte p, and (loadN p) reads
+;     them back. Loads and stores are not speculatable and are not reordered
+;     across the window, so the second instruction observes the first.
+;   * A load or store that may trap, has an ordering constraint, or may alias
+;     through a barrier must not be represented as loadN or storeN. The
+;     adapter has to reject such instructions before ingestion, otherwise the
+;     window reasoning below would not hold.
+;   * A nop has no effect and is not observable, so dropping it is safe even
+;     between two memory instructions, where a scheduling barrier would not
+;     have been.
+; Cost model    : No-op and dead-store removal reduce size. Narrow forwarding
+;                needs a truncating mask and can grow the term; it wins only
+;                when the configured load cost pays for that mask. Otherwise
+;                extraction retains the original load.
+; Termination   : pp-drop-nop-first and pp-drop-nop-second remove a node from
+;                the window, pp-drop-double-nop removes a whole window, the
+;                forwarding rules replace a load with a value or mask, and
+;                the dead store rules collapse two instructions into one store.
+;                No rule creates a nop, a store or a load, and forwarding never
+;                recreates a matched load, so application remains bounded.
+;
+; Operator signatures required by this file:
+; signatures: seq 2, nop 0, store8 2, store32 2, store64 2, load8 1, load32 1,
+;             load64 1, iand 2
+; =============================================================================
+
+; A nop in the first window position is not an effect, so the window is its
+; second instruction.
+(rule pp-drop-nop-first (seq (nop) ?r) ?r)
+; A nop in the second window position is not an effect, so the window is its
+; first instruction.
+(rule pp-drop-nop-second (seq ?l (nop)) ?l)
+; The second instruction reads exactly what the first wrote, so the load is
+; forwarded the stored value and the load disappears. The store is kept, not
+; deleted: a later reader of that location may still need it, and this tuner
+; has no liveness information, so the value is forwarded without the memory
+; effect being touched. Valid only because the window is adjacent, so nothing
+; can intervene between the store and the load. The load returns only the low
+; 32 bits written, even if the stored value arrived in a wider register.
+(rule pp-store-load-forward32 (seq (store32 ?p ?v) (load32 ?p))
+  (seq (store32 ?p ?v) (iand ?v 4294967295)))
+; Same, for the double width pair.
+(rule pp-store-load-forward64 (seq (store64 ?p ?v) (load64 ?p)) (seq (store64 ?p ?v) ?v))
+; The byte read back is the byte just written, so the load is forwarded the
+; stored value, again without touching the store.
+; Only the low byte is read back; for example, storing 256 then loading yields 0.
+(rule pp-store-load-forward8 (seq (store8 ?p ?v) (load8 ?p))
+  (seq (store8 ?p ?v) (iand ?v 255)))
+; The first store is overwritten before anything can read it, because the very
+; next instruction writes the same address, so it is dead.
+(rule pp-dead-store32 (seq (store32 ?p ?v) (store32 ?p ?w)) (store32 ?p ?w))
+; Same, for the double width pair.
+(rule pp-dead-store64 (seq (store64 ?p ?v) (store64 ?p ?w)) (store64 ?p ?w))
+; Two adjacent nops are one nop.
+(rule pp-drop-double-nop (seq (nop) (nop)) (nop))

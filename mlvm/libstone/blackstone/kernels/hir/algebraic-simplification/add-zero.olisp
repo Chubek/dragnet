@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.add-zero"
+  :name "Additive Identity Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer addition by zero with its nonconstant operand.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (addition-has-identity-zero))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (add x (integer 0)) x))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-integer-overflow-semantics))
+  (expected-effects "Replaces x + 0 with x.")
+  (limitations "Applies only when the addition has the additive identity semantics.")
+  (documentation
+    (purpose "Simplify integer addition by zero to the original value.")
+    (motivation "Removing identity operations reduces instruction count.")
+    (applicability "Applies to integer addition nodes where one operand is the integer constant zero.")
+    (semantic-assumptions "The addition operation has the additive identity property under the declared semantics.")
+    (known-limitations "Does not apply to floating-point addition without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

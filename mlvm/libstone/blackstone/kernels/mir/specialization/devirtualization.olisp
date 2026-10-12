@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.specialization.devirtualization"
+  :name "Devirtualization"
+  :stage mir
+  (category specialization)
+  (paradigms interprocedural specialization)
+  (objective "Replace a virtual call with a direct call when the dynamic type is known.")
+  (requires
+    (capability call-graph)
+    (analysis call-graph-analysis)
+    (capability devirtualization-information))
+  (preconditions
+    (dynamic-type-is-known))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (devirtualize (virtual-call obj method) (direct-call obj concrete-method)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a virtual call with a direct call.")
+  (limitations "Applies only when the dynamic type is known.")
+  (documentation
+    (purpose "Replace virtual calls with direct calls.")
+    (motivation "Devirtualization removes dispatch overhead.")
+    (applicability "Applies to virtual calls where the dynamic type is known.")
+    (semantic-assumptions "The dynamic type is known.")
+    (known-limitations "Does not devirtualize calls with unknown dynamic type.")
+    (testing-strategy "Known, unknown, and partially-known dynamic type cases are exercised.")))

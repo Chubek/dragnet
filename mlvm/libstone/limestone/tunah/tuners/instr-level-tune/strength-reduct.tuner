@@ -1,0 +1,84 @@
+; =============================================================================
+; Tunah tuner -- strength reduction
+; =============================================================================
+; Purpose       : Replace an expensive operation with a cheaper one that
+;                computes the same value: a multiply or a divide by a power of
+;                two becomes a shift or a mask, a multiply by minus one becomes
+;                a negation, and a division by one or minus one is dropped.
+; Stage         : Instruction level machine IL, once the target multiplier and
+;                divider cost model is known.
+; Vocabulary    : imul, iadd, ishl, ishr, iand, ineg, sdiv, srem, udiv, urem
+;                from the shared directory vocabulary.
+; Preconditions :
+;   * Wrapping two's complement arithmetic, so every identity below holds for
+;     the checked element widths W of 8, 16, 32 and 64 bits without a range
+;     assumption on the operand. This is
+;     why sdiv by minus one may be rewritten to a negation: the wrapped result
+;     of the most negative value divided by minus one is that value negated,
+;     which is what the wrapping model already requires of the divide.
+;   * The IL adapter certifies modulo-W shift counts, and a shift
+;     by a reduced count is a shift by the written count whenever that count
+;     is less than W, which is true of every count in this file.
+;   * udiv and urem are unsigned, so a power of two divisor becomes a logical
+;     shift and a mask, and never a change in sign.
+;   * Division and remainder by zero is undefined and is not modelled, so no
+;     rule here has a zero divisor and no rule may introduce one.
+; Cost model    : Every rule replaces its match with an operator of equal or
+;                lower cost on a target where shifts and masks are cheap. The
+;                size cost model treats them as equal, so a rule here never
+;                loses extraction; the real win is the target cost model that
+;                the backend applies to the fused instruction.
+; Ownership     : Neutral element and annihilator identities, such as x + 0
+;                and x & 0, are algebraic laws and live in alg-sim.tuner, not
+;                here. Shift and multiply combinations that shrink the term
+;                live in codesize-reduce.tuner. No rule body is duplicated.
+; Termination   : No rule increases the number of operands of an operator and
+;                no rule duplicates an operand, so each rule is non growing.
+;                The rewrites form a small lattice: mul by two, shift by one
+;                and add of a value to itself expose equivalent alternatives.
+;                Equal-cost extraction follows stable e-node insertion order;
+;                target costs decide which shape is preferred.
+;
+; Operator signatures required by this file:
+; signatures: imul 2, iadd 2, ishl 2, ishr 2, iand 2, ineg 1, sdiv 2, srem 2,
+;             udiv 2, urem 2
+; =============================================================================
+
+; A multiply by two is a shift by one. Both spellings are given because the
+; operand order is not normalised by any rule in this directory.
+(rule sr-mul-two (imul ?x 2) (ishl ?x 1))
+; Same, with the constant in the first position.
+(rule sr-mul-two-commuted (imul 2 ?x) (ishl ?x 1))
+; A multiple of four becomes a shift by two.
+(rule sr-mul-four (imul ?x 4) (ishl ?x 2))
+; A multiple of eight becomes a shift by three.
+(rule sr-mul-eight (imul ?x 8) (ishl ?x 3))
+; A multiple of sixteen becomes a shift by four.
+(rule sr-mul-sixteen (imul ?x 16) (ishl ?x 4))
+; A multiply by minus one is a negation, in wrapping arithmetic.
+(rule sr-mul-neg-one (imul ?x -1) (ineg ?x))
+; Same, with the constant in the first position.
+(rule sr-mul-neg-one-commuted (imul -1 ?x) (ineg ?x))
+; A shift by one is the sum of the value with itself, which is the form a
+; target with a cheap address or arithmetic unit prefers.
+(rule sr-shl-one (ishl ?x 1) (iadd ?x ?x))
+; A signed division by one is the identity.
+(rule sr-sdiv-one (sdiv ?x 1) ?x)
+; A signed remainder by one is zero, because the remainder takes the sign of
+; the dividend and a magnitude of one leaves nothing.
+(rule sr-srem-one (srem ?x 1) 0)
+; An unsigned division by one is the identity.
+(rule sr-udiv-one (udiv ?x 1) ?x)
+; An unsigned remainder by one is zero.
+(rule sr-urem-one (urem ?x 1) 0)
+; A signed division by minus one is a negation in the wrapping model, as noted
+; in the preconditions.
+(rule sr-sdiv-neg-one (sdiv ?x -1) (ineg ?x))
+; An unsigned division by two is a logical shift by one.
+(rule sr-udiv-two (udiv ?x 2) (ishr ?x 1))
+; An unsigned division by four is a logical shift by two.
+(rule sr-udiv-four (udiv ?x 4) (ishr ?x 2))
+; An unsigned remainder by two is the low bit, because the value is unsigned.
+(rule sr-urem-two (urem ?x 2) (iand ?x 1))
+; An unsigned remainder by four is the low two bits.
+(rule sr-urem-four (urem ?x 4) (iand ?x 3))

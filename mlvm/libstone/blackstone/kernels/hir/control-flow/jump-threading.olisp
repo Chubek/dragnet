@@ -1,0 +1,26 @@
+(define-kernel
+  :id "blackstone.hir.control-flow.jump-threading"
+  :name "HIR Jump Threading"
+  :stage hir
+  (category control-flow-simplification)
+  (paradigms control-flow-graph rule-based)
+  (objective "Redirect a jump to a block that unconditionally jumps to another block.")
+  (requires
+    (capability explicit-control-flow))
+  (preconditions
+    (intermediate-block-unconditionally-jumps))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (rewrite (jump (block :id intermediate)) (jump (block :id final-target))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Redirects a jump through an intermediate unconditional jump.")
+  (limitations "Applies only when the intermediate block unconditionally jumps to the final target.")
+  (documentation
+    (purpose "Thread jumps through intermediate unconditional jumps.")
+    (motivation "Jump threading simplifies control flow and enables downstream optimizations.")
+    (applicability "Applies to jump instructions targeting a block that unconditionally jumps elsewhere.")
+    (semantic-assumptions "The intermediate block unconditionally jumps to the final target.")
+    (known-limitations "Does not thread through conditional branches.")
+    (testing-strategy "Unconditional and conditional intermediate cases are exercised.")))

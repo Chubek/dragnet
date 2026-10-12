@@ -1,0 +1,42 @@
+; MLVM supplement: schema profile 1; declarative, not executable NodeIR.
+(define-kernel
+  :id "blackstone.mir.loops.loop-deletion"
+  :name "Loop deletion"
+  :stage mir
+  (category loop-optimization)
+  (paradigms graph-rewriting rule-based)
+  (objective "Replace (effect-free-finite-loop body) with (bypass-loop body) when the declared proof obligations hold.")
+  (requires
+    (capability ssa-form)
+    (capability explicit-control-flow)
+    (capability loop-information)
+    (analysis dominator-analysis)
+    (analysis loop-nest-analysis)
+    (analysis induction-variable-analysis)
+    (analysis side-effect-analysis)
+    (analysis exception-analysis))
+  (preconditions termination-and-unobservability-proven operand-and-result-types-compatible operand-values-defined source-effects-traps-and-exceptions-preserved result-satisfies-stage-invariants)
+  (forbids unmodeled-observable-effects invalidated-input-analysis)
+  (analysis-contract
+    (requires dominator-analysis loop-nest-analysis induction-variable-analysis side-effect-analysis exception-analysis)
+    (invalidates constant-value-analysis dominator-analysis exception-analysis induction-variable-analysis liveness-analysis loop-nest-analysis side-effect-analysis)
+    (preserves))
+  (transform (rewrite (effect-free-finite-loop body) (bypass-loop body)))
+  (correctness preserve-observable-behavior preserve-stage-invariants preserve-source-provenance)
+  (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+  (limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Deleting a nonterminating loop changes behavior: prove finite termination and absence of traps, effects, and live results.")
+  (documentation
+    (purpose "Replace (effect-free-finite-loop body) with (bypass-loop body) when the declared proof obligations hold.")
+    (motivation "Expose the loop deletion opportunity for planners with explicit legality facts.")
+    (stage "NodeMIR; all required capabilities must be supplied explicitly.")
+    (applicability "Match (effect-free-finite-loop body); require a proven true termination-and-unobservability-proven fact.")
+    (preconditions "Required true facts: termination-and-unobservability-proven, operand-and-result-types-compatible, operand-values-defined, source-effects-traps-and-exceptions-preserved, result-satisfies-stage-invariants.")
+    (required-information "Capabilities: ssa-form, explicit-control-flow, loop-information; analyses: dominator-analysis, loop-nest-analysis, induction-variable-analysis, side-effect-analysis, exception-analysis. Results must be current.")
+    (transformation "Replace (effect-free-finite-loop body) with (bypass-loop body) when the declared proof obligations hold. Preserve source provenance and update uses and edges consistently.")
+    (semantic-assumptions "Deleting a nonterminating loop changes behavior: prove finite termination and absence of traps, effects, and live results.")
+    (correctness "Preserve required observable behavior under the declared execution model; unknown facts never justify the rewrite.")
+    (known-limitations "Declarative contract only; NodeIR matching and execution require an external adapter. Deleting a nonterminating loop changes behavior: prove finite termination and absence of traps, effects, and live results.")
+    (expected-effects "Simplifies the matched representation; runtime benefit and code-size change depend on the surrounding program and target.")
+    (testing-strategy "tests/test_catalog.py checks positive, rejected, unknown, invalidated, and stage-mismatch applicability for blackstone.mir.loops.loop-deletion. Integer-model tests cover HIR identities; other transformations have no executable NodeIR evidence.")
+    (references "Blackstone AGENTS.md sections 4, 5, 11, 12, 17, and 18; tools/blackstone/README.md contract semantics.")
+    (recommended-tools "No external library recommended; execution integration remains optional.")))

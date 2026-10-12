@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.bit-manipulation"
+  :name "Bit Manipulation Instruction Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select specialized bit manipulation instructions when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability bit-manipulation-information))
+  (preconditions
+    (target-supports-bit-manipulation))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (bit-op op) (bit-manipulation-instruction instr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects specialized bit manipulation instructions.")
+  (limitations "Applies only when the target supports bit manipulation instructions.")
+  (documentation
+    (purpose "Select specialized bit manipulation instructions.")
+    (motivation "Bit manipulation instructions reduce instruction count.")
+    (applicability "Applies to bit manipulation operations when the target supports them.")
+    (semantic-assumptions "The target supports bit manipulation instructions.")
+    (known-limitations "Does not select when the target lacks bit manipulation instructions.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

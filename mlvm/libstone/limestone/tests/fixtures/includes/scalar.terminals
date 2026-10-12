@@ -1,0 +1,3 @@
+nonterminal reg = 0;
+terminal CONST(0);
+terminal ADD(2);

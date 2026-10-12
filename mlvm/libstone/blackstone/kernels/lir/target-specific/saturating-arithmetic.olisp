@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.lir.target.saturating-arithmetic"
+  :name "Saturating Arithmetic Selection"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific)
+  (objective "Select saturating arithmetic instructions when the target supports them.")
+  (requires
+    (capability machine-operations)
+    (capability target-description)
+    (capability saturation-information))
+  (preconditions
+    (target-supports-saturating-arithmetic))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (select (arithmetic-op op) (saturating-instruction instr)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Selects saturating arithmetic instructions.")
+  (limitations "Applies only when the target supports saturating arithmetic.")
+  (documentation
+    (purpose "Select saturating arithmetic instructions.")
+    (motivation "Saturating arithmetic instructions avoid overflow checks.")
+    (applicability "Applies to arithmetic operations when the target supports saturating arithmetic.")
+    (semantic-assumptions "The target supports saturating arithmetic.")
+    (known-limitations "Does not select when the target lacks saturating arithmetic.")
+    (testing-strategy "Supported, unsupported, and boundary cases are exercised.")))

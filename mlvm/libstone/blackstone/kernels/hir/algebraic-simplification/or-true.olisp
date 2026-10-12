@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.or-true"
+  :name "Boolean Or True Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace a Boolean or with true with true.")
+  (requires
+    (capability typed-expressions)
+    (capability boolean-semantics))
+  (preconditions
+    (operand-has-compatible-boolean-type)
+    (or-true-is-true))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (boolean-or x true) true))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x || true with true.")
+  (limitations "Applies only when Boolean or with true yields true.")
+  (documentation
+    (purpose "Simplify Boolean or with true to true.")
+    (motivation "Removing Boolean or with true reduces instruction count.")
+    (applicability "Applies to Boolean or nodes where one operand is the Boolean constant true.")
+    (semantic-assumptions "The Boolean or operation satisfies x || true = true.")
+    (known-limitations "Does not apply to bitwise or.")
+    (testing-strategy "Both truth values for the other operand are exercised.")))

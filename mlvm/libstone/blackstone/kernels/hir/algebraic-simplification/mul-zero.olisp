@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.hir.algebraic-simplification.mul-zero"
+  :name "Multiplication by Zero Simplification"
+  :stage hir
+  (category algebraic-simplification)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Replace an integer multiplication by zero with zero.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-overflow-semantics))
+  (preconditions
+    (operand-has-compatible-integer-type)
+    (multiplication-by-zero-is-zero))
+  (forbids
+    (operation-has-observable-side-effects))
+  (transform
+    (rewrite (mul x (integer 0)) (integer 0)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces x * 0 with 0.")
+  (limitations "Applies only when multiplication by zero yields zero under the declared semantics.")
+  (documentation
+    (purpose "Simplify integer multiplication by zero to zero.")
+    (motivation "Removing multiplication by zero reduces instruction count.")
+    (applicability "Applies to integer multiplication nodes where one operand is the integer constant zero.")
+    (semantic-assumptions "The multiplication operation satisfies x * 0 = 0 under the declared semantics.")
+    (known-limitations "Does not apply to floating-point multiplication without explicit permission.")
+    (testing-strategy "Positive, negative, and zero operand cases are exercised.")))

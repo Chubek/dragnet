@@ -1,0 +1,13 @@
+(define-monoid
+  :id "blackstone.monoid.diagnostic-accumulation"
+  :name "Diagnostic Accumulation"
+  :carrier diagnostic-list
+  :operation diagnostic-append
+  :identity empty-diagnostic-list
+  (laws
+    (associative diagnostic-append)
+    (left-identity diagnostic-append empty-diagnostic-list)
+    (right-identity diagnostic-append empty-diagnostic-list))
+  (description
+    "Diagnostic accumulation with the empty list as identity. Ordering must be"
+    " deterministic for reproducible diagnostics."))

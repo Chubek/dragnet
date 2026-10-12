@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.mir.parallelization.loop-parallelization"
+  :name "Loop Parallelization"
+  :stage mir
+  (category parallelization)
+  (paradigms parallelization dependence-analysis)
+  (objective "Transform a loop to execute iterations in parallel when dependence constraints permit.")
+  (requires
+    (capability ssa-form)
+    (capability parallel-execution)
+    (capability loop-information)
+    (analysis dependence-analysis)
+    (analysis parallelization-analysis))
+  (preconditions
+    (dependence-constraints-permit-parallelization)
+    (iterations-are-independent))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (parallelize (loop l)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Transforms a loop to execute iterations in parallel.")
+  (limitations "Applies only when dependence constraints permit parallelization.")
+  (documentation
+    (purpose "Transform loops to execute iterations in parallel.")
+    (motivation "Loop parallelization exploits thread-level parallelism.")
+    (applicability "Applies to loops where dependence constraints permit parallelization.")
+    (semantic-assumptions "Dependence constraints permit parallelization and iterations are independent.")
+    (known-limitations "Does not parallelize loops with prohibited dependences.")
+    (testing-strategy "Independent, dependent, and unknown dependence cases are exercised.")))

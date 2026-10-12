@@ -1,0 +1,30 @@
+(define-kernel
+  :id "blackstone.mir.redundancy-elimination.partial-redundancy"
+  :name "Partial Redundancy Elimination"
+  :stage mir
+  (category redundancy-elimination)
+  (paradigms ssa-based data-flow-analysis)
+  (objective "Eliminate partial redundancies by hoisting computations to dominate all uses.")
+  (requires
+    (capability ssa-form)
+    (capability dominance-information)
+    (analysis available-expressions-analysis))
+  (preconditions
+    (expression-is-partially-redundant)
+    (insertion-point-dominates-uses))
+  (forbids
+    (unknown-memory-dependence)
+    (operation-has-observable-side-effects))
+  (transform
+    (hoist (expression e) (insertion-point p)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Hoists a partially redundant computation to a dominating insertion point.")
+  (limitations "Applies only when the insertion point dominates all uses and the expression is safe to hoist.")
+  (documentation
+    (purpose "Eliminate partial redundancies by hoisting.")
+    (motivation "PRE removes computations that are redundant on some paths.")
+    (applicability "Applies to expressions that are available on some but not all paths to a use.")
+    (semantic-assumptions "The insertion point dominates all uses and the expression is safe to hoist.")
+    (known-limitations "May increase register pressure or code size.")
+    (testing-strategy "Partially redundant, fully redundant, and unsafe cases are exercised.")))

@@ -1,0 +1,31 @@
+(define-kernel
+  :id "blackstone.hir.constant-folding.integer-add"
+  :name "Integer Addition Constant Folding"
+  :stage hir
+  (category constant-evaluation)
+  (paradigms algebraic-rewriting rule-based)
+  (objective "Evaluate an integer addition whose operands are both known constants.")
+  (requires
+    (capability typed-expressions)
+    (capability integer-constant-operands)
+    (analysis constant-value-analysis))
+  (preconditions
+    (operation-has-defined-compile-time-semantics)
+    (result-representable-under-integer-semantics))
+  (forbids
+    (operation-has-observable-side-effects)
+    (signed-overflow-traps))
+  (transform
+    (fold (add (integer a) (integer b)) (integer-result (integer-add a b))))
+  (correctness
+    (preserve-observable-behavior)
+    (respect-integer-overflow-semantics))
+  (expected-effects "Replaces a constant integer addition with its compile-time value.")
+  (limitations "Requires both operands to be known constants and a representable result.")
+  (documentation
+    (purpose "Fold a constant integer addition into its compile-time result.")
+    (motivation "Removing constant arithmetic reduces run-time work and enables downstream rewrites.")
+    (applicability "Applies to integer addition nodes with two known integer constant operands.")
+    (semantic-assumptions "The IR's integer semantics, including overflow behavior, are preserved.")
+    (known-limitations "Does not propagate constants or fold non-constant operands.")
+    (testing-strategy "Positive, boundary, and overflow cases are exercised in the constant-folding tests.")))

@@ -1,0 +1,310 @@
+-- amdgpu.dsymspec — AMD GCN/RDNA/CDNA (AMDGPU HSA kernel ABI).
+-- Encodings are representative 32/64-bit SOP/VOP/FLAT words, not bit-exact;
+-- register file (SGPR/VGPR/AGPR + EXEC/VCC/SCC/M0 + flat_scratch), features
+-- (GCN/RDNA/CDNA, wave32/64, FLAT, XNACK), and HSA sections/relocations are
+-- accurate. Cross-checked via TableGen AMDGPU target + arch_oracle +
+-- ccbe_oracle SIMT/vector-ISA topics.
+-- Strata: base(sop) | vop | flat | ds(buffer) | image | cdna-mfma | priv.
+local symas = require("dsl").new()
+
+symas.target{
+    arch = "amdgpu", subarch = "gfx900",
+    addr_size = 64, op_size = 32, addr_def = 64, align = 4,
+    byte_order = "little", obj_format = "ELF64", abi = "amdgpu-HSA",
+    calling_conv = "amdgpu-hsa-kernel",
+    features = { "base", "gcn", "wave64" },
+}
+
+symas.feature{ name = "base", desc = "scalar SOP base" }
+symas.feature{ name = "gcn", desc = "Graphics Core Next" }
+symas.feature{ name = "rdna", desc = "RDNA" }
+symas.feature{ name = "cdna", desc = "CDNA (matrix cores)" }
+symas.feature{ name = "wave32", desc = "32-lane wavefront" }
+symas.feature{ name = "wave64", desc = "64-lane wavefront" }
+symas.feature{ name = "flat", desc = "flat addressing (FLAT/GLOBAL)" }
+symas.feature{ name = "xnack", desc = "execute-mask XNACK" }
+symas.feature{ name = "priv", desc = "privileged (s_getreg/s_setreg)" }
+symas.feature{ name = "image", desc = "image/memory ops (MUBUF/MTBUF/MIMG)" }
+symas.feature{ name = "mfma", desc = "matrix-fused multiply-add (CDNA)" }
+
+for i = 0, 105 do
+    symas.register{ name = "s" .. i, class = "gpr", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 255 do
+    symas.register{ name = "v" .. i, class = "gpr", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+for i = 0, 255 do
+    symas.register{ name = "a" .. i, class = "gpr", width = 32, enc = i, flags = { "readable", "writable" } }
+end
+symas.register{ name = "exec", class = "mask", width = 64, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "vcc", class = "mask", width = 64, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "scc", class = "status", width = 8, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "m0", class = "special", width = 32, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "flat_scratch", class = "special", width = 64, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "xnack_mask", class = "mask", width = 64, enc = 0, flags = { "readable", "writable" } }
+symas.register{ name = "pc", class = "special", width = 64, enc = 0 }
+
+symas.encoder{ name = "s_nop",  source = "emit32le(0xBF800000);", max_bytes = 4 }
+symas.encoder{ name = "s_add",  source = "emit32le(0x81000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "s_sub",  source = "emit32le(0x82000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "s_and",  source = "emit32le(0x88000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "s_or",   source = "emit32le(0x8A000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "s_mov",  source = "emit32le(0xBE000000 + dst*16777216 + src0);", max_bytes = 4 }
+symas.encoder{ name = "s_branch", source = "emit32le(0xBF800002); emit_relocation(sym, R_AMDGPU_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "s_cbranch", source = "emit32le(0xBF840000); emit_relocation(sym, R_AMDGPU_REL32);", max_bytes = 4, max_relocs = 1 }
+symas.encoder{ name = "s_endpgm", source = "emit32le(0xBF810000);", max_bytes = 4 }
+symas.encoder{ name = "s_waitcnt", source = "emit32le(0xBF8C0000 + imm);", max_bytes = 4 }
+symas.encoder{ name = "s_barrier", source = "emit32le(0xBF8A0000);", max_bytes = 4 }
+symas.encoder{ name = "s_load", source = "emit32le(0xC0000000 + dst*16777216 + src0*256);", max_bytes = 4 }
+symas.encoder{ name = "s_store", source = "emit32le(0xC8000000 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "s_getreg", source = "emit32le(0xB0000000 + dst*16777216 + src0);", max_bytes = 4 }
+symas.encoder{ name = "v_add",  source = "emit32le(0x4A000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "v_sub",  source = "emit32le(0x4A800000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "v_mul",  source = "emit32le(0x4C000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "v_mov",  source = "emit32le(0x7E000000 + dst*16777216 + src0);", max_bytes = 4 }
+symas.encoder{ name = "v_cmp",  source = "emit32le(0x4F000000 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "v_cndmask", source = "emit32le(0x4E000000 + dst*16777216 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "flat_load", source = "emit64le(0xDC50000000000000 + dst*16777216 + src0*4294967296);", max_bytes = 8 }
+symas.encoder{ name = "flat_store", source = "emit64le(0xDC70000000000000 + src0*4294967296 + src1*16777216);", max_bytes = 8 }
+symas.encoder{ name = "ds_read", source = "emit32le(0xD8000000 + dst*16777216 + src0*256);", max_bytes = 4 }
+symas.encoder{ name = "ds_write", source = "emit32le(0xD9000000 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "buffer_load", source = "emit32le(0xE0000000 + dst*16777216 + src0*256);", max_bytes = 4 }
+symas.encoder{ name = "buffer_store", source = "emit32le(0xE8000000 + src0*256 + src1);", max_bytes = 4 }
+symas.encoder{ name = "image_load", source = "emit32le(0xF0000000 + dst*16777216 + src0*256);", max_bytes = 4 }
+symas.encoder{ name = "mfma",   source = "emit64le(0xD000000000000000 + dst*16777216 + src0*4294967296);", max_bytes = 8 }
+
+local function sg() return { kind = "reg", class = "gpr", width = 32 } end
+local function wsg() return { kind = "reg", class = "gpr", width = 32, access = "write" } end
+local function vg() return { kind = "reg", class = "gpr", width = 32 } end
+local function wvg() return { kind = "reg", class = "gpr", width = 32, access = "write" } end
+
+for _, m in ipairs({ "s_nop", "s_add", "s_sub", "s_and", "s_or", "s_mov",
+    "s_branch", "s_cbranch", "s_endpgm", "s_waitcnt", "s_barrier",
+    "s_load", "s_store", "s_getreg", "v_add", "v_sub", "v_mul", "v_mov",
+    "v_cmp", "v_cndmask", "flat_load", "flat_store", "ds_read", "ds_write",
+    "buffer_load", "buffer_store", "image_load", "mfma" }) do
+    symas.mnemonic{ name = m }
+end
+symas.form{ mnemonic = "s_nop", encoder = "s_nop" }
+symas.form{ mnemonic = "s_add", encoder = "s_add", operands = { wsg(), sg(), sg() } }
+symas.form{ mnemonic = "s_sub", encoder = "s_sub", operands = { wsg(), sg(), sg() } }
+symas.form{ mnemonic = "s_and", encoder = "s_and", operands = { wsg(), sg(), sg() } }
+symas.form{ mnemonic = "s_or",  encoder = "s_or",  operands = { wsg(), sg(), sg() } }
+symas.form{ mnemonic = "s_mov", encoder = "s_mov", operands = { wsg(), sg() } }
+symas.form{ mnemonic = "s_branch", encoder = "s_branch", flags = { "branch", "terminator", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "s_cbranch", encoder = "s_cbranch", flags = { "cond_branch", "reloc" }, operands = { { kind = "sym", width = 64 } } }
+symas.form{ mnemonic = "s_endpgm", encoder = "s_endpgm", flags = { "return", "terminator" } }
+symas.form{ mnemonic = "s_waitcnt", encoder = "s_waitcnt", operands = {
+    { kind = "imm", width = 16, signed = false, imm_min = 0, imm_max = 65535 } } }
+symas.form{ mnemonic = "s_barrier", encoder = "s_barrier" }
+symas.form{ mnemonic = "s_load", encoder = "s_load", flags = { "reads_mem" }, operands = { wsg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "s_store", encoder = "s_store", flags = { "writes_mem" }, operands = { sg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "s_getreg", encoder = "s_getreg", required = { "priv" }, flags = { "privileged" }, operands = { wsg(), sg() } }
+symas.form{ mnemonic = "v_add", encoder = "v_add", operands = { wvg(), vg(), vg() } }
+symas.form{ mnemonic = "v_sub", encoder = "v_sub", operands = { wvg(), vg(), vg() } }
+symas.form{ mnemonic = "v_mul", encoder = "v_mul", operands = { wvg(), vg(), vg() } }
+symas.form{ mnemonic = "v_mov", encoder = "v_mov", operands = { wvg(), vg() } }
+symas.form{ mnemonic = "v_cmp", encoder = "v_cmp", operands = { vg(), vg() } }
+symas.form{ mnemonic = "v_cndmask", encoder = "v_cndmask", operands = { wvg(), vg(), vg() } }
+symas.form{ mnemonic = "flat_load", encoder = "flat_load", required = { "flat" }, flags = { "reads_mem" },
+    operands = { wvg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "flat_store", encoder = "flat_store", required = { "flat" }, flags = { "writes_mem" },
+    operands = { vg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "ds_read", encoder = "ds_read", flags = { "reads_mem" }, operands = { wvg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "ds_write", encoder = "ds_write", flags = { "writes_mem" }, operands = { vg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "buffer_load", encoder = "buffer_load", required = { "image" }, flags = { "reads_mem" },
+    operands = { wvg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "buffer_store", encoder = "buffer_store", required = { "image" }, flags = { "writes_mem" },
+    operands = { vg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "image_load", encoder = "image_load", required = { "image" }, flags = { "reads_mem" },
+    operands = { wvg(), { kind = "mem", width = 32 } } }
+symas.form{ mnemonic = "mfma", encoder = "mfma", required = { "mfma" }, operands = { wvg(), vg(), vg() } }
+
+symas.syntax{ name = "default", comment = ";", separator = ", " }
+
+symas.section{ name = ".text", flags = { "exec", "alloc", "code" }, align = 4, content = "code" }
+symas.section{ name = ".rodata", flags = { "alloc", "readonly", "data" }, align = 4, content = "data" }
+symas.section{ name = ".data", flags = { "write", "alloc", "data" }, align = 4, content = "data" }
+symas.section{ name = ".AMDGPU.config", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+symas.section{ name = ".AMDGPU.disasm", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+symas.section{ name = ".note", flags = { "alloc", "readonly", "meta" }, align = 4, content = "meta" }
+
+symas.linkage{ name = "kernel_entry", binding = "global", visibility = "default", symtype = "func" }
+symas.linkage{ name = "func_local", binding = "local", visibility = "default", symtype = "func" }
+symas.linkage{ name = "object_global", binding = "global", visibility = "default", symtype = "object" }
+
+symas.reloc{ name = "R_AMDGPU_NONE", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_AMDGPU_ABS32", width = 32, expr = "S + A" }
+symas.reloc{ name = "R_AMDGPU_ABS64", width = 64, expr = "S + A" }
+symas.reloc{ name = "R_AMDGPU_REL32", width = 32, signed = true, pcrel = true, expr = "S + A - P" }
+symas.reloc{ name = "R_AMDGPU_GOT", width = 64, expr = "GOT(S) + A" }
+symas.reloc{ name = "R_AMDGPU_RELATIVE", width = 64, expr = "B + A" }
+symas.reloc{ name = "R_AMDGPU_GLOB_DAT", width = 64, expr = "S + A" }
+
+symas.debug{ msg = "amdgpu SIMT: sop+vop+flat/ds/image+mfma stratification", kind = "target", ref = "" }
+symas.debug{ msg = "flat forms require flat", kind = "form", ref = "flat_load" }
+symas.debug{ msg = "mfma forms require cdna/mfma", kind = "form", ref = "mfma" }
+
+-- ---------------------------------------------------------------------------
+-- Instruction selection, scheduling, and per-model optimization
+-- ---------------------------------------------------------------------------
+-- Sources (cross-checked with the tablegen_inquiry MCP tool, which reads the
+-- same files under $TABLEGEN_LIB):
+--   AMDGPU/SISchedule.td  `class SISchedMachineModel : SchedMachineModel`
+--                         with CompleteModel 1, MicroOpBufferSize 1,
+--                         IssueWidth 1, PostRAScheduler 1, MispredictPenalty 20;
+--                         the WriteSALU/WriteVMEM/WriteSMEM/WriteLDS/WriteFMA/
+--                         Write32Bit/WriteQuarterRate32/WriteIntMul/WriteTrans*
+--                         class names and the GFX10/11/12SpeedModel variants
+--   AMDGPU/AMDGPUSubtargetFeatures.td GCN/RDNA/CDNA generations, wave32/wave64
+--   compute_oracle          GCN/RDNA/CDNA wavefront, VALU/SALU, MFMA units
+--   arch_oracle             AMDGPU register file (SGPR/VGPR/AGPR, EXEC/VCC)
+
+-- Machine models. AMDGPU is modelled per wavefront: the "issue width" below
+-- counts waves, and a SIMD instruction is 32 or 64 lanes wide.
+symas.model{
+    name = "gfx11", vendor = "amd", issue_width = 1, rob = 1,
+    load_latency = 40, mispredict = 20, high_latency = 40,
+    flags = { "out_of_order", "has_stalls", "forwarding", "complete", "default" },
+    features = { "base", "rdna", "wave32", "flat", "mfma" },
+    desc = "SISchedMachineModel/GFX11SpeedModel: one wave issue per cycle, VALU+SALU",
+}
+symas.model{
+    name = "gfx9", vendor = "amd", issue_width = 1, rob = 1,
+    load_latency = 45, mispredict = 20, high_latency = 45,
+    flags = { "out_of_order", "has_stalls", "forwarding", "complete" },
+    features = { "base", "gcn", "wave64", "flat" },
+    desc = "GCN generations: 4 SIMD32 units per CU, wave64",
+}
+symas.model{
+    name = "gfx6", vendor = "amd", issue_width = 1, rob = 1,
+    load_latency = 60, mispredict = 20, high_latency = 60,
+    flags = { "in_order", "has_stalls", "complete" },
+    features = { "base", "gcn", "wave64" },
+    desc = "Southern Islands: in-order per workgroup, wave64",
+}
+symas.unit{ name = "valu", model = "gfx11", kind = "vector", count = 4, latency = 4, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "salu", model = "gfx11", kind = "other", count = 4, latency = 4, throughput = 1, flags = { "pipelined" } }
+symas.unit{ name = "vmu",  model = "gfx11", kind = "load", count = 4, latency = 40, throughput = 1 }
+symas.unit{ name = "smem", model = "gfx11", kind = "load", count = 1, latency = 24, throughput = 1 }
+symas.unit{ name = "mfma", model = "gfx11", kind = "complex", count = 4, latency = 32, throughput = 1, flags = { "noncoincident" } }
+symas.unit{ name = "lds",  model = "gfx11", kind = "load", count = 1, latency = 24, throughput = 1 }
+symas.unit{ name = "exec", model = "gfx11", kind = "branch", count = 2, latency = 1, throughput = 1 }
+symas.unit{ name = "gcn-valu", model = "gfx9", kind = "vector", count = 4, latency = 4, throughput = 1 }
+symas.unit{ name = "gcn-salu", model = "gfx9", kind = "other", count = 4, latency = 4, throughput = 1 }
+symas.unit{ name = "gcn-vmu",  model = "gfx9", kind = "load", count = 4, latency = 45, throughput = 1 }
+symas.unit{ name = "gcn-lds",  model = "gfx9", kind = "load", count = 1, latency = 30, throughput = 1 }
+symas.unit{ name = "si-valu", model = "gfx6", kind = "vector", count = 4, latency = 4, throughput = 1 }
+symas.unit{ name = "si-vmu",  model = "gfx6", kind = "load", count = 4, latency = 60, throughput = 1 }
+
+for _, m in ipairs({ "s_add", "s_sub", "s_and", "s_or", "s_mov" }) do
+    symas.sched{ form = m, name = "WriteSALU", latency = 4, uops = 1, writes = { "salu" }, reads = { "salu" } }
+end
+symas.sched{ form = { "v_add", "v_sub", "v_mov" }, name = "Write32Bit", latency = 4, uops = 1,
+             writes = { "valu" }, reads = { "valu" } }
+symas.sched{ form = "v_mul", name = "WriteIntMul", latency = 16, uops = 4, flags = { "multicycle" },
+             writes = { "valu" }, reads = { "valu" } }
+symas.sched{ form = "v_cmp", name = "Write32Bit", latency = 4, uops = 1, flags = { "side_effects" },
+             writes = { "valu", "salu" }, reads = { "valu" } }
+symas.sched{ form = "v_cndmask", name = "Write32Bit", latency = 4, uops = 1, writes = { "valu" }, reads = { "valu", "salu" } }
+symas.sched{ form = "s_load", name = "WriteVMEM", latency = 40, uops = 1, flags = { "may_fault" }, writes = { "vmu" } }
+symas.sched{ form = "s_store", name = "WriteVMEM", latency = 40, uops = 1, flags = { "may_fault" }, writes = { "vmu" } }
+symas.sched{ form = { "flat_load", "flat_store" }, name = "WriteFlat", latency = 40, uops = 1, flags = { "may_fault" }, writes = { "vmu" } }
+symas.sched{ form = { "buffer_load", "buffer_store" }, name = "WriteVMEM", latency = 40, uops = 1, flags = { "may_fault" }, writes = { "vmu" } }
+symas.sched{ form = "image_load", name = "WriteImage", latency = 40, uops = 4, flags = { "may_fault" }, writes = { "vmu" } }
+symas.sched{ form = { "ds_read", "ds_write" }, name = "WriteLDS", latency = 24, uops = 1, flags = { "may_fault" }, writes = { "lds" } }
+symas.sched{ form = "mfma", name = "WriteFMA", latency = 32, uops = 16, flags = { "multicycle" },
+             writes = { "mfma" }, reads = { "mfma" } }
+symas.sched{ form = "s_branch", name = "WriteBranch", latency = 1, uops = 1, flags = { "fused" }, writes = { "exec" } }
+symas.sched{ form = "s_cbranch", name = "WriteBranch", latency = 1, uops = 1, flags = { "fused" }, writes = { "exec" } }
+symas.sched{ form = "s_endpgm", name = "WriteBranch", latency = 1, uops = 1, flags = { "side_effects" }, writes = { "exec" } }
+symas.sched{ form = "s_barrier", name = "WriteBarrier", latency = 1, uops = 1, flags = { "serializing", "barrier" }, writes = { "exec" } }
+symas.sched{ form = "s_waitcnt", name = "WriteBarrier", latency = 1, uops = 1, flags = { "barrier" }, writes = { "exec" } }
+symas.sched{ form = "s_getreg", name = "WriteSALU", latency = 4, uops = 1, flags = { "side_effects" }, writes = { "salu" } }
+symas.sched{ form = "s_nop", name = "WriteNop", latency = 0, uops = 1, flags = { "nop" }, writes = {} }
+
+symas.tune{ model = "gfx9", kind = "latency", form = "s_load", value = 45, flags = { "override" },
+            desc = "GCN VMEM latency is one full memory round trip" }
+symas.tune{ model = "gfx9", kind = "latency", form = "flat_load", value = 45, flags = { "override" } }
+symas.tune{ model = "gfx9", kind = "latency", form = "ds_read", value = 30, flags = { "override" } }
+symas.tune{ model = "gfx9", kind = "latency", form = "v_mul", value = 16, flags = { "override" } }
+symas.tune{ model = "gfx6", kind = "latency", form = "s_load", value = 60, flags = { "override" } }
+symas.tune{ model = "gfx6", kind = "latency", form = "flat_load", value = 60, flags = { "override" },
+            desc = "Southern Islands pre-GCN addressing costs an extra cycle" }
+symas.tune{ model = "gfx6", kind = "avoid", form = "flat_load", value = 2,
+            desc = "no flat addressing: use buffer/ds forms" }
+symas.tune{ model = "gfx11", kind = "prefer", form = "mfma", value = 4,
+            desc = "gfx11 has dedicated MFMA units; matrix work leaves the VALU free" }
+symas.tune{ model = "gfx9", kind = "avoid", form = "mfma", value = 2,
+            desc = "GCN has no matrix cores: MFMA expands to many VALU ops" }
+symas.tune{ model = "gfx11", kind = "avoid", form = "v_mul", value = 2,
+            desc = "prefer MFMA or LDS folding over a raw VALU multiply" }
+symas.tune{ model = "gfx11", kind = "threshold", name = "wave-size", value = 32,
+            desc = "RDNA wave32: 32 lanes per wave, half the GCN wave64 work per wave" }
+symas.tune{ model = "gfx9", kind = "threshold", name = "wave-size", value = 64 }
+symas.tune{ model = "gfx6", kind = "threshold", name = "wave-size", value = 64 }
+symas.tune{ model = "gfx11", kind = "strategy", name = "occupancy", value = 8,
+            desc = "max waves per SIMD is bounded by VGPR and LDS allocation" }
+symas.tune{ model = "gfx11", kind = "strategy", name = "post-RA-scheduler", value = 0,
+            desc = "SISchedMachineModel sets PostRAScheduler = 1" }
+symas.tune{ model = "gfx11", kind = "strategy", name = "wave-size-agnostic-occupancy", value = 0,
+            desc = "MicroOpBufferSize = 1: instructions enter the ready queue as soon as they are available" }
+
+symas.isel{ node = "add", form = "s_add", kind = "node", cost = 4, complexity = 1,
+            flags = { "commutes" }, pattern = "(add i32, GPR:$a, GPR:$b) with scalar operands" }
+symas.isel{ node = "add", form = "v_add", kind = "node", cost = 4, complexity = 2,
+            pattern = "(add <4 x i32>, VGPR:$a, VGPR:$b)" }
+symas.isel{ node = "sub", form = "s_sub", kind = "node", cost = 4, complexity = 1, pattern = "(sub i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "and", form = "s_and", kind = "node", cost = 4, complexity = 1, pattern = "(and i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "or", form = "s_or", kind = "node", cost = 4, complexity = 1, pattern = "(or i32, GPR:$a, GPR:$b)" }
+symas.isel{ node = "xor", form = "v_add", kind = "node", cost = 4, complexity = 3,
+            pattern = "vector xor expands to an add with an inverted operand" }
+symas.isel{ node = "mul", form = "v_mul", kind = "node", cost = 16, complexity = 3, pattern = "(mul <4 x i32>, VGPR:$a, VGPR:$b)" }
+symas.isel{ node = "fadd", form = "v_add", kind = "node", cost = 4, complexity = 2, pattern = "(fadd <4 x float>, ...)" }
+symas.isel{ node = "fmul", form = "v_mul", kind = "node", cost = 16, complexity = 3, pattern = "(fmul <4 x float>, ...)" }
+symas.isel{ node = "fma", form = "mfma", kind = "node", cost = 32, complexity = 4, required = { "mfma" },
+            pattern = "matrix fma uses the MFMA units" }
+symas.isel{ node = "fma", form = "v_add", kind = "node", cost = 20, complexity = 3,
+            pattern = "without MFMA, fma expands to a multiply and an add" }
+symas.isel{ node = "icmp", form = "v_cmp", kind = "node", cost = 4, complexity = 2, flags = { "side_effects" },
+            pattern = "(icmp <4 x i32>, ...)" }
+symas.isel{ node = "select", form = "v_cndmask", kind = "select", cost = 4, complexity = 3,
+            pattern = "select lowers to v_cndmask" }
+symas.isel{ node = "load", form = "s_load", kind = "node", cost = 40, complexity = 2, pattern = "(load i32, addr: p1)" }
+symas.isel{ node = "store", form = "s_store", kind = "node", cost = 40, complexity = 2, pattern = "(store i32, addr: p1)" }
+symas.isel{ node = "load", form = "flat_load", kind = "node", cost = 40, complexity = 2,
+            required = { "flat" }, pattern = "flat addressing covers global, LDS and private" }
+symas.isel{ node = "load", form = "buffer_load", kind = "node", cost = 40, complexity = 2,
+            pattern = "buffer/offset resource" }
+symas.isel{ node = "load", form = "ds_read", kind = "node", cost = 24, complexity = 3,
+            pattern = "LDS access for wave-level data exchange" }
+symas.isel{ node = "load", form = "image_load", kind = "node", cost = 40, complexity = 4,
+            required = { "image" }, pattern = "texture access" }
+symas.isel{ node = "br", form = "s_branch", kind = "node", cost = 1, complexity = 1, pattern = "(br label)" }
+symas.isel{ node = "br", form = "s_cbranch", kind = "node", cost = 1, complexity = 2, pattern = "(brcond (setcc GPR:$cc))" }
+symas.isel{ node = "COPY", form = "v_mov", kind = "copy", cost = 0, complexity = 1, flags = { "prefer" },
+            pattern = "register copy coalesced into v_mov or eliminated" }
+symas.isel{ node = "MEMBARRIER", form = "s_barrier", kind = "node", cost = 1, complexity = 1,
+            flags = { "side_effects", "prefer" }, pattern = "s_barrier synchronises a whole wave" }
+symas.isel{ node = "MEM_ORDER", form = "s_waitcnt", kind = "node", cost = 1, complexity = 1,
+            flags = { "side_effects" }, pattern = "s_waitcnt orders memory operations" }
+symas.isel{ node = "workitem.id", form = "v_mov", kind = "node", cost = 0, complexity = 1, flags = { "prefer" } }
+symas.isel{ node = "workgroup.id", form = "s_getreg", kind = "node", cost = 4, complexity = 2,
+            flags = { "side_effects" } }
+
+symas.fuse{ name = "s_cmp-cbranch", a = "s_getreg", b = "s_cbranch", kind = "cmp_branch", latency = 1,
+            flags = { "profitable", "requires_flags", "adjacent" },
+            pattern = "the scalar pipe produces the compare that the branch consumes" }
+symas.fuse{ name = "v_cmp-cndmask", a = "v_cmp", b = "v_cndmask", kind = "cmp_select", latency = 4,
+            flags = { "profitable", "requires_flags", "adjacent" },
+            pattern = "v_cmp sets VCC that v_cndmask reads on the next cycle" }
+symas.fuse{ name = "s_load-s_add", a = "s_load", b = "s_add", kind = "mem_arith", latency = 40,
+            flags = { "profitable", "adjacent" }, pattern = "scalar load feeding an ALU op" }
+symas.fuse{ name = "ds_read-v_add", a = "ds_read", b = "v_add", kind = "mem_arith", latency = 24,
+            flags = { "profitable", "adjacent" }, pattern = "LDS read feeding a vector op" }
+symas.fuse{ name = "mfma-mfma", a = "mfma", b = "mfma", kind = "macro", latency = 32,
+            flags = { "profitable", "adjacent" },
+            pattern = "consecutive MFMA instructions keep the matrix pipe busy" }
+symas.fuse{ name = "branch-waitcnt", a = "s_branch", b = "s_waitcnt", kind = "branch_pair",
+            flags = { "profitable", "adjacent" } }
+print(symas.emit())

@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.abi.tail-call-lowering"
+  :name "Tail Call Lowering"
+  :stage lir
+  (category abi-lowering)
+  (paradigms target-specific)
+  (objective "Lower tail calls to the target calling convention.")
+  (requires
+    (capability machine-operations)
+    (capability calling-convention)
+    (capability tail-call-information))
+  (preconditions
+    (calling-convention-is-defined)
+    (call-is-in-tail-position))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (lower (tail-call f args) (calling-convention-tail-call lowered)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Lowers tail calls to the target calling convention.")
+  (limitations "Applies only when the calling convention is defined and the call is in tail position.")
+  (documentation
+    (purpose "Lower tail calls to the target calling convention.")
+    (motivation "Tail call lowering maps tail calls to jumps.")
+    (applicability "Applies to tail calls when the calling convention is defined.")
+    (semantic-assumptions "The calling convention is defined and the call is in tail position.")
+    (known-limitations "Does not lower when the calling convention is undefined or the call is not in tail position.")
+    (testing-strategy "Tail, non-tail, and boundary cases are exercised.")))

@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.constant-propagation.sparse-conditional"
+  :name "Sparse Conditional Constant Propagation"
+  :stage mir
+  (category constant-propagation)
+  (paradigms ssa-based data-flow-analysis control-flow-analysis)
+  (objective "Propagate constants and eliminate unreachable control-flow edges in a single sparse pass.")
+  (requires
+    (capability ssa-form)
+    (capability explicit-control-flow)
+    (analysis constant-value-analysis))
+  (preconditions
+    (ssa-definitions-are-explicit)
+    (control-flow-is-explicit))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (propagate (definition x (integer c)) (use x) (integer c)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Propagates constants and removes unreachable control-flow edges.")
+  (limitations "Applies only to SSA form with explicit control flow.")
+  (documentation
+    (purpose "Propagate constants and simplify control flow in a single sparse pass.")
+    (motivation "Sparse conditional constant propagation combines propagation and unreachable code elimination.")
+    (applicability "Applies to SSA form with explicit control flow and known constant values.")
+    (semantic-assumptions "The data-flow facts prove constants and unreachable edges.")
+    (known-limitations "Does not propagate through memory or unknown aliasing.")
+    (testing-strategy "Constant, unreachable, and unknown cases are exercised.")))

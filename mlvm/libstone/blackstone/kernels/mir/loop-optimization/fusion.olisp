@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.mir.loop.fusion"
+  :name "Loop Fusion"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization dependence-analysis)
+  (objective "Fuse two adjacent loops with compatible iteration spaces into a single loop.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis dependence-analysis))
+  (preconditions
+    (iteration-spaces-are-compatible)
+    (dependence-constraints-permit-fusion))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (fuse (loop a) (loop b)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Fuses two adjacent loops into a single loop.")
+  (limitations "Applies only when iteration spaces are compatible and dependence constraints permit fusion.")
+  (documentation
+    (purpose "Fuse adjacent loops with compatible iteration spaces.")
+    (motivation "Loop fusion reduces loop control overhead and improves cache locality.")
+    (applicability "Applies to adjacent loops with compatible iteration spaces.")
+    (semantic-assumptions "Iteration spaces are compatible and dependence constraints permit fusion.")
+    (known-limitations "Does not fuse loops with incompatible iteration spaces or prohibited dependences.")
+    (testing-strategy "Compatible, incompatible, and unknown dependence cases are exercised.")))

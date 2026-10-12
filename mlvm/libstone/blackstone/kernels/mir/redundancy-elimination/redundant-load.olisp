@@ -1,0 +1,28 @@
+(define-kernel
+  :id "blackstone.mir.redundancy-elimination.redundant-load"
+  :name "Redundant Load Elimination"
+  :stage mir
+  (category redundancy-elimination)
+  (paradigms ssa-based memory-optimization)
+  (objective "Replace a redundant load with a previously loaded value when no intervening store invalidates it.")
+  (requires
+    (capability ssa-form)
+    (analysis memory-dependence-analysis))
+  (preconditions
+    (load-is-redundant)
+    (no-intervening-store))
+  (forbids
+    (unknown-memory-dependence))
+  (transform
+    (rewrite (load addr) (use (previous-load addr))))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a redundant load with a previously loaded value.")
+  (limitations "Applies only when no intervening store invalidates the loaded value.")
+  (documentation
+    (purpose "Eliminate redundant loads.")
+    (motivation "Redundant load elimination reduces memory traffic.")
+    (applicability "Applies to loads whose value is already available from a previous load.")
+    (semantic-assumptions "No intervening store invalidates the loaded value.")
+    (known-limitations "Does not eliminate loads with unknown aliasing.")
+    (testing-strategy "Redundant, intervening-store, and unknown-alias cases are exercised.")))

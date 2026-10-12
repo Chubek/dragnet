@@ -1,0 +1,12 @@
+mlvm 1 {
+  block() {
+    "builtin.func"() ["result"="i32", "sym"="answer"] region {
+      block() {
+        %a:"i32" = "arith.constant"() ["value"="6"];
+        %b:"i32" = "arith.constant"() ["value"="7"];
+        %answer:"i32" = "arith.muli"(%a, %b) [];
+        "func.return"(%answer) [];
+      }
+    };
+  }
+}

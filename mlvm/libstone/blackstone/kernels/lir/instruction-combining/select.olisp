@@ -1,0 +1,29 @@
+(define-kernel
+  :id "blackstone.lir.instruction-combining.select"
+  :name "Select Combining"
+  :stage lir
+  (category instruction-combination)
+  (paradigms target-specific rule-based)
+  (objective "Replace a conditional branch with a select instruction when the target supports it.")
+  (requires
+    (capability machine-operations)
+    (capability target-description))
+  (preconditions
+    (target-supports-select)
+    (branch-is-select-convertible))
+  (forbids
+    (unmodeled-observable-effects))
+  (transform
+    (combine (branch (boolean c) true-block false-block)
+             (select c true-val false-val)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Replaces a conditional branch with a select instruction.")
+  (limitations "Applies only when the target supports select and the branch is convertible.")
+  (documentation
+    (purpose "Replace conditional branches with select instructions.")
+    (motivation "Select combining removes branch overhead.")
+    (applicability "Applies to conditional branches when the target supports select.")
+    (semantic-assumptions "The target supports select and the branch is convertible.")
+    (known-limitations "Does not convert branches that are not select-convertible.")
+    (testing-strategy "Convertible, non-convertible, and unsupported target cases are exercised.")))

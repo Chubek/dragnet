@@ -1,0 +1,33 @@
+(define-kernel
+  :id "blackstone.mir.loop.loop-invariant-code-motion"
+  :name "Loop-Invariant Code Motion"
+  :stage mir
+  (category loop-optimization)
+  (paradigms loop-optimization dependence-analysis)
+  (objective "Move an eligible loop-invariant computation to a location where it executes fewer times.")
+  (requires
+    (capability ssa-form)
+    (capability loop-information)
+    (analysis loop-invariant-analysis)
+    (analysis side-effect-analysis))
+  (preconditions
+    (computation-is-loop-invariant)
+    (dependencies-remain-valid)
+    (moving-does-not-introduce-new-observable-behavior)
+    (insertion-point-dominates-uses))
+  (forbids
+    (unknown-memory-dependence)
+    (operation-has-observable-side-effects))
+  (transform
+    (hoist (expression e) (loop l) (preheader p)))
+  (correctness
+    (preserve-observable-behavior))
+  (expected-effects "Moves a loop-invariant computation to the loop preheader.")
+  (limitations "Applies only when the computation is loop-invariant and safe to hoist.")
+  (documentation
+    (purpose "Move loop-invariant computations to execute fewer times.")
+    (motivation "LICM reduces execution count of invariant computations.")
+    (applicability "Applies to loop-invariant computations that are safe to hoist.")
+    (semantic-assumptions "The computation is loop-invariant, its dependencies remain valid, and moving it does not introduce new observable behavior.")
+    (known-limitations "May increase register pressure or code size; does not guarantee profitability.")
+    (testing-strategy "Invariant, variant, memory-involving, and trapping cases are exercised.")))

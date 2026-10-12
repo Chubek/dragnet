@@ -1,0 +1,74 @@
+; =============================================================================
+; Tunah tuner -- microarchitecture oriented optimization
+; =============================================================================
+; Purpose       : Reduce the number of expensive operations and the pressure on
+;                the critical resource of a core: one multiplier, one divider
+;                or one vector unit, whichever the Infobank says is scarce for
+;                the target in hand.
+; Stage         : Instruction level machine IL, late, once the target cost
+;                model from the Infobank is available.
+; Authority     : This file deliberately contains no target constant, no
+;                latency, no throughput figure and no port assignment. Those
+;                facts are read from metacode/infobank/isa and are authoritative
+;                input; a tuner that hard coded them would be asserting target
+;                properties the repository does not state. What is stated here
+;                is only the portable part, namely rewrites whose benefit is a
+;                smaller count of the operations that a core has to issue, and
+;                it is the backend that decides whether the count matters and
+;                how much it is worth. If the Infobank reports a multiplier as
+;                cheap, the factoring rules below simply do not pay and the
+;                size cost model keeps the unfolded form.
+; Vocabulary    : iadd, imul, iand, ior, ixor, ishl, ishr from the shared
+;                directory vocabulary.
+; Ownership     : Neutral element and annihilator laws are in alg-sim.tuner,
+;                cheap substitutions are in strength-reduct.tuner, and the
+;                size driven sharing of the same shape is in
+;                codesize-reduce.tuner. The rules here are distinguished by
+;                their reason, not by their shape, and no rule body is shared
+;                with those files.
+; Preconditions : The factoring rules are the distributive laws of a Boolean
+;                algebra and hold exactly, with no range or wrap assumption,
+;                because bitwise and, or and exclusive or are idempotent,
+;                commutative and distributive on the bits of the value. The
+;                sharing rules hold modulo the element width, like every other
+;                integer identity in this directory.
+; Cost model    : The factoring rules are cost reducing under the size cost
+;                model, so they win extraction. The sharing rules are cost
+;                reducing for the same reason. Where a rule would be cost
+;                neutral the extractor keeps the original, so nothing here can
+;                make the emitted code worse than the input.
+; Termination   : No rule duplicates an operand: each one replaces a subtree
+;                mentioning a variable twice with a subtree mentioning it once,
+;                so the matched subterm strictly shrinks and the set is
+;                monotone. The two shift rules are the only rules with a
+;                two-node left hand side that collapses to one, and neither
+;                can re-expand.
+;
+; Operator signatures required by this file:
+; signatures: iadd 2, imul 2, iand 2, ior 2, ixor 2, ishl 2, ishr 2
+; =============================================================================
+
+; Two products by constants share one multiplier, 2x + 6x is 8x, so a core
+; with one multiplier issues one multiply instead of two.
+(rule ua-share-const-pair (iadd (imul ?x 2) (imul ?x 6)) (imul ?x 8))
+; Factoring an and over an or, x | (y & z) becomes (x | y) & (x | z), which is
+; the direction that reduces the number of mask operations when one operand is
+; reused across the loop.
+(rule ua-factor-and-over-or (iand (ior ?x ?y) (ior ?x ?z)) (ior ?x (iand ?y ?z)))
+; The dual factoring, or over and, for the same reason.
+(rule ua-factor-or-over-and (ior (iand ?x ?y) (iand ?x ?z)) (iand ?x (ior ?y ?z)))
+; Exclusive or distributes over and in the same way, because every bit of the
+; mask selects the same bit of either operand.
+(rule ua-factor-xor-over-and (ixor (iand ?x ?y) (iand ?x ?z)) (iand ?x (ixor ?y ?z)))
+; A shifted value times a power of two is a shift of the value, so the
+; multiplier issue disappears.
+(rule ua-fold-shift-product (imul (ishl ?x 1) 4) (ishl ?x 3))
+; Nested shifts of one value are one shift by the total count, 1 + 1 is 2.
+(rule ua-fold-shift-count (ishl (ishl ?x 1) 1) (ishl ?x 2))
+; A value shifted right by one and back left by one has lost only its low bit,
+; so the two shifts are one mask. This is a real saving: a shift pair occupies
+; the shifter on two cycles where a mask does not touch it at all.
+(rule ua-clear-low-bit (ishl (ishr ?x 1) 1) (iand ?x -2))
+; Multiplying an already masked value by one is a wasted issue slot, because
+; the mask is the whole value.
+(rule ua-masked-times-one (imul (iand ?x ?m) 1) (iand ?x ?m))

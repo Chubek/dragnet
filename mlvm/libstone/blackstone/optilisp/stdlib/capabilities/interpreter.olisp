@@ -1,0 +1,36 @@
+;;; Interpreter and concurrency capabilities.
+
+(define-capability
+  :id "interpreter-bytecode"
+  :name "Interpreter Bytecode"
+  :stages (mir)
+  (description
+    "The IR represents interpreter bytecode operations."))
+
+(define-capability
+  :id "dispatch-table"
+  :name "Dispatch Table"
+  :stages (mir)
+  (description
+    "The interpreter dispatch table is available."))
+
+(define-capability
+  :id "inline-cache"
+  :name "Inline Cache"
+  :stages (mir)
+  (description
+    "Inline cache information is available."))
+
+(define-capability
+  :id "superinstruction"
+  :name "Superinstruction"
+  :stages (mir)
+  (description
+    "Superinstruction combining opportunities are identified."))
+
+(define-capability
+  :id "synchronization-operations"
+  :name "Synchronization Operations"
+  :stages (mir lir)
+  (description
+    "The IR models synchronization operations such as locks and barriers."))

@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+"""check-monoid-laws -- verify declared monoid laws for executable carriers.
+
+Loads every standard-library monoid definition and, for carriers with a known
+executable interpretation, checks the declared laws (associativity, left and
+right identity) over sampled values.  Monoids without an executable carrier are
+reported as skipped.
+
+Usage:
+    check-monoid-laws [--root DIR] [--verbose]
+
+Exit status:
+    0  all executable monoid laws hold
+    1  at least one law failed
+    2  invalid command-line usage
+    3  input/output or format error
+"""
+
+from __future__ import annotations
+
+import argparse
+import itertools
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "optilisp" / "src"))
+
+from optilisp.errors import DiagnosticSink  # noqa: E402
+from optilisp.validate import load_registry  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Executable carrier interpretations
+# ---------------------------------------------------------------------------
+
+UNIVERSE = frozenset({0, 1, 2, 3})
+
+
+def _int_add(a: int, b: int) -> int:
+    return a + b
+
+
+def _int_mul(a: int, b: int) -> int:
+    return a * b
+
+
+def _bool_and(a: bool, b: bool) -> bool:
+    return a and b
+
+
+def _bool_or(a: bool, b: bool) -> bool:
+    return a or b
+
+
+def _set_union(a: frozenset, b: frozenset) -> frozenset:
+    return a | b
+
+
+def _set_intersection(a: frozenset, b: frozenset) -> frozenset:
+    return a & b
+
+
+def _seq_concat(a: tuple, b: tuple) -> tuple:
+    return a + b
+
+
+def _map_merge(a: dict, b: dict) -> dict:
+    merged = dict(a)
+    merged.update(b)
+    return merged
+
+
+def _diag_append(a: tuple, b: tuple) -> tuple:
+    return a + b
+
+
+def _transform_compose(a, b):
+    return lambda x: a(b(x))
+
+
+def _transform_eq(f, g, test_inputs):
+    """Behavioral equality for transformations: f == g iff f(x) == g(x) for all test inputs."""
+    try:
+        return all(f(x) == g(x) for x in test_inputs)
+    except Exception:
+        return False
+
+
+INTERPRETATIONS = {
+    ("integer", "integer-add"): (_int_add, 0, [0, 1, 2, -1, -2, 7, -7, 100, -100]),
+    ("integer", "integer-mul"): (_int_mul, 1, [0, 1, -1, 2, -2, 3, -3, 5, -5]),
+    ("boolean", "boolean-and"): (_bool_and, True, [True, False]),
+    ("boolean", "boolean-or"): (_bool_or, False, [True, False]),
+    ("set", "set-union"): (_set_union, frozenset(), [frozenset(), frozenset({0}), frozenset({1, 2}), UNIVERSE]),
+    ("set", "set-intersection"): (_set_intersection, UNIVERSE, [frozenset(), frozenset({0}), frozenset({1, 2}), UNIVERSE]),
+    ("node-sequence", "sequence-concatenate"): (_seq_concat, (), [(), (1,), (1, 2), (3,)]),
+    ("map", "map-merge"): (_map_merge, {}, [{}, {"a": 1}, {"b": 2}, {"a": 1, "b": 2}]),
+    ("diagnostic-list", "diagnostic-append"): (_diag_append, (), [(), ("e1",), ("e1", "e2")]),
+    ("transformation", "transformation-compose"): (
+        _transform_compose,
+        lambda x: x,
+        [lambda x: x + 1, lambda x: x * 2, lambda x: -x],
+        [0, 1, -1, 42],
+    ),
+}
+
+
+def check_monoid(monoid, verbose: bool = False) -> tuple[bool, list[str]]:
+    """Check a monoid's declared laws.  Returns (ok, messages)."""
+    key = (monoid.carrier, monoid.operation)
+    interp = INTERPRETATIONS.get(key)
+    if interp is None:
+        return True, [f"skip: no executable interpretation for carrier '{monoid.carrier}'"]
+
+    if key == ("transformation", "transformation-compose"):
+        operation, identity, values, test_inputs = interp
+        messages: list[str] = []
+        ok = True
+
+        # Associativity: (a op b) op c == a op (b op c) (behavioral)
+        for a, b, c in itertools.product(values, repeat=3):
+            left = operation(operation(a, b), c)
+            right = operation(a, operation(b, c))
+            if not _transform_eq(left, right, test_inputs):
+                ok = False
+                messages.append(f"FAIL associativity: ({a} op {b}) op {c} != {a} op ({b} op {c})")
+
+        # Left identity: e op a == a (behavioral)
+        for a in values:
+            if not _transform_eq(operation(identity, a), a, test_inputs):
+                ok = False
+                messages.append(f"FAIL left-identity: e op {a} != {a}")
+
+        # Right identity: a op e == a (behavioral)
+        for a in values:
+            if not _transform_eq(operation(a, identity), a, test_inputs):
+                ok = False
+                messages.append(f"FAIL right-identity: {a} op e != {a}")
+
+        if verbose and ok:
+            messages.append(f"ok: associativity, left-identity, right-identity hold over {len(values)} value(s)")
+        return ok, messages
+
+    operation, identity, values = interp
+    messages: list[str] = []
+    ok = True
+
+    # Associativity: (a op b) op c == a op (b op c)
+    for a, b, c in itertools.product(values, repeat=3):
+        left = operation(operation(a, b), c)
+        right = operation(a, operation(b, c))
+        if left != right:
+            ok = False
+            messages.append(f"FAIL associativity: ({a} op {b}) op {c} = {left} != {right} = {a} op ({b} op {c})")
+
+    # Left identity: e op a == a
+    for a in values:
+        if operation(identity, a) != a:
+            ok = False
+            messages.append(f"FAIL left-identity: e op {a} = {operation(identity, a)} != {a}")
+
+    # Right identity: a op e == a
+    for a in values:
+        if operation(a, identity) != a:
+            ok = False
+            messages.append(f"FAIL right-identity: {a} op e = {operation(a, identity)} != {a}")
+
+    if verbose and ok:
+        messages.append(f"ok: associativity, left-identity, right-identity hold over {len(values)} value(s)")
+    return ok, messages
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="check-monoid-laws",
+        description="Verify declared monoid laws for executable carriers.",
+    )
+    parser.add_argument("--root", default=None, help="Blackstone project root")
+    parser.add_argument("--verbose", action="store_true")
+    args = parser.parse_args(argv)
+
+    root = Path(args.root) if args.root else Path(__file__).resolve().parents[1]
+    if not root.is_dir():
+        print(f"check-monoid-laws: root directory not found: {root}", file=sys.stderr)
+        return 3
+
+    sink = DiagnosticSink()
+    reg = load_registry(root / "optilisp" / "stdlib", sink)
+
+    if not reg.monoids:
+        print("check-monoid-laws: no monoid definitions found", file=sys.stderr)
+        return 3
+
+    all_ok = True
+    for mid in sorted(reg.monoids):
+        monoid = reg.monoids[mid]
+        ok, messages = check_monoid(monoid, verbose=args.verbose)
+        for m in messages:
+            print(f"{mid}: {m}")
+        if not ok:
+            all_ok = False
+
+    n_checked = sum(1 for m in reg.monoids.values() if (m.carrier, m.operation) in INTERPRETATIONS)
+    print(f"check-monoid-laws: {n_checked} executable monoid(s) checked, {len(reg.monoids)} total")
+    return 0 if all_ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
